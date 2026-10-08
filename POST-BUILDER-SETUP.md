@@ -69,10 +69,19 @@ Use your actual Worker URL in place of the example.
 
 ## 5. Connect the website
 
-1. In `site/post-builder.html`, replace `https://REPLACE_WITH_WORKER.workers.dev` in the `publisher-api-url` meta tag with the Worker URL. Do not add a trailing slash.
+The website and publisher are two different Workers URLs:
+
+- Website: `https://martinaudiolab.thealexandersound.workers.dev`
+- Publisher API: `https://martin-audio-labs-publisher.thealexandersound.workers.dev`
+
+The website URL goes in `SITE_ORIGIN` and `BUILDER_URL` in `publisher/wrangler.toml`. The publisher URL goes in the `publisher-api-url` meta tag in `site/post-builder.html`. If `npx wrangler deploy` prints a different publisher URL, use the URL Wrangler prints.
+
+1. In `site/post-builder.html`, set `publisher-api-url` to the publisher Worker URL. Do not add a trailing slash.
 2. Save and publish that site change to GitHub.
 3. Check that `SITE_ORIGIN` and `BUILDER_URL` in `publisher/wrangler.toml` match the website address from Step 1. If you change either value, deploy the Worker again with `npx wrangler deploy`.
 4. Open the published post builder and select **Connect GitHub**. Sign in with an administrator account and approve the GitHub App.
+
+To check the sign-in route, open `<publisher-Worker-URL>/auth/start` in a browser. Before login it should redirect to GitHub (HTTP 302). If it shows 404, the Worker has not been deployed at that hostname; deploy it from the `publisher` folder and use the URL Wrangler reports.
 
 After connecting, create a real post and select **Publish post**. It will appear in `site/stereo`, `site/radio`, or `site/test-equipment`, and its category index will link to it. Avoid test posts on production because they create real commits on `main`.
 
