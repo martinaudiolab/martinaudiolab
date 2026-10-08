@@ -8,9 +8,27 @@ GITHUB_CLIENT_ID = "REPLACE_WITH_GITHUB_APP_CLIENT_ID"
 GITHUB_OWNER = "martinaudiolab"
 GITHUB_REPOSITORY = "martinaudiolab"
 GITHUB_BRANCH = "main"
+ALLOW_NON_ADMIN_PUBLISHING = "false"
 SITE_ORIGIN = "https://YOUR_SITE_HOST"
 BUILDER_URL = "https://YOUR_SITE_HOST/post-builder.html"
 
 [[kv_namespaces]]
 binding = "PUBLISHER_SESSIONS"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[env.testing]
+name = "martin-audio-labs-publisher-test"
+workers_dev = true
+
+[env.testing.vars]
+GITHUB_CLIENT_ID = "REPLACE_WITH_TEST_GITHUB_APP_CLIENT_ID"
+GITHUB_OWNER = "martinaudiolab"
+GITHUB_REPOSITORY = "martinaudiolab"
+GITHUB_BRANCH = "post-builder-test"
+ALLOW_NON_ADMIN_PUBLISHING = "true"
+SITE_ORIGIN = "http://localhost:8080"
+BUILDER_URL = "http://localhost:8080/site/post-builder.html"
+
+[[env.testing.kv_namespaces]]
+binding = "PUBLISHER_SESSIONS"
+id = "REPLACE_WITH_TEST_KV_NAMESPACE_ID"

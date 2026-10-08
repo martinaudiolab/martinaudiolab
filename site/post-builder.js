@@ -210,7 +210,7 @@
       var handoff = await publisherApi("/api/session", { method: "POST", body: { ticket: ticket } });
       publisherSession = handoff.session;
       var user = await publisherApi("/api/me");
-      updateGitHubStatus("Connected as " + user.login + " (administrator)", true);
+      updateGitHubStatus("Connected as " + user.login + " (" + user.role + ")", true);
       status.textContent = "GitHub publishing is ready.";
     } catch (error) {
       publisherSession = null;

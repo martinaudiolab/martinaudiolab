@@ -122,7 +122,13 @@ async function refreshSession(session, env) {
   return session;
 }
 
-async function requireAdmin(request, env, sessionId) {
+function hasPublisherAccess(repository, env) {
+  const permissions = repository.permissions || {};
+  return permissions.admin === true ||
+    (env.ALLOW_NON_ADMIN_PUBLISHING === "true" && permissions.push === true);
+}
+
+async function requirePublisherAccess(request, env, sessionId) {
   if (!sessionId) throw new HttpError(401, "Connect GitHub to continue.");
   const key = "session:" + sessionId;
   let session = await env.PUBLISHER_SESSIONS.get(key, "json");
@@ -130,10 +136,11 @@ async function requireAdmin(request, env, sessionId) {
   session = await refreshSession(session, env);
   const repository = await githubRequest(session.accessToken,
     "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
-  if (!repository.permissions || repository.permissions.admin !== true) {
+  if (!hasPublisherAccess(repository, env)) {
     await env.PUBLISHER_SESSIONS.delete(key);
-    throw new HttpError(403, "This GitHub account is not an administrator of the publishing repository.");
+    throw new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
   }
+  session.isAdmin = repository.permissions.admin === true;
   await env.PUBLISHER_SESSIONS.put(key, JSON.stringify(session), { expirationTtl: SESSION_TTL });
   return session;
 }
@@ -288,6 +295,9 @@ async function publishPost(request, env, session, body) {
   const owner = env.GITHUB_OWNER;
   const repository = env.GITHUB_REPOSITORY;
   const branch = env.GITHUB_BRANCH || "main";
+  if (env.ALLOW_NON_ADMIN_PUBLISHING === "true" && branch === "main") {
+    throw new HttpError(503, "Non-admin test mode must use a branch other than main.");
+  }
   const folder = "site/" + category.folder;
   const filename = slug + ".html";
   const apiBase = "/repos/" + owner + "/" + repository;
@@ -379,8 +389,8 @@ async function finishLogin(request, env) {
   const user = await githubRequest(tokens.access_token, "/user");
   const repository = await githubRequest(tokens.access_token,
     "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
-  if (!repository.permissions || repository.permissions.admin !== true) {
-    throw new HttpError(403, "This GitHub account is not an administrator of the publishing repository.");
+  if (!hasPublisherAccess(repository, env)) {
+    throw new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
   }
 
   const sessionId = crypto.randomUUID();
@@ -426,12 +436,12 @@ async function handleApi(request, env, url) {
 
   const sessionId = bearerSession(request);
   if (url.pathname === "/api/me" && request.method === "GET") {
-    const session = await requireAdmin(request, env, sessionId);
-    return jsonResponse(request, env, { login: session.login }, 200);
+    const session = await requirePublisherAccess(request, env, sessionId);
+    return jsonResponse(request, env, { login: session.login, role: session.isAdmin ? "administrator" : "test publisher" }, 200);
   }
 
   if (url.pathname === "/api/publish" && request.method === "POST") {
-    const session = await requireAdmin(request, env, sessionId);
+    const session = await requirePublisherAccess(request, env, sessionId);
     const length = Number(request.headers.get("Content-Length") || 0);
     if (length > 5_500_000) throw new HttpError(413, "Post content exceeds the 5 MB limit.");
     const text = await request.text();
