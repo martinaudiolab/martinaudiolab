@@ -199,8 +199,8 @@
     if (ticket || authError) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     if (authError) {
       status.textContent = authError === "not_admin"
-        ? "GitHub signed you in, but this account is not reported as a repository admin. Check the account's Admin role and that the GitHub App is installed with Contents: Read and write, then reconnect."
-        : "GitHub sign-in could not be completed. Please try again.";
+        ? "GitHub login: " + (fragment.get("login") || "unknown") + "; repository owner: " + (fragment.get("owner") || "unknown") + "; admin: " + fragment.get("admin") + "; push: " + fragment.get("push") + "."
+        : "GitHub sign-in could not be completed (HTTP " + (fragment.get("status") || "unknown") + "). Please try again.";
       return;
     }
     if (!ticket) return;

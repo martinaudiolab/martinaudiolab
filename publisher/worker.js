@@ -396,7 +396,14 @@ async function finishLogin(request, env) {
   const repository = await githubRequest(tokens.access_token,
     "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
   if (!hasPublisherAccess(repository, env, user.login)) {
-    throw new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
+    const error = new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
+    error.authDiagnostic = {
+      login: user.login,
+      owner: repository.owner && repository.owner.login || "unknown",
+      admin: Boolean(repository.permissions && repository.permissions.admin),
+      push: Boolean(repository.permissions && repository.permissions.push)
+    };
+    throw error;
   }
 
   const sessionId = crypto.randomUUID();
@@ -475,7 +482,16 @@ export default {
       const message = status >= 500 ? "The publisher service could not complete this request." : error.message;
       if (url.pathname === "/auth/callback" && env.BUILDER_URL && !env.BUILDER_URL.includes("YOUR_SITE_HOST")) {
         const destination = new URL(env.BUILDER_URL);
-        destination.hash = "auth_error=" + (status === 403 ? "not_admin" : "oauth_failed");
+        const details = error.authDiagnostic || {};
+        const fragment = new URLSearchParams({
+          auth_error: status === 403 ? "not_admin" : "oauth_failed",
+          login: details.login || "",
+          owner: details.owner || "",
+          admin: details.admin === undefined ? "unknown" : String(details.admin),
+          push: details.push === undefined ? "unknown" : String(details.push),
+          status: String(status)
+        });
+        destination.hash = fragment.toString();
         return redirect(destination.toString(), "oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");
       }
       if (url.pathname.startsWith("/api/")) return jsonResponse(request, env, { error: message }, status);
