@@ -122,9 +122,15 @@ async function refreshSession(session, env) {
   return session;
 }
 
-function hasPublisherAccess(repository, env) {
+function isRepositoryAdmin(repository, login) {
+  const ownerLogin = repository.owner && repository.owner.login;
+  return repository.permissions && repository.permissions.admin === true ||
+    typeof ownerLogin === "string" && ownerLogin.toLowerCase() === login.toLowerCase();
+}
+
+function hasPublisherAccess(repository, env, login) {
   const permissions = repository.permissions || {};
-  return permissions.admin === true ||
+  return isRepositoryAdmin(repository, login) ||
     (env.ALLOW_NON_ADMIN_PUBLISHING === "true" && permissions.push === true);
 }
 
@@ -136,11 +142,11 @@ async function requirePublisherAccess(request, env, sessionId) {
   session = await refreshSession(session, env);
   const repository = await githubRequest(session.accessToken,
     "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
-  if (!hasPublisherAccess(repository, env)) {
+  if (!hasPublisherAccess(repository, env, session.login)) {
     await env.PUBLISHER_SESSIONS.delete(key);
     throw new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
   }
-  session.isAdmin = repository.permissions.admin === true;
+  session.isAdmin = isRepositoryAdmin(repository, session.login);
   await env.PUBLISHER_SESSIONS.put(key, JSON.stringify(session), { expirationTtl: SESSION_TTL });
   return session;
 }
@@ -389,7 +395,7 @@ async function finishLogin(request, env) {
   const user = await githubRequest(tokens.access_token, "/user");
   const repository = await githubRequest(tokens.access_token,
     "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
-  if (!hasPublisherAccess(repository, env)) {
+  if (!hasPublisherAccess(repository, env, user.login)) {
     throw new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
   }
 
