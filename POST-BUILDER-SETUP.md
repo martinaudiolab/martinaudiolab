@@ -14,19 +14,40 @@ The Worker requests expiring user tokens with the `offline_access` scope. In pro
 
 ## Configure Cloudflare
 
-From the `publisher` directory, create a KV namespace:
+There is no separate **Publishing** section for this setup. The KV namespace is created under **Workers KV**, and the Worker is deployed from a terminal with Wrangler.
+
+### Create the KV namespace in the dashboard
+
+1. Sign in to the [Cloudflare dashboard](https://dash.cloudflare.com/), then select the account that will host the Worker.
+2. In the left navigation, open **Workers & Pages** and select **Workers KV**. You can also open the [Workers KV page](https://dash.cloudflare.com/?to=/:account/workers/kv/namespaces) directly.
+3. Select **Create instance**.
+4. Name the namespace `PUBLISHER_SESSIONS`, then select **Create**. This is where the Worker stores short-lived sign-in sessions; you do not need to add any key-value entries yourself.
+5. Open the new namespace and copy its **Namespace ID**.
+6. In `publisher/wrangler.toml`, replace `REPLACE_WITH_KV_NAMESPACE_ID` with that ID. Keep `binding = "PUBLISHER_SESSIONS"` exactly as written: the binding name is the variable the Worker uses, while the ID points to the namespace you created.
+
+For the optional test Worker, create a second namespace named `PUBLISHER_SESSIONS_TEST` and put its ID in the `env.testing.kv_namespaces` block, replacing `REPLACE_WITH_TEST_KV_NAMESPACE_ID`. Do not reuse the production namespace for testing.
+
+### Create the namespace with Wrangler instead
+
+If you prefer the terminal, open PowerShell in the repository's `publisher` folder, sign in to Cloudflare, and create the namespace:
 
 ```powershell
+cd path\to\martinaudiolab\publisher
+npx wrangler login
 npx wrangler kv namespace create PUBLISHER_SESSIONS
 ```
 
-Copy the returned namespace ID into `publisher/wrangler.toml`, replacing `REPLACE_WITH_KV_NAMESPACE_ID`. Set these Wrangler variables in that file:
+Wrangler prints the namespace ID after creation. Copy it into `wrangler.toml` as described above. For the test namespace, run `npx wrangler kv namespace create PUBLISHER_SESSIONS_TEST` and use that returned ID in the testing block.
+
+Set these Wrangler variables in `wrangler.toml`:
 
 - `GITHUB_CLIENT_ID`: the GitHub App Client ID.
 - `SITE_ORIGIN`: the exact HTTPS origin serving the site, with no path or trailing slash.
 - `BUILDER_URL`: the full HTTPS URL to `post-builder.html`.
 
-Store the GitHub App client secret using Wrangler, not in a source file:
+### Deploy the Worker
+
+Store the GitHub App client secret using Wrangler, not in a source file. Run these commands from the same `publisher` folder:
 
 ```powershell
 npx wrangler secret put GITHUB_CLIENT_SECRET
@@ -34,6 +55,8 @@ npx wrangler deploy
 ```
 
 After deployment, set the GitHub App callback URL to the Worker URL followed by `/auth/callback`. The Worker name is `martin-audio-labs-publisher`; use the `workers.dev` hostname shown by Wrangler or configure a custom Worker domain.
+
+The dashboard does not need a separate manual KV binding: Wrangler reads the `[[kv_namespaces]]` entry in `wrangler.toml` and attaches the namespace when deploying. **Workers KV** is the storage page; `npx wrangler deploy` is the Worker publishing command.
 
 ## Test without administrator access
 
