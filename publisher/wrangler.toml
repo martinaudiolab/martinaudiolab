@@ -4,7 +4,7 @@ compatibility_date = "2026-10-08"
 workers_dev = true
 
 [vars]
-GITHUB_CLIENT_ID = "REPLACE_WITH_GITHUB_APP_CLIENT_ID"
+GITHUB_CLIENT_ID = "Iv23lielIooQlMkrIA3k"
 GITHUB_OWNER = "martinaudiolab"
 GITHUB_REPOSITORY = "martinaudiolab"
 GITHUB_BRANCH = "main"
@@ -14,7 +14,7 @@ BUILDER_URL = "https://YOUR_SITE_HOST/post-builder.html"
 
 [[kv_namespaces]]
 binding = "PUBLISHER_SESSIONS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "f4f108b8ca2c4aca9bed64487b7bbce5"
 
 [env.testing]
 name = "martin-audio-labs-publisher-test"
@@ -31,4 +31,4 @@ BUILDER_URL = "http://localhost:8080/site/post-builder.html"
 
 [[env.testing.kv_namespaces]]
 binding = "PUBLISHER_SESSIONS"
-id = "REPLACE_WITH_TEST_KV_NAMESPACE_ID"
+id = "37c0bf2d56b14f4ba4d7fe0ddfa64817"
