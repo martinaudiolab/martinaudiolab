@@ -69,6 +69,7 @@ async function githubRequest(token, path, options) {
   const request = Object.assign({}, options || {});
   request.headers = Object.assign({
     Accept: "application/vnd.github+json",
+    "User-Agent": "MartinAudioLabsPostBuilder/1.0",
     "X-GitHub-Api-Version": "2022-11-28"
   }, request.headers || {});
   if (token) request.headers.Authorization = "Bearer " + token;
