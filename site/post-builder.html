@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Post Builder - Martin Audio Labs</title>
 <meta name="description" content="Create and publish repair posts for Martin Audio Labs.">
+<meta name="publisher-api-url" content="https://REPLACE_WITH_WORKER.workers.dev">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +16,6 @@
 <a href="stereo/index.html">Stereo Repair</a>
 <a href="radio/index.html">Radio Repair</a>
 <a href="test-equipment/index.html">Test Equipment</a>
-<a href="post-builder.html" class="on" aria-current="page">Post Builder</a>
 <button class="theme" type="button" id="th">Theme</button>
 </nav>
 </header>
@@ -82,12 +82,13 @@
 <div id="preview" class="builder-preview" hidden></div>
 <div class="publish-tools">
 <div>
-<label>Publish destination</label>
+<strong>Publish to GitHub</strong>
 <div class="row">
-<button class="btn alt" type="button" id="choose-folder">Choose site folder</button>
-<span id="folder-name" aria-live="polite">No site folder selected</span>
+<button class="btn alt" type="button" id="github-connect">Connect GitHub</button>
+<button class="btn alt" type="button" id="github-disconnect" hidden>Sign out</button>
+<span id="github-status" aria-live="polite">GitHub sign-in required</span>
 </div>
-<p class="hint">Choose the site folder once. The Section selection routes posts automatically to <code>stereo</code>, <code>radio</code>, or <code>test-equipment</code>. Then select Publish post.</p>
+<p class="hint" id="github-setup-hint">Configure the publisher Worker URL to enable publishing. See the <a href="https://github.com/martinaudiolab/martinaudiolab/blob/main/POST-BUILDER-SETUP.md">setup instructions</a>.</p>
 </div>
 <details class="publish-fallback">
 <summary>Use downloads instead</summary>

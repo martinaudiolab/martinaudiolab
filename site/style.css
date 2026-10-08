@@ -92,7 +92,7 @@ textarea{line-height:1.5}
 .builder-preview[hidden]{display:none}
 .publish-tools{margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--rule)}
 .publish-tools input[type=file]{display:block;max-width:100%;font-family:var(--sans);font-size:.85rem}
-.builder-link{margin:-1rem 0 2rem}
+.builder-link{display:none}
 @media(max-width:600px){.builder-fields{grid-template-columns:1fr}.builder .tb{gap:.35rem}.builder .tb select{max-width:100%}}
 
 #gmsg{position:sticky;bottom:0;background:var(--panel);padding:.6rem 1.25rem;margin:0;font-family:var(--sans);font-size:.9rem}#gmsg:empty{display:none}

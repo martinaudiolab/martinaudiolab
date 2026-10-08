@@ -11,9 +11,8 @@
   var status = document.getElementById("status");
   var selectedImage = null;
   var savedRange = null;
-  var siteRootDirectory = null;
-  var destinationDirectory = null;
-  var destinationCategoryKey = null;
+  var publisherApiUrl = document.querySelector('meta[name="publisher-api-url"]').content.trim().replace(/\/+$/, "");
+  var publisherSession = null;
   var draftKey = "martin-audio-labs-post-draft";
   var allowedTags = new Set(["A", "BLOCKQUOTE", "BR", "CODE", "EM", "FIGURE", "H2", "H3", "H4", "HR", "IMG", "LI", "OL", "P", "PRE", "SPAN", "STRONG", "U", "UL"]);
 
@@ -159,108 +158,110 @@
     status.textContent = "Downloaded the post and updated section index. Place both files in the " + data.category.folder + " folder.";
   }
 
-  async function writeFile(directory, name, content) {
-    var handle = await directory.getFileHandle(name, { create: true });
-    var writable = await handle.createWritable();
-    await writable.write(content);
-    await writable.close();
-  }
-
-  async function verifySectionFolder(root, categoryKey) {
-    var category = categories[categoryKey];
-    var directory;
-    try {
-      directory = await root.getDirectoryHandle(category.folder);
-    } catch (error) {
-      if (error.name === "NotFoundError") {
-        throw new Error("The selected site folder does not contain " + category.folder + ". Choose the folder that contains all three repair folders.");
-      }
+  async function publisherApi(path, options) {
+    var request = Object.assign({}, options || {});
+    request.headers = Object.assign({ Accept: "application/json" }, request.headers || {});
+    if (publisherSession) request.headers.Authorization = "Bearer " + publisherSession;
+    if (request.body && typeof request.body !== "string") {
+      request.headers["Content-Type"] = "application/json";
+      request.body = JSON.stringify(request.body);
+    }
+    var response = await fetch(publisherApiUrl + path, request);
+    var result = await response.json().catch(function () { return {}; });
+    if (!response.ok) {
+      var error = new Error(result.error || "Publisher returned HTTP " + response.status + ".");
+      error.status = response.status;
       throw error;
     }
-    var indexHandle = await directory.getFileHandle("index.html");
-    var indexFile = await indexHandle.getFile();
-    var parsed = new DOMParser().parseFromString(await indexFile.text(), "text/html");
-    var main = parsed.querySelector("main");
-    var heading = main && main.querySelector("h1");
-    if (!main || !main.querySelector(".intro") || !heading || heading.textContent.trim() !== category.name) {
-      throw new Error("The " + category.folder + " folder does not contain the " + category.name + " section page.");
-    }
-    destinationDirectory = directory;
-    destinationCategoryKey = categoryKey;
-    document.getElementById("folder-name").textContent = "Ready: " + category.folder;
-    document.getElementById("publish").disabled = false;
-    return directory;
+    return result;
   }
 
-  async function chooseSiteFolder() {
-    if (typeof window.showDirectoryPicker !== "function") {
-      status.textContent = "This browser cannot write to folders directly. Open Use downloads instead to publish with downloaded files.";
+  function updateGitHubStatus(message, connected) {
+    document.getElementById("github-status").textContent = message;
+    document.getElementById("github-connect").hidden = connected;
+    document.getElementById("github-disconnect").hidden = !connected;
+    document.getElementById("publish").disabled = !connected;
+  }
+
+  async function connectGitHub() {
+    if (!publisherApiUrl || publisherApiUrl.indexOf("REPLACE_WITH_WORKER") !== -1) {
+      status.textContent = "Set the publisher Worker URL in post-builder.html before connecting.";
       return;
     }
-    try {
-      var categoryKey = document.getElementById("category").value;
-      var directory = await window.showDirectoryPicker({ mode: "readwrite" });
-      await verifySectionFolder(directory, categoryKey);
-      siteRootDirectory = directory;
-      status.textContent = "Site folder verified. The selected section folder is " + categories[categoryKey].folder + ". Select Publish post when ready.";
-    } catch (error) {
-      if (error.name === "AbortError") return;
-      siteRootDirectory = null;
-      destinationDirectory = null;
-      destinationCategoryKey = null;
-      document.getElementById("folder-name").textContent = "No site folder selected";
-      document.getElementById("publish").disabled = true;
-      status.textContent = error.message || "Could not access that folder. Check permissions and try again.";
+    status.textContent = "Redirecting to GitHub sign-in...";
+    window.location.assign(publisherApiUrl + "/auth/start");
+  }
+
+  async function resumeGitHubSession() {
+    var fragment = new URLSearchParams(window.location.hash.slice(1));
+    var ticket = fragment.get("ticket");
+    var authError = fragment.get("auth_error");
+    if (ticket || authError) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    if (authError) {
+      status.textContent = authError === "not_admin"
+        ? "Only a GitHub repository administrator can publish."
+        : "GitHub sign-in could not be completed. Please try again.";
+      return;
     }
+    if (!ticket) return;
+
+    status.textContent = "Finishing GitHub sign-in...";
+    try {
+      var handoff = await publisherApi("/api/session", { method: "POST", body: { ticket: ticket } });
+      publisherSession = handoff.session;
+      var user = await publisherApi("/api/me");
+      updateGitHubStatus("Connected as " + user.login + " (administrator)", true);
+      status.textContent = "GitHub publishing is ready.";
+    } catch (error) {
+      publisherSession = null;
+      updateGitHubStatus("GitHub sign-in required", false);
+      status.textContent = error.message || "Could not finish GitHub sign-in.";
+    }
+  }
+
+  async function disconnectGitHub() {
+    try {
+      if (publisherSession) await publisherApi("/api/logout", { method: "POST" });
+    } catch (error) { }
+    publisherSession = null;
+    updateGitHubStatus("GitHub sign-in required", false);
+    status.textContent = "Signed out of GitHub.";
   }
 
   async function publish() {
     if (!form.reportValidity()) return;
+    if (!publisherSession) {
+      status.textContent = "Connect an administrator GitHub account before publishing.";
+      return;
+    }
     var data = postData();
     if (!data.slug) { status.textContent = "Add a title with at least one letter or number."; return; }
     if (!data.content.trim()) { status.textContent = "Add some post content before publishing."; return; }
-    if (!siteRootDirectory) {
-      status.textContent = "Choose the site folder before publishing.";
-      document.getElementById("publish").disabled = true;
-      return;
-    }
-    if (!destinationDirectory || destinationCategoryKey !== data.categoryKey) {
-      try { await verifySectionFolder(siteRootDirectory, data.categoryKey); }
-      catch (error) { status.textContent = error.message; return; }
-    }
 
-    var wrotePost = false;
-    var filename = data.slug + ".html";
+    var publishButton = document.getElementById("publish");
+    publishButton.disabled = true;
     try {
-      if (typeof destinationDirectory.requestPermission === "function") {
-        var permission = await destinationDirectory.requestPermission({ mode: "readwrite" });
-        if (permission !== "granted") throw new Error("Write permission was not granted. Choose the section folder again and allow editing.");
-      }
-      var indexHandle = await destinationDirectory.getFileHandle("index.html");
-      var indexFile = await indexHandle.getFile();
-      var indexOutput = updatedIndexHtml(await indexFile.text(), data);
-      var parsedIndex = new DOMParser().parseFromString(indexOutput, "text/html");
-      if (parsedIndex.querySelector("main h1")?.textContent.trim() !== data.category.name) {
-        throw new Error("The selected section index no longer matches " + data.category.name + ". Choose the section folder again.");
-      }
-      try {
-        await destinationDirectory.getFileHandle(filename);
-        throw new Error("A post with this title already exists. Change the title to make a unique filename.");
-      } catch (error) {
-        if (error.name !== "NotFoundError") throw error;
-      }
-      status.textContent = "Publishing " + filename + "...";
-      await writeFile(destinationDirectory, filename, articleHtml(data));
-      wrotePost = true;
-      await writeFile(destinationDirectory, "index.html", indexOutput);
-      status.textContent = "Published " + filename + " in " + data.category.folder + "; the section page now links to it.";
+      status.textContent = "Publishing to GitHub...";
+      var result = await publisherApi("/api/publish", {
+        method: "POST",
+        body: {
+          category: data.categoryKey,
+          title: data.title,
+          summary: data.summary,
+          date: data.date,
+          content: data.content
+        }
+      });
+      status.textContent = "Published " + result.filename + " to " + result.section + ". The website will update after deployment.";
       try { localStorage.removeItem(draftKey); } catch (ignored) { }
     } catch (error) {
-      if (wrotePost) {
-        try { await destinationDirectory.removeEntry(filename); } catch (ignored) { }
+      if (error.status === 401 || error.status === 403) {
+        publisherSession = null;
+        updateGitHubStatus("GitHub sign-in required", false);
       }
-      if (error.name === "AbortError") return;
-      status.textContent = error.message || "Could not publish. Re-select the section folder and verify write permission.";
+      status.textContent = error.message || "Could not publish to GitHub.";
+    } finally {
+      publishButton.disabled = !publisherSession;
     }
   }
 
@@ -306,24 +307,17 @@
 
   document.getElementById("post-date").value = new Date().toISOString().slice(0, 10);
   loadDraft();
-  document.getElementById("choose-folder").addEventListener("click", chooseSiteFolder);
-  document.getElementById("category").addEventListener("change", async function () {
-    destinationDirectory = null;
-    destinationCategoryKey = null;
-    document.getElementById("folder-name").textContent = siteRootDirectory ? "Checking section folder..." : "No site folder selected";
-    document.getElementById("publish").disabled = true;
-    if (!siteRootDirectory) {
-      status.textContent = "Section changed. Choose the site folder to enable publishing.";
-      return;
-    }
-    try {
-      await verifySectionFolder(siteRootDirectory, document.getElementById("category").value);
-      status.textContent = "Section folder selected automatically: " + categories[document.getElementById("category").value].folder + ".";
-    } catch (error) {
-      document.getElementById("folder-name").textContent = "Section folder unavailable";
-      status.textContent = error.message;
-    }
-  });
+  var githubConnectButton = document.getElementById("github-connect");
+  var githubSetupHint = document.getElementById("github-setup-hint");
+  if (!publisherApiUrl || publisherApiUrl.indexOf("REPLACE_WITH_WORKER") !== -1) {
+    githubConnectButton.disabled = true;
+    document.getElementById("github-status").textContent = "Publisher Worker is not configured";
+  } else {
+    githubSetupHint.textContent = "Sign in with a GitHub administrator account to publish directly to the website.";
+  }
+  githubConnectButton.addEventListener("click", connectGitHub);
+  document.getElementById("github-disconnect").addEventListener("click", disconnectGitHub);
+  resumeGitHubSession();
 
   document.querySelectorAll("[data-command]").forEach(function (button) {
     button.addEventListener("mousedown", function (event) { event.preventDefault(); });
@@ -441,11 +435,6 @@
     editor.innerHTML = "<p></p>";
     document.getElementById("preview").hidden = true;
     document.getElementById("preview-toggle").textContent = "Preview";
-    siteRootDirectory = null;
-    destinationDirectory = null;
-    destinationCategoryKey = null;
-    document.getElementById("folder-name").textContent = "No site folder selected";
-    document.getElementById("publish").disabled = true;
     status.textContent = "Draft cleared.";
   });
   document.getElementById("publish").addEventListener("click", publish);
