@@ -14,6 +14,15 @@ class HttpError extends Error {
   }
 }
 
+async function authStep(name, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    error.authStage = name;
+    throw error;
+  }
+}
+
 function jsonResponse(request, env, value, status) {
   const headers = new Headers({
     "Cache-Control": "no-store",
@@ -391,12 +400,18 @@ async function finishLogin(request, env) {
     throw new HttpError(400, "GitHub sign-in expired. Start again from the post builder.");
   }
   await env.PUBLISHER_SESSIONS.delete(stateKey);
-  const tokens = await exchangeOAuthCode(request, env, code, pending.verifier);
-  const user = await githubRequest(tokens.access_token, "/user");
-  const repository = await githubRequest(tokens.access_token,
-    "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
+  const tokens = await authStep("token exchange", function () {
+    return exchangeOAuthCode(request, env, code, pending.verifier);
+  });
+  const user = await authStep("GitHub account lookup", function () {
+    return githubRequest(tokens.access_token, "/user");
+  });
+  const repository = await authStep("repository lookup", function () {
+    return githubRequest(tokens.access_token, "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
+  });
   if (!hasPublisherAccess(repository, env, user.login)) {
     const error = new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
+    error.authStage = "repository permission check";
     error.authDiagnostic = {
       login: user.login,
       owner: repository.owner && repository.owner.login || "unknown",
@@ -484,12 +499,14 @@ export default {
         const destination = new URL(env.BUILDER_URL);
         const details = error.authDiagnostic || {};
         const fragment = new URLSearchParams({
-          auth_error: status === 403 ? "not_admin" : "oauth_failed",
+          auth_error: error.authDiagnostic ? "not_admin" : "oauth_failed",
           login: details.login || "",
           owner: details.owner || "",
           admin: details.admin === undefined ? "unknown" : String(details.admin),
           push: details.push === undefined ? "unknown" : String(details.push),
-          status: String(status)
+          status: String(status),
+          stage: error.authStage || "callback",
+          detail: String(error.message || message).slice(0, 240)
         });
         destination.hash = fragment.toString();
         return redirect(destination.toString(), "oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");

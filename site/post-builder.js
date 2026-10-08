@@ -200,7 +200,7 @@
     if (authError) {
       status.textContent = authError === "not_admin"
         ? "GitHub login: " + (fragment.get("login") || "unknown") + "; repository owner: " + (fragment.get("owner") || "unknown") + "; admin: " + fragment.get("admin") + "; push: " + fragment.get("push") + "."
-        : "GitHub sign-in could not be completed (HTTP " + (fragment.get("status") || "unknown") + "). Please try again.";
+        : "GitHub sign-in failed during " + (fragment.get("stage") || "callback") + " (HTTP " + (fragment.get("status") || "unknown") + "): " + (fragment.get("detail") || "Please try again.");
       return;
     }
     if (!ticket) return;
