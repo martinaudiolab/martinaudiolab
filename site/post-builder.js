@@ -199,7 +199,7 @@
     if (ticket || authError) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     if (authError) {
       status.textContent = authError === "not_admin"
-        ? "GitHub login: " + (fragment.get("login") || "unknown") + "; repository owner: " + (fragment.get("owner") || "unknown") + "; admin: " + fragment.get("admin") + "; push: " + fragment.get("push") + "."
+        ? "Repository owner: " + (fragment.get("owner") || "unknown") + "; admin: " + fragment.get("admin") + "; push: " + fragment.get("push") + "."
         : "GitHub sign-in failed during " + (fragment.get("stage") || "callback") + " (HTTP " + (fragment.get("status") || "unknown") + "): " + (fragment.get("detail") || "Please try again.");
       return;
     }
@@ -210,7 +210,7 @@
       var handoff = await publisherApi("/api/session", { method: "POST", body: { ticket: ticket } });
       publisherSession = handoff.session;
       var user = await publisherApi("/api/me");
-      updateGitHubStatus("Connected as " + user.login + " (" + user.role + ")", true);
+      updateGitHubStatus("Connected (" + user.role + ")", true);
       status.textContent = "GitHub publishing is ready.";
     } catch (error) {
       publisherSession = null;

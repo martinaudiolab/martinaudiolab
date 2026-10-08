@@ -131,15 +131,13 @@ async function refreshSession(session, env) {
   return session;
 }
 
-function isRepositoryAdmin(repository, login) {
-  const ownerLogin = repository.owner && repository.owner.login;
-  return repository.permissions && repository.permissions.admin === true ||
-    typeof ownerLogin === "string" && ownerLogin.toLowerCase() === login.toLowerCase();
+function isRepositoryAdmin(repository) {
+  return Boolean(repository.permissions && repository.permissions.admin === true);
 }
 
-function hasPublisherAccess(repository, env, login) {
+function hasPublisherAccess(repository, env) {
   const permissions = repository.permissions || {};
-  return isRepositoryAdmin(repository, login) ||
+  return isRepositoryAdmin(repository) ||
     (env.ALLOW_NON_ADMIN_PUBLISHING === "true" && permissions.push === true);
 }
 
@@ -151,11 +149,11 @@ async function requirePublisherAccess(request, env, sessionId) {
   session = await refreshSession(session, env);
   const repository = await githubRequest(session.accessToken,
     "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
-  if (!hasPublisherAccess(repository, env, session.login)) {
+  if (!hasPublisherAccess(repository, env)) {
     await env.PUBLISHER_SESSIONS.delete(key);
     throw new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
   }
-  session.isAdmin = isRepositoryAdmin(repository, session.login);
+  session.isAdmin = isRepositoryAdmin(repository);
   await env.PUBLISHER_SESSIONS.put(key, JSON.stringify(session), { expirationTtl: SESSION_TTL });
   return session;
 }
@@ -357,11 +355,7 @@ async function publishPost(request, env, session, body) {
     body: {
       message: "Publish " + title,
       tree: tree.sha,
-      parents: [reference.object.sha],
-      author: {
-        name: session.name || session.login,
-        email: session.userId + "+" + session.login + "@users.noreply.github.com"
-      }
+      parents: [reference.object.sha]
     }
   });
   await githubRequest(session.accessToken, apiBase + "/git/refs/heads/" + encodeURIComponent(branch), {
@@ -403,17 +397,13 @@ async function finishLogin(request, env) {
   const tokens = await authStep("token exchange", function () {
     return exchangeOAuthCode(request, env, code, pending.verifier);
   });
-  const user = await authStep("GitHub account lookup", function () {
-    return githubRequest(tokens.access_token, "/user");
-  });
   const repository = await authStep("repository lookup", function () {
     return githubRequest(tokens.access_token, "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY);
   });
-  if (!hasPublisherAccess(repository, env, user.login)) {
+  if (!hasPublisherAccess(repository, env)) {
     const error = new HttpError(403, "This GitHub account does not have permission to publish to the repository.");
     error.authStage = "repository permission check";
     error.authDiagnostic = {
-      login: user.login,
       owner: repository.owner && repository.owner.login || "unknown",
       admin: Boolean(repository.permissions && repository.permissions.admin),
       push: Boolean(repository.permissions && repository.permissions.push)
@@ -427,9 +417,7 @@ async function finishLogin(request, env) {
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token || "",
     expiresAt: Date.now() + (Number(tokens.expires_in) || 28_800) * 1000,
-    userId: user.id,
-    login: user.login,
-    name: user.name || ""
+    isAdmin: isRepositoryAdmin(repository)
   };
   await env.PUBLISHER_SESSIONS.put("session:" + sessionId, JSON.stringify(session), { expirationTtl: SESSION_TTL });
   await env.PUBLISHER_SESSIONS.put("ticket:" + ticket, sessionId, { expirationTtl: 90 });
@@ -465,7 +453,7 @@ async function handleApi(request, env, url) {
   const sessionId = bearerSession(request);
   if (url.pathname === "/api/me" && request.method === "GET") {
     const session = await requirePublisherAccess(request, env, sessionId);
-    return jsonResponse(request, env, { login: session.login, role: session.isAdmin ? "administrator" : "test publisher" }, 200);
+    return jsonResponse(request, env, { role: session.isAdmin ? "administrator" : "test publisher" }, 200);
   }
 
   if (url.pathname === "/api/publish" && request.method === "POST") {
