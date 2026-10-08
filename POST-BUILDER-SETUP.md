@@ -1,79 +1,92 @@
 # Post Builder Setup
 
-The publisher is a Cloudflare Worker because GitHub credentials must not be exposed in the static site. It stores OAuth sessions in Cloudflare KV, checks repository permissions on every request, sanitizes post HTML, and creates one commit containing the article and updated category index. Production publishing is administrator-only.
+This guide connects the post builder to GitHub so an administrator can publish a post without editing or uploading HTML by hand.
 
-## Create the GitHub App
+When it is set up, **Publish post** will add the article and update its category page in one GitHub commit. GitHub Pages will then deploy the change. Production publishing is restricted to GitHub repository administrators.
 
-1. Create a GitHub App under the `martinaudiolab` account.
-2. Grant **Contents: Read and write**. GitHub grants required Metadata read access automatically.
-3. Install the app on `martinaudiolab/martinaudiolab` only.
-4. Set the authorization callback URL to `https://<worker-host>/auth/callback`. If the Worker has not been deployed yet, update this after its first deployment.
-5. Copy the app's Client ID and generate a client secret. Do not add the secret or an App private key to this repository.
+## Before you start
 
-The Worker requests expiring user tokens with the `offline_access` scope. In production, it verifies that the signed-in user's GitHub repository permissions include `admin`; non-admins are denied before a publishing session is issued.
+You will need:
 
-## Configure Cloudflare
+- Access to the Cloudflare account that will host the Worker.
+- Permission to manage GitHub Apps for the `martinaudiolab` account.
+- Node.js installed on your computer. Wrangler, the Cloudflare command-line tool, runs through `npx`.
 
-There is no separate **Publishing** section for this setup. The KV namespace is created under **Workers KV**, and the Worker is deployed from a terminal with Wrangler.
+The current `publisher/wrangler.toml` already contains a production GitHub App Client ID and KV namespace ID. Do not replace them or create another production namespace unless you have confirmed the existing namespace is missing from Cloudflare.
 
-### Create the KV namespace in the dashboard
+## 1. Find your website address
 
-1. Sign in to the [Cloudflare dashboard](https://dash.cloudflare.com/), then select the account that will host the Worker.
-2. In the left navigation, open **Workers & Pages** and select **Workers KV**. You can also open the [Workers KV page](https://dash.cloudflare.com/?to=/:account/workers/kv/namespaces) directly.
-3. Select **Create instance**.
-4. Name the namespace `PUBLISHER_SESSIONS`, then select **Create**. This is where the Worker stores short-lived sign-in sessions; you do not need to add any key-value entries yourself.
-5. Open the new namespace and copy its **Namespace ID**.
-6. In `publisher/wrangler.toml`, replace `REPLACE_WITH_KV_NAMESPACE_ID` with that ID. Keep `binding = "PUBLISHER_SESSIONS"` exactly as written: the binding name is the variable the Worker uses, while the ID points to the namespace you created.
+Open the repository's **Settings > Pages** page on GitHub and note the published website address. If the site uses a custom domain, use that address instead.
 
-For the optional test Worker, create a second namespace named `PUBLISHER_SESSIONS_TEST` and put its ID in the `env.testing.kv_namespaces` block, replacing `REPLACE_WITH_TEST_KV_NAMESPACE_ID`. Do not reuse the production namespace for testing.
+You will use this address in two places in `publisher/wrangler.toml`:
 
-### Create the namespace with Wrangler instead
+- `SITE_ORIGIN` is just the origin, such as `https://example.com`. Do not include a page path or a trailing slash.
+- `BUILDER_URL` is the complete address of the builder page, such as `https://example.com/post-builder.html`.
 
-If you prefer the terminal, open PowerShell in the repository's `publisher` folder, sign in to Cloudflare, and create the namespace:
+Replace `YOUR_SITE_HOST` in both values. Do not guess these URLs; use the address shown in GitHub Pages or your custom-domain settings.
+
+## 2. Check the KV namespace
+
+KV is Cloudflare's small storage service. This Worker uses it to temporarily store sign-in sessions. You do not need to add any entries to the namespace yourself.
+
+1. Sign in to the [Cloudflare dashboard](https://dash.cloudflare.com/) and select the account that will host the Worker.
+2. Open **Workers & Pages > Workers KV**. You can also go directly to the [Workers KV page](https://dash.cloudflare.com/?to=/:account/workers/kv/namespaces).
+3. Look for a namespace named `PUBLISHER_SESSIONS`.
+4. If it exists, open it and compare its Namespace ID with the production `id` in `publisher/wrangler.toml`. If they match, this step is finished; do not create another one.
+5. If it is missing, select **Create instance**, name it `PUBLISHER_SESSIONS`, and select **Create**. Open the new namespace, copy its Namespace ID, and replace only the production `id` in `publisher/wrangler.toml`.
+
+The words in the config have separate jobs: `PUBLISHER_SESSIONS` is the name the Worker uses in code, and the long ID tells Cloudflare which namespace to connect. Wrangler reads this binding from the config during deployment, so there is no separate dashboard “Publishing” section or manual binding step.
+
+## 3. Create the GitHub App
+
+1. On GitHub, open the `martinaudiolab` account settings, then **Developer settings > GitHub Apps**. Select **New GitHub App**.
+2. Give the app a name, and set its callback URL to a temporary value for now. You will replace it with the real Worker URL after deployment.
+3. Under repository permissions, set **Contents** to **Read and write**. GitHub provides the required Metadata read access automatically.
+4. Install the app on `martinaudiolab/martinaudiolab` only.
+5. Copy the app's Client ID. If it is different from the Client ID already in `publisher/wrangler.toml`, replace that value.
+6. Generate a client secret. Keep it private; you will enter it into Wrangler in the next step. Never put the secret in an HTML or JavaScript file.
+
+## 4. Deploy the Worker
+
+Open PowerShell in the repository's `publisher` folder. Replace the example folder path with the actual location of your clone:
 
 ```powershell
-cd path\to\martinaudiolab\publisher
+cd C:\path\to\martinaudiolab\publisher
 npx wrangler login
-npx wrangler kv namespace create PUBLISHER_SESSIONS
-```
-
-Wrangler prints the namespace ID after creation. Copy it into `wrangler.toml` as described above. For the test namespace, run `npx wrangler kv namespace create PUBLISHER_SESSIONS_TEST` and use that returned ID in the testing block.
-
-Set these Wrangler variables in `wrangler.toml`:
-
-- `GITHUB_CLIENT_ID`: the GitHub App Client ID.
-- `SITE_ORIGIN`: the exact HTTPS origin serving the site, with no path or trailing slash.
-- `BUILDER_URL`: the full HTTPS URL to `post-builder.html`.
-
-### Deploy the Worker
-
-Store the GitHub App client secret using Wrangler, not in a source file. Run these commands from the same `publisher` folder:
-
-```powershell
 npx wrangler secret put GITHUB_CLIENT_SECRET
 npx wrangler deploy
 ```
 
-After deployment, set the GitHub App callback URL to the Worker URL followed by `/auth/callback`. The Worker name is `martin-audio-labs-publisher`; use the `workers.dev` hostname shown by Wrangler or configure a custom Worker domain.
+`wrangler login` opens a Cloudflare sign-in page. The secret command prompts you to enter the GitHub App client secret; type it directly into the terminal. `wrangler deploy` uploads the Worker and connects the KV namespace from the config.
 
-The dashboard does not need a separate manual KV binding: Wrangler reads the `[[kv_namespaces]]` entry in `wrangler.toml` and attaches the namespace when deploying. **Workers KV** is the storage page; `npx wrangler deploy` is the Worker publishing command.
+When deployment finishes, Wrangler prints the Worker URL. It will look similar to `https://martin-audio-labs-publisher.<your-account>.workers.dev`. Copy that URL, then return to the GitHub App settings and set its callback URL to:
 
-## Test without administrator access
+```text
+https://martin-audio-labs-publisher.<your-account>.workers.dev/auth/callback
+```
 
-The `testing` Wrangler environment is limited to `http://localhost:8080` and the `post-builder-test` branch. It allows a signed-in GitHub user with repository **push** permission to exercise the complete commit path without writing to `main`. It is not an anonymous or public bypass.
+Use your actual Worker URL in place of the example.
 
-1. Create the `post-builder-test` branch in GitHub.
-2. Create a separate GitHub App for testing, with **Contents: Read and write**, installed only on this repository. Set its callback URL to `https://<test-worker-host>/auth/callback` after deploying the test Worker.
-3. Create a second KV namespace and replace `REPLACE_WITH_TEST_KV_NAMESPACE_ID` and `REPLACE_WITH_TEST_GITHUB_APP_CLIENT_ID` in the `testing` environment.
-4. From `publisher`, add the test App secret with `npx wrangler secret put GITHUB_CLIENT_SECRET --env testing`, then deploy using `npx wrangler deploy --env testing`.
-5. Serve the repository root locally at `http://localhost:8080`, temporarily point the builder's `publisher-api-url` at the test Worker, and open `http://localhost:8080/site/post-builder.html`.
+## 5. Connect the website
 
-Test posts commit to `post-builder-test` and do not publish to the live site. Keep `ALLOW_NON_ADMIN_PUBLISHING = "false"` in the production environment; never point the testing Worker at `main` or the public website origin.
+1. In `site/post-builder.html`, replace `https://REPLACE_WITH_WORKER.workers.dev` in the `publisher-api-url` meta tag with the Worker URL. Do not add a trailing slash.
+2. Save and publish that site change to GitHub.
+3. Check that `SITE_ORIGIN` and `BUILDER_URL` in `publisher/wrangler.toml` match the website address from Step 1. If you change either value, deploy the Worker again with `npx wrangler deploy`.
+4. Open the published post builder and select **Connect GitHub**. Sign in with an administrator account and approve the GitHub App.
 
-## Connect the site
+After connecting, create a real post and select **Publish post**. It will appear in `site/stereo`, `site/radio`, or `site/test-equipment`, and its category index will link to it. Avoid test posts on production because they create real commits on `main`.
 
-In `site/post-builder.html`, replace `https://REPLACE_WITH_WORKER.workers.dev` in the `publisher-api-url` meta tag with the deployed Worker origin. Publish that site change. The Worker variables `SITE_ORIGIN` and `BUILDER_URL` must match the actual deployed website.
+## Optional: test without publishing to the live site
 
-An administrator can then select a category, write a post, choose **Connect GitHub**, and authorize the GitHub App. **Publish post** creates a single commit with the new page in `site/stereo`, `site/radio`, or `site/test-equipment` and updates that section's `index.html`. GitHub Pages deploys the commit automatically. Branch protection that blocks direct commits will prevent publishing.
+The `testing` Worker environment is for a more advanced test. It is configured for the `post-builder-test` branch and `http://localhost:8080`, and still requires a signed-in GitHub user with repository write permission. It cannot publish to `main`.
 
-The browser receives a one-time authorization ticket and keeps only a random session handle in memory. Access and refresh tokens remain in KV; the App client secret remains a Cloudflare Worker secret. Closing the page or signing out discards the browser session handle.
+Use a separate test GitHub App and KV namespace. Replace the test placeholders in the `[env.testing]` sections of `publisher/wrangler.toml`, create the `post-builder-test` branch, then run these commands from `publisher`:
+
+```powershell
+npx wrangler secret put GITHUB_CLIENT_SECRET --env testing
+npx wrangler deploy --env testing
+```
+
+Set the test GitHub App callback to the test Worker URL followed by `/auth/callback`. Serve the repository root locally at `http://localhost:8080`, temporarily set the builder's Worker URL to the test Worker, then open `http://localhost:8080/site/post-builder.html`.
+
+Keep `ALLOW_NON_ADMIN_PUBLISHING = "false"` in production. Never point the test Worker at the public site or the `main` branch.
