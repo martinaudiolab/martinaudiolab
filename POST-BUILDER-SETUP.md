@@ -40,7 +40,7 @@ The words in the config have separate jobs: `PUBLISHER_SESSIONS` is the name the
 ## 3. Create the GitHub App
 
 1. On GitHub, open the `martinaudiolab` account settings, then **Developer settings > GitHub Apps**. Select **New GitHub App**.
-2. Give the app a name, and set its callback URL to a temporary value for now. You will replace it with the real Worker URL after deployment.
+2. Give the app a name. After deploying the Worker, set its callback URL to the complete URL ending in `/auth/callback`. Do not use only the Worker hostname.
 3. Under repository permissions, set **Contents** to **Read and write**. GitHub provides the required Metadata read access automatically.
 4. Install the app on `martinaudiolab/martinaudiolab` only.
 5. Copy the app's Client ID. If it is different from the Client ID already in `publisher/wrangler.toml`, replace that value.
@@ -59,13 +59,15 @@ npx wrangler deploy
 
 `wrangler login` opens a Cloudflare sign-in page. The secret command prompts you to enter the GitHub App client secret; type it directly into the terminal. `wrangler deploy` uploads the Worker and connects the KV namespace from the config.
 
-When deployment finishes, Wrangler prints the Worker URL. It will look similar to `https://martin-audio-labs-publisher.<your-account>.workers.dev`. Copy that URL, then return to the GitHub App settings and set its callback URL to:
+When deployment finishes, Wrangler prints the Worker URL. It will look similar to `https://martin-audio-labs-publisher.<your-account>.workers.dev`. Return to the GitHub App settings and set its callback URL to the Worker URL plus `/auth/callback`:
 
 ```text
 https://martin-audio-labs-publisher.<your-account>.workers.dev/auth/callback
 ```
 
 Use your actual Worker URL in place of the example.
+
+Important: the GitHub authorization screen should say it will redirect to a URL ending in `/auth/callback`. If it shows only the Worker hostname, edit the GitHub App's callback URL before authorizing. The Worker root is not the OAuth callback route.
 
 ## 5. Connect the website
 
