@@ -32,7 +32,6 @@ function jsonResponse(request, env, value, status) {
   const origin = request.headers.get("Origin");
   if (origin && origin === env.SITE_ORIGIN) {
     headers.set("Access-Control-Allow-Origin", origin);
-    headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
     headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     headers.set("Access-Control-Max-Age", "600");
   }
@@ -78,8 +77,21 @@ async function githubRequest(token, path, options) {
     request.body = JSON.stringify(request.body);
   }
   const response = await fetch("https://api.github.com" + path, request);
-  const result = await response.json().catch(function () { return {}; });
-  if (!response.ok) throw new HttpError(response.status, result.message || "GitHub returned HTTP " + response.status + ".");
+  const responseText = await response.text();
+  let result = {};
+  try { result = responseText ? JSON.parse(responseText) : {}; }
+  catch (error) { result = {}; }
+  if (!response.ok) {
+    const detail = String(result.message || responseText || "No response body.").replace(/\s+/g, " ").slice(0, 150);
+    const acceptedPermissions = response.headers.get("X-Accepted-GitHub-Permissions");
+    const requestId = response.headers.get("X-GitHub-Request-Id");
+    const diagnostics = [
+      acceptedPermissions ? "Accepted permissions: " + acceptedPermissions : "",
+      requestId ? "GitHub request: " + requestId : ""
+    ].filter(Boolean).join("; ");
+    throw new HttpError(response.status, "GitHub HTTP " + response.status + ": " + detail + (diagnostics ? " (" + diagnostics + ")" : ""));
+  }
+  if (!responseText) return {};
   return result;
 }
 
