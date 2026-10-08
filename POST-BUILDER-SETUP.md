@@ -71,7 +71,7 @@ Use your actual Worker URL in place of the example.
 
 The website and publisher are two different Workers URLs:
 
-- Website: `https://martinaudiolab.thealexandersound.workers.dev`
+- Website: `https://martinaudiolab-main.thealexandersound.workers.dev`
 - Publisher API: `https://martin-audio-labs-publisher.thealexandersound.workers.dev`
 
 The website URL goes in `SITE_ORIGIN` and `BUILDER_URL` in `publisher/wrangler.toml`. The publisher URL goes in the `publisher-api-url` meta tag in `site/post-builder.html`. If `npx wrangler deploy` prints a different publisher URL, use the URL Wrangler prints.
