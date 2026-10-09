@@ -83,7 +83,18 @@ The website URL goes in `SITE_ORIGIN` and `BUILDER_URL` in `publisher/wrangler.t
 3. Check that `SITE_ORIGIN` and `BUILDER_URL` in `publisher/wrangler.toml` match the website address from Step 1. If you change either value, deploy the Worker again with `npx wrangler deploy`.
 4. Open the published post builder and select **Connect GitHub**. Sign in with an administrator account and approve the GitHub App.
 
-To check the sign-in route, open `<publisher-Worker-URL>/auth/start` in a browser. Before login it should redirect to GitHub (HTTP 302). If it shows 404, the Worker has not been deployed at that hostname; deploy it from the `publisher` folder and use the URL Wrangler reports.
+## Automatically deploy new posts
+
+The publisher commits each new article and section index to `main`. The workflow at `.github/workflows/deploy-site.yml` watches for changes under `site/` and deploys the static website Worker automatically. It uses the root `wrangler.jsonc`; it does not deploy the separate publisher Worker.
+
+Before the workflow can deploy, add two repository secrets in GitHub: open **Settings > Secrets and variables > Actions**, select **New repository secret**, and add:
+
+- `CLOUDFLARE_API_TOKEN`: create an account API token in Cloudflare using the **Edit Cloudflare Workers** template, scoped to the `thealexandersound` account.
+- `CLOUDFLARE_ACCOUNT_ID`: the account ID shown on the Cloudflare account overview page.
+
+Once these secrets are saved and the workflow is on `main`, each post published by the builder will trigger a site deployment. Check the repository's **Actions** tab to see the deployment result. You can also run **Deploy website** manually there with **Run workflow**.
+
+To check the publisher sign-in route, open `<publisher-Worker-URL>/auth/start` in a browser. Before login it should redirect to GitHub (HTTP 302). If it shows 404, the publisher Worker has not been deployed at that hostname; deploy it separately from the `publisher` folder.
 
 After connecting, create a real post and select **Publish post**. It will appear in `site/stereo`, `site/radio`, or `site/test-equipment`, and its category index will link to it. Avoid test posts on production because they create real commits on `main`.
 
