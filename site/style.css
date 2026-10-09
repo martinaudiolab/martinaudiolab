@@ -123,3 +123,14 @@ a.btn{display:inline-block;text-decoration:none}
 .shop-price.big{font-size:1.4rem;margin:.6rem 0 1rem}
 .shop-specs{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-family:var(--sans);font-size:.9rem;margin:0 0 1.25rem}
 .shop-specs dt{color:var(--muted)}.shop-specs dd{margin:0}
+
+/* Wider article pages */
+body:has(h1.post-title) header.site,body:has(h1.post-title) main{max-width:68rem}
+body:has(h1.post-title) article.post{max-width:none}
+body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.post-title) .body>ol,body:has(h1.post-title) .body>blockquote,body:has(h1.post-title) .body>h2,body:has(h1.post-title) .body>h3,body:has(h1.post-title) .body>h4{max-width:56rem}
+
+/* Click-to-expand images */
+.post .body img{cursor:zoom-in}
+.lightbox{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:1.5rem;cursor:zoom-out}
+.lightbox img{max-width:100%;max-height:100%;width:auto!important;height:auto;float:none!important;margin:0!important;border-radius:4px;cursor:zoom-out;object-fit:contain}
+.lightbox button{position:absolute;top:.75rem;right:1rem;background:none;border:0;color:#fff;font-size:2rem;line-height:1;cursor:pointer}
