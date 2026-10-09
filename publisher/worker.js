@@ -269,6 +269,7 @@ function navigationHtml(activeKey) {
     ["../stereo/index.html", "Stereo Repair", "stereo"],
     ["../radio/index.html", "Radio Repair", "radio"],
     ["../test-equipment/index.html", "Test Equipment", "test-equipment"],
+    ["../shop/index.html", "Shop", "shop"],
     ["../contact.html", "Contact", ""]
   ];
   return links.map(function (link) {

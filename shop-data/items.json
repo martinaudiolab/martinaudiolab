@@ -1,0 +1,82 @@
+{
+  "shop": {
+    "title": "Shop",
+    "intro": "Restored equipment and parts from Martin Audio Labs. Browse the gallery, then select an item for more photos, details and the price.",
+    "howToBuy": "To ask about an item or arrange a purchase, use the Inquire button on its page. It opens an email to me with the item already named.",
+    "email": "thealexandersound@gmail.com",
+    "placeholder": "images/banner.jpg"
+  },
+  "items": [
+    {
+      "slug": "sample-restored-receiver",
+      "title": "Sample Item: Restored Stereo Receiver",
+      "summary": "Fully restored solid-state receiver",
+      "category": "Stereo",
+      "price": 650,
+      "status": "available",
+      "images": ["images/banner.jpg"],
+      "details": [["Type", "Stereo receiver"], ["Condition", "Sample text"], ["Included", "Sample text"]],
+      "description": [
+        "This is a sample listing that shows how an item page looks. Replace it with the real description: what the unit is, what was restored, how it sounds, and what is included.",
+        "Each paragraph in the description becomes its own paragraph on the page."
+      ],
+      "sample": true
+    },
+    {
+      "slug": "sample-turntable",
+      "title": "Sample Item: Serviced Turntable",
+      "summary": "Belt-drive turntable, serviced and tested",
+      "category": "Stereo",
+      "price": 325,
+      "was": 375,
+      "status": "available",
+      "images": ["images/banner.jpg"],
+      "description": ["Sample listing. Adding a \"was\" price in items.json shows a sale price in the gallery."],
+      "sample": true
+    },
+    {
+      "slug": "sample-tube-radio",
+      "title": "Sample Item: Tube Table Radio",
+      "summary": "Wood-cabinet tube radio, restored",
+      "category": "Radio",
+      "price": 285,
+      "status": "pending",
+      "images": ["images/banner.jpg"],
+      "description": ["Sample listing with the status set to pending."],
+      "sample": true
+    },
+    {
+      "slug": "sample-signal-generator",
+      "title": "Sample Item: Calibrated Signal Generator",
+      "summary": "Bench instrument, restored and calibrated",
+      "category": "Test Equipment",
+      "price": 480,
+      "status": "available",
+      "images": ["images/banner.jpg"],
+      "description": ["Sample listing for a piece of test equipment."],
+      "sample": true
+    },
+    {
+      "slug": "sample-replacement-part",
+      "title": "Sample Item: Replacement Part",
+      "summary": "House-made replacement component",
+      "category": "Parts",
+      "price": 45,
+      "status": "available",
+      "images": ["images/banner.jpg"],
+      "description": ["Sample listing for a part or accessory."],
+      "sample": true
+    },
+    {
+      "slug": "sample-sold-item",
+      "title": "Sample Item: Sold Example",
+      "summary": "Shows how a sold item appears",
+      "category": "Stereo",
+      "price": 400,
+      "status": "sold",
+      "images": ["images/banner.jpg"],
+      "description": ["Sample listing with the status set to sold. Sold items move to the end of the gallery and are greyed out."],
+      "sample": true
+    }
+  ]
+}
