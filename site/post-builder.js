@@ -13,6 +13,7 @@
   var savedRange = null;
   var publisherApiUrl = document.querySelector('meta[name="publisher-api-url"]').content.trim().replace(/\/+$/, "");
   var publisherSession = null;
+  var managedIndexSnapshot = null;
   var draftKey = "martin-audio-labs-post-draft";
   var allowedTags = new Set(["A", "BLOCKQUOTE", "BR", "CODE", "EM", "FIGURE", "H2", "H3", "H4", "HR", "IMG", "LI", "OL", "P", "PRE", "SPAN", "STRONG", "U", "UL"]);
 
@@ -176,11 +177,16 @@
     return result;
   }
 
-  function updateGitHubStatus(message, connected) {
+  function updateGitHubStatus(message, connected, administrator) {
     document.getElementById("github-status").textContent = message;
     document.getElementById("github-connect").hidden = connected;
     document.getElementById("github-disconnect").hidden = !connected;
     document.getElementById("publish").disabled = !connected;
+    document.getElementById("manage-posts-toolbar").hidden = !connected || !administrator;
+    if (!connected || !administrator) {
+      document.getElementById("post-manager").hidden = true;
+      document.getElementById("manage-posts-toggle").setAttribute("aria-expanded", "false");
+    }
   }
 
   async function connectGitHub() {
@@ -210,7 +216,7 @@
       var handoff = await publisherApi("/api/session", { method: "POST", body: { ticket: ticket } });
       publisherSession = handoff.session;
       var user = await publisherApi("/api/me");
-      updateGitHubStatus("Connected (" + user.role + ")", true);
+      updateGitHubStatus("Connected (" + user.role + ")", true, user.role === "administrator");
       status.textContent = "GitHub publishing is ready.";
     } catch (error) {
       publisherSession = null;
@@ -262,6 +268,97 @@
       status.textContent = error.message || "Could not publish to GitHub.";
     } finally {
       publishButton.disabled = !publisherSession;
+    }
+  }
+
+  function postsFromIndex(indexHtml) {
+    var parsed = new DOMParser().parseFromString(indexHtml, "text/html");
+    return Array.from(parsed.querySelectorAll("main article.post")).map(function (article) {
+      var link = article.querySelector("h2 a[href]");
+      if (!link) return null;
+      var filename = link.getAttribute("href");
+      var match = filename.match(/^([a-z0-9]+(?:-[a-z0-9]+)*)\.html$/);
+      if (!match) return null;
+      return { slug: match[1], title: link.textContent.trim() };
+    }).filter(Boolean);
+  }
+
+  function indexWithoutPost(indexHtml, slug) {
+    var parsed = new DOMParser().parseFromString(indexHtml, "text/html");
+    var matches = Array.from(parsed.querySelectorAll("main article.post")).filter(function (article) {
+      var link = article.querySelector("h2 a[href]");
+      return link && link.getAttribute("href") === slug + ".html";
+    });
+    if (matches.length !== 1) throw new Error("Could not find exactly one matching post in this section. Refresh the list and try again.");
+    matches[0].remove();
+    return "<!DOCTYPE html>\n" + parsed.documentElement.outerHTML;
+  }
+
+  function renderManagedPosts(indexHtml) {
+    var list = document.getElementById("managed-posts");
+    var posts = postsFromIndex(indexHtml);
+    list.replaceChildren();
+    if (!posts.length) {
+      list.textContent = "No posts found in this section.";
+      return 0;
+    }
+    posts.forEach(function (post) {
+      var row = document.createElement("div");
+      row.className = "managed-post";
+      var title = document.createElement("span");
+      title.textContent = post.title;
+      var button = document.createElement("button");
+      button.className = "btn alt";
+      button.type = "button";
+      button.textContent = "Delete";
+      button.setAttribute("aria-label", "Delete " + post.title);
+      button.addEventListener("click", function () { deleteManagedPost(post); });
+      row.append(title, button);
+      list.appendChild(row);
+    });
+    return posts.length;
+  }
+
+  async function loadManagedPosts() {
+    var manageStatus = document.getElementById("manage-status");
+    var category = document.getElementById("manage-category").value;
+    manageStatus.textContent = "Loading posts...";
+    document.getElementById("managed-posts").textContent = "";
+    try {
+      managedIndexSnapshot = await publisherApi("/api/posts?category=" + encodeURIComponent(category));
+      var count = renderManagedPosts(managedIndexSnapshot.indexHtml);
+      manageStatus.textContent = count ? count + " post" + (count === 1 ? "" : "s") + " loaded." : "";
+    } catch (error) {
+      managedIndexSnapshot = null;
+      manageStatus.textContent = error.message || "Could not load posts.";
+    }
+  }
+
+  async function deleteManagedPost(post) {
+    if (!publisherSession || !managedIndexSnapshot) return;
+    var category = document.getElementById("manage-category").value;
+    if (!window.confirm("Permanently delete \"" + post.title + "\" and remove it from this section?")) return;
+    var manageStatus = document.getElementById("manage-status");
+    manageStatus.textContent = "Deleting " + post.title + "...";
+    try {
+      var updatedIndex = indexWithoutPost(managedIndexSnapshot.indexHtml, post.slug);
+      var result = await publisherApi("/api/delete", {
+        method: "POST",
+        body: {
+          category: category,
+          slug: post.slug,
+          indexSha: managedIndexSnapshot.indexSha,
+          indexHtml: updatedIndex
+        }
+      });
+      await loadManagedPosts();
+      manageStatus.textContent = "Deleted " + result.filename + " from " + result.section + ". The website will update after deployment.";
+    } catch (error) {
+      if (error.status === 401 || error.status === 403) {
+        publisherSession = null;
+        updateGitHubStatus("GitHub sign-in required", false, false);
+      }
+      manageStatus.textContent = error.message || "Could not delete that post.";
     }
   }
 
@@ -317,6 +414,14 @@
   }
   githubConnectButton.addEventListener("click", connectGitHub);
   document.getElementById("github-disconnect").addEventListener("click", disconnectGitHub);
+  document.getElementById("manage-posts-toggle").addEventListener("click", function () {
+    var panel = document.getElementById("post-manager");
+    panel.hidden = !panel.hidden;
+    this.setAttribute("aria-expanded", String(!panel.hidden));
+    if (!panel.hidden) loadManagedPosts();
+  });
+  document.getElementById("manage-category").addEventListener("change", loadManagedPosts);
+  document.getElementById("refresh-posts").addEventListener("click", loadManagedPosts);
   resumeGitHubSession();
 
   document.querySelectorAll("[data-command]").forEach(function (button) {

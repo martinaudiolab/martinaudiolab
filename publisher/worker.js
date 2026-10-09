@@ -378,6 +378,94 @@ async function publishPost(request, env, session, body) {
   return { filename: filename, section: category.folder, commit: commit.sha };
 }
 
+async function inspectSectionIndex(indexHtml, category, slug) {
+  let heading = "";
+  let introCount = 0;
+  let matchingLinks = 0;
+  const selector = 'main article.post h2 a[href="' + slug + '.html"]';
+  const html = await new HTMLRewriter()
+    .on("main h1", { text: function (text) { heading += text.text; } })
+    .on("main .intro", { element: function () { introCount += 1; } })
+    .on(selector, { element: function () { matchingLinks += 1; } })
+    .transform(new Response(indexHtml, { headers: { "Content-Type": "text/html; charset=utf-8" } }))
+    .text();
+  if (heading.trim() !== category.name || introCount !== 1) {
+    throw new HttpError(409, "The GitHub section index does not match " + category.name + ".");
+  }
+  return { html: html, matchingLinks: matchingLinks };
+}
+
+async function getSectionIndex(token, env, categoryKey) {
+  const category = CATEGORIES[categoryKey];
+  if (!category) throw new HttpError(400, "Choose a valid post section.");
+  const branch = env.GITHUB_BRANCH || "main";
+  const path = "site/" + category.folder + "/index.html";
+  const file = await githubRequest(token,
+    "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY + "/contents/" + encodePath(path) + "?ref=" + encodeURIComponent(branch));
+  return { indexSha: file.sha, indexHtml: decodeBase64Utf8(file.content) };
+}
+
+async function deletePost(request, env, session, body) {
+  if (!session.isAdmin) throw new HttpError(403, "Only repository administrators can delete published posts.");
+  if (!body || typeof body !== "object") throw new HttpError(400, "Invalid delete request.");
+  const category = CATEGORIES[body.category];
+  const slug = typeof body.slug === "string" ? body.slug : "";
+  const indexSha = typeof body.indexSha === "string" ? body.indexSha : "";
+  const indexHtml = typeof body.indexHtml === "string" ? body.indexHtml : "";
+  if (!category) throw new HttpError(400, "Choose a valid post section.");
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 80) throw new HttpError(400, "Invalid post filename.");
+  if (!/^[0-9a-f]{40,64}$/i.test(indexSha) || !indexHtml || indexHtml.length > 1_000_000) {
+    throw new HttpError(400, "The section index data is missing or invalid. Refresh the post list and try again.");
+  }
+
+  const owner = env.GITHUB_OWNER;
+  const repository = env.GITHUB_REPOSITORY;
+  const branch = env.GITHUB_BRANCH || "main";
+  const folder = "site/" + category.folder;
+  const indexPath = folder + "/index.html";
+  const postPath = folder + "/" + slug + ".html";
+  const apiBase = "/repos/" + owner + "/" + repository;
+  const reference = await githubRequest(session.accessToken, apiBase + "/git/ref/heads/" + encodeURIComponent(branch));
+  const parent = await githubRequest(session.accessToken, apiBase + "/git/commits/" + reference.object.sha);
+  const currentIndex = await githubRequest(session.accessToken,
+    apiBase + "/contents/" + encodePath(indexPath) + "?ref=" + encodeURIComponent(reference.object.sha));
+  if (currentIndex.sha !== indexSha) {
+    throw new HttpError(409, "This section changed after the list loaded. Refresh the post list, then try again.");
+  }
+
+  const original = await inspectSectionIndex(decodeBase64Utf8(currentIndex.content), category, slug);
+  if (original.matchingLinks !== 1) throw new HttpError(404, "That post is not listed in this section.");
+  const updatedIndex = await inspectSectionIndex(indexHtml, category, slug);
+  if (updatedIndex.matchingLinks !== 0) throw new HttpError(400, "The post link was not removed from the section index.");
+
+  await githubRequest(session.accessToken, apiBase + "/contents/" + encodePath(postPath) + "?ref=" + encodeURIComponent(reference.object.sha));
+  const indexBlob = await githubRequest(session.accessToken, apiBase + "/git/blobs", {
+    method: "POST", body: { content: updatedIndex.html, encoding: "utf-8" }
+  });
+  const tree = await githubRequest(session.accessToken, apiBase + "/git/trees", {
+    method: "POST",
+    body: {
+      base_tree: parent.tree.sha,
+      tree: [
+        { path: indexPath, mode: "100644", type: "blob", sha: indexBlob.sha },
+        { path: postPath, mode: "100644", type: "blob", sha: null }
+      ]
+    }
+  });
+  const commit = await githubRequest(session.accessToken, apiBase + "/git/commits", {
+    method: "POST",
+    body: {
+      message: "Delete " + slug,
+      tree: tree.sha,
+      parents: [reference.object.sha]
+    }
+  });
+  await githubRequest(session.accessToken, apiBase + "/git/refs/heads/" + encodeURIComponent(branch), {
+    method: "PATCH", body: { sha: commit.sha, force: false }
+  });
+  return { filename: slug + ".html", section: category.folder, commit: commit.sha };
+}
+
 async function startLogin(request, env) {
   assertConfigured(env);
   const state = crypto.randomUUID();
@@ -470,6 +558,14 @@ async function handleApi(request, env, url) {
     return jsonResponse(request, env, { role: session.isAdmin ? "administrator" : "test publisher" }, 200);
   }
 
+  if (url.pathname === "/api/posts" && request.method === "GET") {
+    const session = await requirePublisherAccess(request, env, sessionId);
+    if (!session.isAdmin) throw new HttpError(403, "Only repository administrators can manage published posts.");
+    const categoryKey = url.searchParams.get("category");
+    const result = await getSectionIndex(session.accessToken, env, categoryKey);
+    return jsonResponse(request, env, Object.assign({ category: categoryKey }, result), 200);
+  }
+
   if (url.pathname === "/api/publish" && request.method === "POST") {
     const session = await requirePublisherAccess(request, env, sessionId);
     const length = Number(request.headers.get("Content-Length") || 0);
@@ -481,6 +577,19 @@ async function handleApi(request, env, url) {
     catch (error) { throw new HttpError(400, "Invalid post data."); }
     const result = await publishPost(request, env, session, body);
     return jsonResponse(request, env, result, 201);
+  }
+
+  if (url.pathname === "/api/delete" && request.method === "POST") {
+    const session = await requirePublisherAccess(request, env, sessionId);
+    const length = Number(request.headers.get("Content-Length") || 0);
+    if (length > 1_100_000) throw new HttpError(413, "Delete request is too large.");
+    const text = await request.text();
+    if (text.length > 1_100_000) throw new HttpError(413, "Delete request is too large.");
+    let body;
+    try { body = JSON.parse(text); }
+    catch (error) { throw new HttpError(400, "Invalid delete request."); }
+    const result = await deletePost(request, env, session, body);
+    return jsonResponse(request, env, result, 200);
   }
 
   return jsonResponse(request, env, { error: "Not found." }, 404);

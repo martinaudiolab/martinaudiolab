@@ -91,6 +91,19 @@
 <p class="msg" id="status" role="status" aria-live="polite"></p>
 <p class="hint" id="github-setup-hint">Configure the publisher Worker URL to enable publishing. See the <a href="https://github.com/martinaudiolab/martinaudiolab/blob/main/POST-BUILDER-SETUP.md">setup instructions</a>.</p>
 </div>
+<div id="manage-posts-toolbar" class="row" hidden>
+<button class="btn alt" type="button" id="manage-posts-toggle" aria-expanded="false">Manage published posts</button>
+</div>
+<section id="post-manager" class="builder-preview" aria-labelledby="post-manager-title" hidden>
+<h2 id="post-manager-title">Manage published posts</h2>
+<div class="row">
+<label for="manage-category">Section</label>
+<select id="manage-category"><option value="stereo">Stereo Repair</option><option value="radio">Radio Repair</option><option value="test-equipment">Test Equipment</option></select>
+<button class="btn alt" type="button" id="refresh-posts">Refresh list</button>
+</div>
+<div id="managed-posts" aria-live="polite"></div>
+<p class="msg" id="manage-status" role="status" aria-live="polite"></p>
+</section>
 <details class="publish-fallback">
 <summary>Use downloads instead</summary>
 <label for="section-index">Choose the current section index</label>
