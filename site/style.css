@@ -150,3 +150,26 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .sb-photo img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;background:var(--panel)}
 .shop-builder .msg:empty{display:none}
 @media(max-width:600px){.sb-row{flex-wrap:wrap}.sb-actions{width:100%}.sb-detail{grid-template-columns:1fr}}
+
+/* Homepage: For Sale Now carousel (fixed dark palette, like the banner) */
+.forsale{margin:2.5rem 0;padding:1.25rem 1.25rem 1.5rem;background:#141a19;border:1px solid #2b3634;border-radius:6px;color:#e3e9e6}
+.forsale[hidden]{display:none}
+.fs-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:1rem;font-family:var(--sans)}
+.forsale h2{margin:0;font-size:1.25rem;font-weight:600;letter-spacing:.01em}
+.fs-head a{color:#72c4ba;font-size:.9rem}
+.fs-wrap{position:relative}
+.fs-track{display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px}
+.fs-track::-webkit-scrollbar{display:none}
+.fs-card{flex:0 0 13rem;scroll-snap-align:start;display:flex;flex-direction:column;gap:.35rem;padding:.6rem;background:#1c2524;border:1px solid #2b3634;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.35);color:#e3e9e6;text-decoration:none;font-family:var(--sans);transition:border-color .15s,transform .15s}
+.fs-card:hover,.fs-card:focus-visible{border-color:#72c4ba;transform:translateY(-2px)}
+.fs-thumb{position:relative;aspect-ratio:4/3;border-radius:4px;overflow:hidden;background:#0f1413}
+.fs-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.fs-badge{position:absolute;top:.4rem;left:.4rem;font-size:.7rem;font-weight:600;padding:.1rem .45rem;border-radius:3px;background:#e3e9e6;color:#141a19}
+.fs-card strong{font-size:.95rem;line-height:1.3;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+.fs-price{font-size:.95rem;color:#72c4ba;font-weight:600}
+.fs-price s{color:#9aa8a3;font-weight:400}
+.fs-btn{position:absolute;top:calc(50% - 1.25rem);z-index:1;width:2.25rem;height:2.25rem;border-radius:50%;border:1px solid #2b3634;background:rgba(20,26,25,.9);color:#e3e9e6;font-size:1.4rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 .15rem}
+.fs-btn[hidden]{display:none}
+.fs-btn:hover{border-color:#72c4ba}
+.fs-prev{left:-.6rem}.fs-next{right:-.6rem}
+@media(max-width:600px){.fs-card{flex-basis:11rem}.fs-prev{left:-.25rem}.fs-next{right:-.25rem}}

@@ -102,10 +102,20 @@ export function renderShop(data) {
   const files = {};
   files["index.html"] = page((shop.title || "Shop") + " - " + BRAND, shop.intro || "Shop", indexInner);
   for (const it of items) files[it.slug + ".html"] = page(it.title + " - " + (shop.title || "Shop") + " - " + BRAND, it.summary || it.title, detail(it), LIGHTBOX);
+  // Small public feed used by the homepage "For Sale Now" carousel.
+  const feed = ordered.filter((it) => status(it) !== "sold").map((it) => ({
+    slug: it.slug,
+    title: it.title,
+    image: it.images[0].replace(/^\//, ""),
+    price: typeof it.price === "number" ? money(it.price) : it.price ? String(it.price) : "Inquire for price",
+    was: typeof it.price === "number" && typeof it.was === "number" ? money(it.was) : "",
+    pending: status(it) === "pending"
+  }));
+  files["feed.json"] = JSON.stringify(feed, null, 2) + "\n";
   return files;
 }
 
-const text = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+const text =(v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 /**
  * Reduces untrusted shop data to the known fields and sizes. Anything unknown
