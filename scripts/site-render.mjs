@@ -93,7 +93,7 @@ export function renderAbout(content) {
     (a.bio ? '<div class="intro about-bio">' + paragraphs(a.bio) + "</div>" : "") +
     sections +
     '<p class="about-contact">' + (a.contact.heading ? esc(a.contact.heading) + " " : "") + mailto(email) + meta + "</p>";
-  return shell(content, {
+  return shell(content, { bodyClass: "navbar",
     title: a.title + " - " + content.site_name,
     description: (a.bio ? a.bio.split("\n")[0] : "About " + content.site_name).slice(0, 200),
     inner,
