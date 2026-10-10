@@ -39,7 +39,12 @@
   "theme": "auto",
   "homepage": {
     "hero": {
-      "image": "images/banner.jpg",
+      "slides": [
+        {
+          "image": "images/banner.jpg",
+          "alt": ""
+        }
+      ],
       "title": "High end audio and radio restorations.",
       "subtitle": "Stereo, radio and test equipment, restored with quality first"
     },

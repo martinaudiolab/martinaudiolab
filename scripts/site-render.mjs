@@ -13,9 +13,9 @@ export const themeAttr = (content) => (content.theme === "dark" || content.theme
 function shell(content, o) {
   const prefix = o.prefix || "";
   return "<!DOCTYPE html>\n<html lang=\"en\"" + themeAttr(content) + '><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
-    esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + prefix + 'style.css"></head><body>' +
+    esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + prefix + 'style.css"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
     '<header class="site"><a class="brand" href="' + prefix + 'index.html">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active, prefix) + "</header>" +
-    "<main>" + o.inner + "</main>" + (o.scripts || "") + NAV_SCRIPT(prefix) + THEME + "</body></html>\n";
+    (o.beforeMain || "") + "<main>" + o.inner + "</main>" + (o.scripts || "") + NAV_SCRIPT(prefix) + THEME + "</body></html>\n";
 }
 
 /** Paragraphs separated by blank lines; single line breaks become <br>. */
@@ -34,17 +34,24 @@ export function renderHome(content) {
     ? '<section class="forsale" id="forsale" aria-label="' + esc(pc.heading) + '" hidden><div class="fs-head"><h2>' + esc(pc.heading) + '</h2><a href="' + esc(pc.view_all_link.href) + '">' + esc(pc.view_all_link.label) +
       '</a></div><div class="fs-wrap"><button class="fs-btn fs-prev" type="button" aria-label="Previous items">&#8249;</button><div class="fs-track" tabindex="0"></div><button class="fs-btn fs-next" type="button" aria-label="Next items">&#8250;</button></div></section>'
     : "";
-  const inner = '<div class="banner" style="background-image:url(' + esc(h.hero.image) + ')"><div class="bt"><h1>' + esc(h.hero.title) + "</h1>" +
-    (h.hero.subtitle ? "<p>" + esc(h.hero.subtitle) + "</p>" : "") + "</div></div>" +
-    '<div class="lead"><p>' + esc(h.intro.text) + "</p></div>" +
-    '<section class="cats" aria-label="Restoration blog sections">' + cats + "</section>" +
-    carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "");
+  const slides = h.hero.slides.map((slide, i) =>
+    '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(slide.image) + '" alt="' + esc(slide.alt) + '"' +
+    (i === 0 ? ' fetchpriority="high"' : ' loading="lazy"') + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
+  const hero = '<section class="hero" id="hero" aria-label="' + esc(content.site_name) + '">' + slides +
+    '<div class="hero-scrim"></div><div class="hero-text"><h1>' + esc(h.hero.title) + "</h1>" +
+    (h.hero.subtitle ? "<p>" + esc(h.hero.subtitle) + "</p>" : "") + "</div></section>";
+  // The hero is full width; everything after it sits in the centered content container.
+  const inner = '<div class="lead"><p>' + esc(h.intro.text) + "</p></div>" +
+    carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "") +
+    '<section class="cats" aria-label="Restoration blog sections">' + cats + "</section>";
   return shell(content, {
     title: content.site_name + " - " + h.hero.title,
     description: h.hero.subtitle || h.hero.title,
     inner,
     active: "index.html",
-    scripts: pc.enabled ? '<script src="forsale.js" defer></script>' : ""
+    bodyClass: "home",
+    beforeMain: hero,
+    scripts: '<script src="hero.js" defer></script>' + (pc.enabled ? '<script src="forsale.js" defer></script>' : "")
   });
 }
 

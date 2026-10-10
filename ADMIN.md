@@ -19,7 +19,7 @@ The shop listing manager and the blog post editor. Each has its own Publish butt
 | Tab | Keys |
 | --- | --- |
 | Global | `site_name`, `contact_email`, `nav_items` (with `children` for dropdowns), `theme` |
-| Homepage | `homepage.hero.{image,title,subtitle}`, `homepage.intro.text`, `homepage.categories[]`, `homepage.product_carousel.{enabled,heading,view_all_link}`, `homepage.trust_line` |
+| Homepage | `homepage.hero.{slides[],title,subtitle}` (up to 4 slides, each `{image, alt}`), `homepage.intro.text`, `homepage.categories[]`, `homepage.product_carousel.{enabled,heading,view_all_link}`, `homepage.trust_line` |
 | Request | `request.{title,intro,form_action,subject,success_message}` |
 | About | `about.{title,bio}`, `about.sections[]`, `about.contact.{heading,email}`, `about.location`, `about.response_time` |
 

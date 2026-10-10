@@ -18,10 +18,6 @@ nav a.on{color:var(--ink);border-bottom-color:var(--accent)}
 button.theme{font-family:var(--sans);font-size:.8rem;background:none;border:1px solid var(--rule);color:var(--muted);padding:.25rem .65rem;border-radius:4px;cursor:pointer}
 .ownerbar{max-width:calc(1100px - 4rem);margin:1rem auto 0;padding:.5rem 1.25rem;font-family:var(--sans);font-size:.85rem;display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;background:var(--panel);border-radius:4px;color:var(--muted)}
 main{max-width:1100px;width:100%;margin:0 auto;padding:2rem 2rem 4rem}
-.banner{width:100%;min-height:clamp(15rem,36vw,25rem);background:#2b3634 center/cover no-repeat;border-radius:6px;display:flex;align-items:flex-end;overflow:hidden}
-.bt{width:100%;padding:3rem 1.5rem 1.5rem;background:linear-gradient(to top,rgba(0,0,0,.8),rgba(0,0,0,0));color:#fff}
-.bt h1{font-size:clamp(1.8rem,5.5vw,2.8rem);line-height:1.12;font-weight:600;letter-spacing:-.015em;margin:0 0 .4rem;max-width:34rem}
-.bt p{margin:0;font-family:var(--sans);font-size:1rem;color:rgba(255,255,255,.9)}
 .lead{margin-top:2rem}.lead p{max-width:38rem;margin:0 0 1rem}
 .sections{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin:2.5rem 0;padding-top:2rem;border-top:1px solid var(--rule)}
 @media (max-width:760px){.sections{grid-template-columns:1fr;gap:2rem}}
@@ -149,7 +145,7 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .shop-builder .msg:empty{display:none}
 @media(max-width:600px){.sb-row{flex-wrap:wrap}.sb-actions{width:100%}.sb-detail{grid-template-columns:1fr}}
 
-/* Homepage: For Sale Now carousel (fixed dark palette, like the banner) */
+/* Homepage: For Sale Now carousel (fixed dark palette, like the hero) */
 .forsale{width:100%;margin:2.5rem 0;padding:1.25rem 1.25rem 1.5rem;background:#141a19;border:1px solid #2b3634;border-radius:6px;color:#e3e9e6}
 .forsale[hidden]{display:none}
 .fs-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:1rem;font-family:var(--sans)}
@@ -246,3 +242,29 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .request-result{font-family:var(--sans);font-size:.95rem;margin:1rem 0 0;min-height:1.4em}
 .request-result.ok{color:var(--accent)}
 .request-result.error{color:#d9534f}
+
+/* Homepage: full-bleed hero with a crossfade slideshow, navigation floating over it */
+.hero{position:relative;width:100%;min-height:clamp(26rem,72vh,46rem);overflow:hidden;background:#141a19;display:flex;align-items:flex-end}
+.hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s ease-in-out}
+.hero-slide.active{opacity:1}
+.hero-scrim{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.4) 34%,rgba(0,0,0,0) 62%),linear-gradient(to bottom,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 24%)}
+.hero-text{position:relative;z-index:1;width:100%;max-width:1100px;margin:0 auto;padding:0 2rem 2.75rem;color:#fff}
+.hero-text h1{font-size:clamp(1.9rem,5.5vw,3.2rem);line-height:1.1;font-weight:600;letter-spacing:-.015em;margin:0 0 .5rem;max-width:36rem;text-shadow:0 2px 12px rgba(0,0,0,.45)}
+.hero-text p{margin:0;font-family:var(--sans);font-size:1.1rem;color:rgba(255,255,255,.92);text-shadow:0 1px 8px rgba(0,0,0,.45)}
+
+body.home header.site{position:fixed;top:0;left:0;right:0;z-index:100;width:100%;max-width:none;margin:0;padding:14px max(2rem,calc((100% - 1100px) / 2 + 2rem));align-items:center;transition:background-color .3s ease}
+body.home header.site.solid{background:rgba(18,18,18,.95)}
+body.home .brand{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+body.home nav{gap:.5rem}
+body.home nav > a,body.home .dd-toggle,body.home button.theme{color:#fff;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border:0;border-radius:6px;padding:8px 16px;font-size:.95rem;transition:background-color .15s ease}
+body.home nav > a:hover,body.home .dd-toggle:hover,body.home .dd.open .dd-toggle,body.home button.theme:hover{color:#fff;background:rgba(0,0,0,.65)}
+body.home nav > a.on,body.home .dd-toggle.on{color:#fff;background:rgba(0,0,0,.65);box-shadow:inset 0 -2px 0 #72c4ba}
+body.home .dd-menu{background:rgba(18,18,18,.96);border-color:rgba(255,255,255,.14)}
+body.home .dd-menu a{color:#fff;background:none}
+body.home .dd-menu a:hover{background:rgba(255,255,255,.1)}
+body.home .dd-menu a.on{box-shadow:inset 3px 0 0 #72c4ba}
+@media(max-width:700px){
+  body.home header.site{padding:10px 1rem;gap:.5rem}
+  body.home nav > a,body.home .dd-toggle,body.home button.theme{padding:6px 11px;font-size:.85rem}
+  .hero-text{padding:0 1rem 2rem}
+}

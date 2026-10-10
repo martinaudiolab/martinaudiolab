@@ -53,7 +53,7 @@ const DEFAULT_CATEGORIES = [
   { label: "Test Equipment", description: "", href: "test-equipment/index.html", image: "images/category-test-equipment.jpg" }
 ];
 
-export const MAX = { nav: 8, navChildren: 8, categories: 6, sections: 12 };
+export const MAX = { nav: 8, navChildren: 8, categories: 6, sections: 12, heroSlides: 4 };
 
 function normalizeNav(input) {
   const list = Array.isArray(input) ? input : null;
@@ -70,6 +70,18 @@ function normalizeNav(input) {
     else if (href(raw.href, "")) out.push({ label, href: raw.href.trim() });
   }
   return out.length ? out : DEFAULT_NAV.map((item) => JSON.parse(JSON.stringify(item)));
+}
+
+/** Up to four slideshow images; falls back to the legacy single image, then to the default photo. */
+function heroSlides(hero) {
+  const source = Array.isArray(hero.slides) ? hero.slides : hero.image ? [{ image: hero.image }] : [];
+  const slides = source.slice(0, MAX.heroSlides)
+    .map((slide) => {
+      const o = slide && typeof slide === "object" ? slide : {};
+      return { image: image(o.image, ""), alt: text(o.alt, 160, "") };
+    })
+    .filter((slide) => slide.image);
+  return slides.length ? slides : [{ image: "images/banner.jpg", alt: "" }];
 }
 
 /**
@@ -108,7 +120,7 @@ export function normalizeContent(input) {
     theme: THEMES.includes(c.theme) ? c.theme : "auto",
     homepage: {
       hero: {
-        image: image(hero.image, "images/banner.jpg"),
+        slides: heroSlides(hero),
         title: str(hero.title, 120, "High end audio and radio restorations."),
         subtitle: text(hero.subtitle, 200, "Stereo, radio and test equipment, restored with quality first")
       },
@@ -146,6 +158,6 @@ export function normalizeContent(input) {
 
 /** Image paths under images/site/ that this content refers to (for cleanup). */
 export function contentImages(content) {
-  const paths = [content.homepage.hero.image].concat(content.homepage.categories.map((c) => c.image));
+  const paths = content.homepage.hero.slides.map((s) => s.image).concat(content.homepage.categories.map((c) => c.image));
   return paths.filter((p) => typeof p === "string" && p.startsWith("images/"));
 }

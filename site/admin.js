@@ -187,24 +187,54 @@
     return path;
   }
 
-  function wireHero() {
-    $("hero-pick").addEventListener("click", function () { $("hero-file").click(); });
-    $("hero-file").addEventListener("change", async function (event) {
-      var file = event.target.files[0];
-      event.target.value = "";
-      if (!file) return;
-      try {
-        content.homepage.hero.image = await pickImage(file, "hero", 2000);
-        renderHero();
-        markDirty();
-      } catch (error) { say(error.message); }
-    });
+  var HERO_SLOTS = 4;
+
+  function renderHeroSlots() {
+    var holder = $("hero-slots");
+    holder.replaceChildren();
+    var slides = content.homepage.hero.slides;
+    for (var index = 0; index < HERO_SLOTS; index++) {
+      holder.appendChild(heroSlot(slides, index));
+    }
   }
 
-  function renderHero() {
-    var path = content.homepage.hero.image;
-    $("hero-preview").src = imageSrc(path);
-    $("hero-path").textContent = pending[path] ? "New image selected (saved when you save)." : path;
+  function heroSlot(slides, index) {
+    var slide = slides[index] || null;
+    var number = index + 1;
+    var row = el("div", { class: "ae-row ae-cat" });
+    var thumb = slide
+      ? el("img", { class: "ae-thumb", alt: "", src: imageSrc(slide.image) })
+      : el("div", { class: "ae-thumb ae-empty", text: "Empty" });
+
+    var file = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp", hidden: "" });
+    var pick = smallButton(slide ? "Replace image" : "Choose image", "Choose image for slideshow slot " + number, function () { file.click(); });
+    file.addEventListener("change", async function () {
+      var chosen = file.files[0];
+      file.value = "";
+      if (!chosen) return;
+      try {
+        var path = await pickImage(chosen, "hero", 2000);
+        if (slide) slide.image = path;
+        else slides.push({ image: path, alt: "" });
+        markDirty();
+        renderHeroSlots();
+      } catch (error) { say(error.message); }
+    });
+
+    var alt = textInput(slide ? slide.alt : "", "Alt text (optional)", "Alt text for slideshow slot " + number, function (value) {
+      if (slide) slide.alt = value;
+    });
+    alt.disabled = !slide;
+
+    var remove = smallButton("Remove image", "Remove slideshow image " + number, function () {
+      slides.splice(index, 1);
+      markDirty();
+      renderHeroSlots();
+    }, !slide || slides.length < 2);
+    if (slide && slides.length < 2) remove.title = "The slideshow needs at least one image.";
+
+    row.append(thumb, el("div", { class: "ae-fields" }, [el("strong", { text: "Slot " + number }), alt]), el("div", { class: "sb-actions" }, [pick, file, remove]));
+    return row;
   }
 
   // ---- Navigation editor --------------------------------------------------
@@ -332,7 +362,7 @@
 
   function render() {
     fillFields();
-    renderHero();
+    renderHeroSlots();
     renderNav();
     renderCategories();
     renderSections();
@@ -353,7 +383,7 @@
 
   function referencedImages() {
     var used = {};
-    used[content.homepage.hero.image] = true;
+    content.homepage.hero.slides.forEach(function (slide) { used[slide.image] = true; });
     content.homepage.categories.forEach(function (c) { used[c.image] = true; });
     return used;
   }
@@ -449,6 +479,5 @@
   });
 
   bindFields();
-  wireHero();
   resume();
 })();
