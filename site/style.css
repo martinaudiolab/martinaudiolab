@@ -272,19 +272,18 @@ body.home header.site{position:fixed;top:0;left:0;right:0;z-index:100;width:100%
 body.home header.site.solid{background:rgba(18,18,18,.95)}
 body.home .brand{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 /* One continuous translucent bar; items are flush inside it */
-body.home nav{gap:0;padding:4px;border-radius:999px;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-body.home nav > a,body.home .dd-toggle,body.home button.theme{color:#fff;background:none;border:0;border-radius:999px;padding:8px 16px;font-size:.95rem;transition:background-color .15s ease}
+body.home nav{gap:0;padding:0;border-radius:0;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+body.home nav > a,body.home .dd-toggle,body.home button.theme{color:#fff;background:none;border:0;border-radius:0;padding:12px 18px;font-size:.95rem;transition:background-color .15s ease}
 body.home nav > a:hover,body.home .dd-toggle:hover,body.home .dd.open .dd-toggle,body.home button.theme:hover{color:#fff;background:rgba(255,255,255,.14)}
 body.home nav > a.on,body.home .dd-toggle.on{color:#fff;background:rgba(255,255,255,.18);box-shadow:inset 0 -2px 0 #72c4ba}
-body.home button.theme{margin-left:4px;position:relative}
-body.home button.theme::before{content:"";position:absolute;left:-3px;top:25%;bottom:25%;width:1px;background:rgba(255,255,255,.25)}
+body.home button.theme{position:relative}
+body.home button.theme::before{content:"";position:absolute;left:0;top:25%;bottom:25%;width:1px;background:rgba(255,255,255,.25)}
 body.home .dd-menu{background:rgba(18,18,18,.96);border-color:rgba(255,255,255,.14)}
 body.home .dd-menu a{color:#fff;background:none}
 body.home .dd-menu a:hover{background:rgba(255,255,255,.1)}
 body.home .dd-menu a.on{box-shadow:inset 3px 0 0 #72c4ba}
 @media(max-width:700px){
   body.home header.site{padding:10px 1rem;gap:.5rem}
-  body.home nav{border-radius:18px}
   body.home nav > a,body.home .dd-toggle,body.home button.theme{padding:6px 11px;font-size:.85rem}
   .hero-text{padding:0 1rem 2rem}
 }
