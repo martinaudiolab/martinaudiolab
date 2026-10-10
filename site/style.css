@@ -18,7 +18,7 @@ nav a.on{color:var(--ink);border-bottom-color:var(--accent)}
 button.theme{font-family:var(--sans);font-size:.8rem;background:none;border:1px solid var(--rule);color:var(--muted);padding:.25rem .65rem;border-radius:4px;cursor:pointer}
 .ownerbar{max-width:calc(1100px - 4rem);margin:1rem auto 0;padding:.5rem 1.25rem;font-family:var(--sans);font-size:.85rem;display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;background:var(--panel);border-radius:4px;color:var(--muted)}
 main{max-width:1100px;width:100%;margin:0 auto;padding:2rem 2rem 4rem}
-.lead{margin-top:2rem}.lead p{max-width:38rem;margin:0 0 1rem}
+
 .sections{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin:2.5rem 0;padding-top:2rem;border-top:1px solid var(--rule)}
 @media (max-width:760px){.sections{grid-template-columns:1fr;gap:2rem}}
 .sections h2,.h2{font-size:1.5rem;line-height:1.2;margin:0 0 .5rem;font-weight:600}
@@ -97,15 +97,12 @@ textarea{line-height:1.5}
 /* Shop */
 a.btn{display:inline-block;text-decoration:none}
 .shop-note{font-family:var(--sans);font-size:.9rem;color:var(--muted);background:var(--panel);padding:.7rem .9rem;border-radius:4px;max-width:40rem}
-.shop-wide{width:100%;margin:0 0 4rem}
-.shop-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr));gap:4px 4px}
+.shop-grid{list-style:none;margin:2rem 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(12.5rem,1fr));gap:1.75rem 1.25rem}
 .shop-card a{display:block;color:inherit;text-decoration:none}
-.shop-card strong,.shop-card .shop-sum,.shop-card .shop-price{padding:0 1.25rem}
-.shop-card .shop-price{padding-bottom:1.5rem}
-.shop-thumb{position:relative;aspect-ratio:4/3;background:var(--panel);border-radius:0;overflow:hidden;margin-bottom:1rem}
+.shop-thumb{position:relative;aspect-ratio:4/3;background:var(--panel);border-radius:6px;overflow:hidden;margin-bottom:.6rem}
 .shop-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
 .shop-card a:hover .shop-thumb img,.shop-card a:focus-visible .shop-thumb img{transform:scale(1.04)}
-.shop-card strong{display:block;font-family:var(--sans);font-size:1.05rem;line-height:1.3}
+.shop-card strong{display:block;font-family:var(--sans);font-size:.95rem;line-height:1.3}
 .shop-card a:hover strong{color:var(--accent)}
 .shop-sum{display:block;font-size:.9rem;line-height:1.4;color:var(--muted)}
 .shop-price{display:block;font-family:var(--sans);font-weight:600;font-size:.95rem;margin-top:.2rem}
@@ -149,22 +146,22 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 @media(max-width:600px){.sb-row{flex-wrap:wrap}.sb-actions{width:100%}.sb-detail{grid-template-columns:1fr}}
 
 /* Homepage: For Sale Now - centered four-up grid that quietly rotates through the catalogue */
-.forsale{width:100%;margin:3rem 0}
+.forsale{width:100%;margin:3rem 0 0}
 .forsale[hidden]{display:none}
 .fs-label{margin:0 0 1.5rem;text-align:center;font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
-.fs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;transition:opacity .3s ease}
+.fs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;transition:opacity .3s ease}
 .fs-grid.fs-fade{opacity:0}
 .fs-card{display:flex;flex-direction:column;color:var(--ink);text-decoration:none;font-family:var(--sans)}
-.fs-thumb{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:3px;background:var(--panel)}
+.fs-thumb{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:0;background:var(--panel)}
 .fs-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
 .fs-card:hover .fs-thumb img,.fs-card:focus-visible .fs-thumb img{transform:scale(1.03)}
 .fs-badge{position:absolute;top:8px;right:8px;font-size:11px;font-weight:600;line-height:1;padding:5px 9px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-.fs-name{margin-top:12px;text-align:center;font-size:15px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .15s ease}
+.fs-name{margin-top:16px;padding:0 1rem;text-align:center;font-size:17px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .15s ease}
 .fs-card:hover .fs-name,.fs-card:focus-visible .fs-name{color:var(--accent)}
-.fs-price{margin-top:2px;text-align:center;font-size:14px;color:var(--muted)}
+.fs-price{margin-top:4px;padding:0 1rem 1.5rem;text-align:center;font-size:15px;color:var(--muted)}
 .fs-price s{margin-right:6px}
 .fs-sale{color:var(--accent);font-weight:600}
-.fs-more{margin:30px 0 0;text-align:center}
+.fs-more{margin:12px 0 0;padding:0 1rem;text-align:center}
 .fs-viewall{display:inline-block;font-family:var(--sans);font-size:.95rem;color:#fff;text-decoration:none;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border-radius:999px;padding:9px 28px;transition:background-color .15s ease}
 .fs-viewall:hover,.fs-viewall:focus-visible{background:rgba(0,0,0,.75);color:#fff}
 @media(max-width:1024px){.fs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -216,7 +213,7 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .about-contact{font-family:var(--sans);margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--rule)}
 
 /* Homepage extras */
-.trust-line{text-align:center;font-family:var(--sans);font-size:.9rem;color:var(--muted);margin:1rem 0 0}
+.trust-line{padding:0 2rem;text-align:center;font-family:var(--sans);font-size:.9rem;color:var(--muted);margin:1rem 0 0}
 .about-bio p{margin:0 0 1rem}
 
 /* Admin panel */

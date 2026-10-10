@@ -5,7 +5,7 @@
   var apiUrl = document.querySelector('meta[name="publisher-api-url"]').content.trim().replace(/\/+$/, "");
   var session = null;
   var content = null;           // the site content being edited
-  var shop = { title: "" };
+  var shop = { title: "", intro: "" };
   var contentSha = "";
   var shopSha = "";
   var pending = {};             // new image path -> { base64, dataUrl, uploaded }
@@ -130,6 +130,7 @@
       else input.value = value == null ? "" : String(value);
     });
     $("s-title").value = shop.title || "";
+    $("s-intro").value = shop.intro || "";
   }
 
   function bindFields() {
@@ -382,7 +383,7 @@
     say("Loading the site content...");
     var result = await api("/api/content");
     content = result.content;
-    shop = result.shop || { title: "" };
+    shop = result.shop || { title: "", intro: "" };
     contentSha = result.contentSha || "";
     shopSha = result.shopSha;
     pending = {};

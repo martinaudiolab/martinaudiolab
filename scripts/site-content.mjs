@@ -93,7 +93,6 @@ export function normalizeContent(input) {
   const c = input && typeof input === "object" ? input : {};
   const h = c.homepage && typeof c.homepage === "object" ? c.homepage : {};
   const hero = h.hero && typeof h.hero === "object" ? h.hero : {};
-  const intro = h.intro && typeof h.intro === "object" ? h.intro : {};
   const pc = h.product_carousel && typeof h.product_carousel === "object" ? h.product_carousel : {};
   const vl = pc.view_all_link && typeof pc.view_all_link === "object" ? pc.view_all_link : {};
   const r = c.request && typeof c.request === "object" ? c.request : {};
@@ -127,7 +126,6 @@ export function normalizeContent(input) {
         title: str(hero.title, 120, "High end audio and radio restorations."),
         subtitle: text(hero.subtitle, 200, "Stereo, radio and test equipment, restored with quality first")
       },
-      intro: { text: str(intro.text, 1200, "I restore stereo, radio, and test equipment — one unit at a time, done right. Browse recent work or grab a part from the shop.") },
       categories: categories.length ? categories : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
       product_carousel: {
         enabled: pc.enabled === undefined ? true : pc.enabled === true,

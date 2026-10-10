@@ -625,7 +625,7 @@ async function getAdminContent(token, env) {
   return {
     content: site.content,
     contentSha: site.sha,
-    shop: { title: String(shopBlock.title || "Shop") },
+    shop: { title: String(shopBlock.title || "Shop"), intro: String(shopBlock.intro || "") },
     shopSha: shop.sha
   };
 }
@@ -640,6 +640,7 @@ async function publishContent(request, env, session, body) {
   const content = normalizeContent(body.content);
   const shopIn = body.shop && typeof body.shop === "object" ? body.shop : {};
   const shopTitle = typeof shopIn.title === "string" && shopIn.title.trim() ? shopIn.title.trim().slice(0, 80) : "Shop";
+  const shopIntro = typeof shopIn.intro === "string" ? shopIn.intro.replace(/\r\n/g, "\n").trim().slice(0, 600) : "";
 
   const uploads = Array.isArray(body.images) ? body.images : [];
   if (uploads.length > 12) throw new HttpError(400, "Too many new images in one save.");
@@ -690,10 +691,9 @@ async function publishContent(request, env, session, body) {
   for (const upload of uploads) await addBlob("site/" + upload.path, { content: upload.data, encoding: "base64" });
   await addBlob(CONTENT_PATH, { content: JSON.stringify(content, null, 2) + "\n", encoding: "utf-8" });
 
-  // The shop title lives in the shop data, so there is one source for it.
+  // The shop title and introduction live in the shop data, so there is one source for them.
   const shopData = currentShop.data && typeof currentShop.data === "object" ? currentShop.data : { items: [] };
-  shopData.shop = Object.assign({}, shopData.shop || {}, { title: shopTitle });
-  delete shopData.shop.intro;
+  shopData.shop = Object.assign({}, shopData.shop || {}, { title: shopTitle, intro: shopIntro });
   await addBlob(SHOP_DATA_PATH, { content: JSON.stringify(shopData, null, 2) + "\n", encoding: "utf-8" });
 
   const pages = renderShop(normalizeShop(shopData), { content: content });
@@ -719,7 +719,7 @@ async function publishContent(request, env, session, body) {
   const updatedShop = await githubRequest(token, apiBase + "/contents/" + encodePath(SHOP_DATA_PATH) + "?ref=" + encodeURIComponent(commit.sha));
   return {
     commit: commit.sha, contentSha: updatedSite.sha, shopSha: updatedShop.sha,
-    content: content, shop: { title: shopTitle }, uploaded: uploads.length
+    content: content, shop: { title: shopTitle, intro: shopIntro }, uploaded: uploads.length
   };
 }
 

@@ -13,13 +13,13 @@ If the content changed somewhere else after you opened the page, saving is refus
 The shop listing manager and the blog post editor. Each has its own Publish button; the Save changes bar applies to the five content tabs only. See `SHOP.md` for how shop listings work.
 
 ## Where the content lives
-- `site-data/site-content.json`: the single source of truth for everything on the tabs except the shop title.
-- `shop-data/items.json`: the shop. The **Shop** tab edits its `shop.title`; products are still managed in the **Shop Builder** tab.
+- `site-data/site-content.json`: the single source of truth for everything on the tabs except the shop title and introduction.
+- `shop-data/items.json`: the shop. The **Shop** tab edits its `shop.title` and `shop.intro`; products are still managed in the **Shop Builder** tab.
 
 | Tab | Keys |
 | --- | --- |
 | Global | `site_name`, `contact_email`, `nav_items` (with `children` for dropdowns), `theme` |
-| Homepage | `homepage.hero.{slides[],title,subtitle}` (up to 4 slides, each `{image, alt}`), `homepage.intro.text`, `homepage.categories[]`, `homepage.product_carousel.{enabled,heading,view_all_link}`, `homepage.trust_line` |
+| Homepage | `homepage.hero.{slides[],title,subtitle}` (up to 4 slides, each `{image, alt}`), `homepage.categories[]`, `homepage.product_carousel.{enabled,heading,view_all_link}`, `homepage.trust_line` |
 | Request | `request.{title,intro,form_action,subject,success_message}` |
 | About | `about.{title,bio}`, `about.sections[]`, `about.contact.{heading,email}`, `about.location`, `about.response_time` |
 

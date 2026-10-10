@@ -15,7 +15,7 @@ function shell(content, o) {
   return "<!DOCTYPE html>\n<html lang=\"en\"" + themeAttr(content) + '><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
     esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + prefix + 'style.css"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
     '<header class="site"><a class="brand" href="' + prefix + 'index.html">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active, prefix) + "</header>" +
-    (o.beforeMain || "") + "<main>" + o.inner + "</main>" + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT(prefix) + THEME + "</body></html>\n";
+    (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT(prefix) + THEME + "</body></html>\n";
 }
 
 /** Paragraphs separated by blank lines; single line breaks become <br>. */
@@ -44,17 +44,16 @@ export function renderHome(content) {
   const hero = '<section class="hero" id="hero" aria-label="' + esc(content.site_name) + '">' + slides +
     '<div class="hero-scrim"></div><div class="hero-text"><h1>' + esc(h.hero.title) + "</h1>" +
     (h.hero.subtitle ? "<p>" + esc(h.hero.subtitle) + "</p>" : "") + "</div></section>";
-  // The hero is full width; everything after it sits in the centered content container.
-  const inner = '<div class="lead"><p>' + esc(h.intro.text) + "</p></div>" +
-    carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "");
+  // The homepage is full-bleed from the hero down: no centered container.
   return shell(content, {
     title: content.site_name + " - " + h.hero.title,
     description: h.hero.subtitle || h.hero.title,
-    inner,
+    inner: "",
     active: "index.html",
     bodyClass: "home",
     beforeMain: hero,
-    afterMain: '<div class="cats" aria-label="Restoration blog sections">' + cats + "</div>",
+    afterMain: carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "") +
+      '<div class="cats" aria-label="Restoration blog sections">' + cats + "</div>",
     scripts: '<script src="hero.js" defer></script>' + (pc.enabled ? '<script src="forsale.js" defer></script>' : "")
   });
 }

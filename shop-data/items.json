@@ -1,6 +1,7 @@
 {
   "shop": {
     "title": "Shop",
+    "intro": "Restored equipment and parts from Martin Audio Labs. Browse the gallery, then select an item for more photos, details and the price.",
     "howToBuy": "To ask about an item or arrange a purchase, use the Inquire button on its page. It opens an email to me with the item already named.",
     "email": "thealexandersound@gmail.com",
     "placeholder": "images/banner.jpg"
