@@ -40,7 +40,7 @@
   "homepage": {
     "hero": {
       "image": "images/banner.jpg",
-      "title": "High end audio and radio restorations.",
+      "title": "AMOGUS",
       "subtitle": "Stereo, radio and test equipment, restored with quality first"
     },
     "intro": {
@@ -89,7 +89,7 @@
     },
     "email": {
       "subject": "Restoration request",
-      "body_template": "Hello,\n\nI would like to request a restoration.\n\nMake and model:\nWhat it is doing (or not doing):\nAnything else I should know:\n\nThank you,\n"
+      "body_template": "Hello,\n\nI would like to request a restoration.\n\nMake and model:\nWhat it is doing (or not doing):\nAnything else I should know:\n\nThank you,"
     },
     "secondary_contact_text": "Or write to {email}."
   },
