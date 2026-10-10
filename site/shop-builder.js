@@ -341,7 +341,8 @@
     for (var i = 0; i < files.length; i++) {
       if (editing.item.images.length >= 12) { error.textContent = "An item can have up to 12 photos."; break; }
       try {
-        var photo = await resizePhoto(files[i]);
+        var source = window.HeicSupport ? await window.HeicSupport.prepare(files[i]) : files[i];
+        var photo = await resizePhoto(source);
         if (photo.base64.length * 0.75 > 3_500_000) throw new Error(files[i].name + " is too large even after resizing.");
         var path = "images/shop/photo-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6) + ".jpg";
         pending[path] = photo;

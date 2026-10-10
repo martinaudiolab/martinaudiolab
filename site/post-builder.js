@@ -214,8 +214,11 @@
   // ---- Publishing --------------------------------------------------------------------
 
   /** A small JPEG (base64) for the section page: the chosen file, else the first photo in the post. */
-  function thumbnailBase64() {
+  async function thumbnailBase64() {
     var chosen = $("post-thumb").files && $("post-thumb").files[0];
+    if (chosen && window.HeicSupport) {
+      try { chosen = await window.HeicSupport.prepare(chosen); } catch (error) { chosen = null; }
+    }
     var firstPhoto = $("post-content").querySelector('img[src^="data:image"]');
     var source = chosen ? URL.createObjectURL(chosen) : firstPhoto ? firstPhoto.getAttribute("src") : "";
     if (!source) return Promise.resolve("");
@@ -410,9 +413,19 @@
 
   // ---- Images -------------------------------------------------------------------------
 
-  function insertImage(file) {
+  async function insertImage(file) {
+    try {
+      if (window.HeicSupport) {
+        if (window.HeicSupport.isHeic(file)) say("Converting HEIC photo...");
+        file = await window.HeicSupport.prepare(file);
+        say("");
+      }
+    } catch (error) {
+      say(error.message);
+      return;
+    }
     if (!IMAGE_FILE_TYPE.test(file.type)) {
-      say("Choose a PNG, JPEG, GIF or WebP image.");
+      say("Choose a PNG, JPEG, GIF, WebP or HEIC image.");
       return;
     }
     var reader = new FileReader();

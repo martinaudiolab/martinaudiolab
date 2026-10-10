@@ -14,6 +14,8 @@ The shop listing manager and the blog post editor. Each has its own Publish butt
 
 Every post listed on a section page (Stereo Repair, Radio Repair, Test Equipment) has a thumbnail. In the Post Builder you can choose one; otherwise the first photo in the post is used, and a post with no photo shows the section picture. Thumbnails are small JPEGs stored in `site/images/posts/` and are removed when the post is deleted.
 
+Every image field in the admin accepts HEIC/HEIF photos (for example straight from an iPhone). They are converted to JPEG in the browser before upload, using the `heic2any` library from the jsDelivr CDN, which is downloaded only the first time a HEIC photo is chosen.
+
 ## Where the content lives
 - `site-data/site-content.json`: the single source of truth for everything on the tabs except the shop title and introduction.
 - `shop-data/items.json`: the shop. The **Shop** tab edits its `shop.title` and `shop.intro`; products are still managed in the **Shop Builder** tab.

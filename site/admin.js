@@ -180,6 +180,7 @@
   }
 
   async function pickImage(file, kind, maxSide) {
+    if (window.HeicSupport) file = await window.HeicSupport.prepare(file);
     var photo = await resizeImage(file, maxSide);
     if (photo.base64.length * 0.75 > 3000000) throw new Error("That image is too large even after resizing. Try a smaller one.");
     var path = "images/site/" + kind + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6) + ".jpg";
@@ -205,7 +206,7 @@
       ? el("img", { class: "ae-thumb", alt: "", src: imageSrc(slide.image) })
       : el("div", { class: "ae-thumb ae-empty", text: "Empty" });
 
-    var file = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp", hidden: "" });
+    var file = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif", hidden: "" });
     var pick = smallButton(slide ? "Replace image" : "Choose image", "Choose image for slideshow slot " + number, function () { file.click(); });
     file.addEventListener("change", async function () {
       var chosen = file.files[0];
@@ -315,7 +316,7 @@
       var thumb = category.image
         ? el("img", { class: "ae-thumb", alt: "", src: imageSrc(category.image) })
         : el("div", { class: "ae-thumb ae-empty", text: "No image" });
-      var file = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp", hidden: "" });
+      var file = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif", hidden: "" });
       var pick = smallButton(category.image ? "Replace image" : "Choose image", "Choose image for " + (category.label || "category"), function () { file.click(); });
       file.addEventListener("change", async function () {
         var chosen = file.files[0];

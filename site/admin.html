@@ -199,7 +199,7 @@
 <div id="f-photos" class="sb-photos"></div>
 <div class="row">
 <button class="btn alt" type="button" id="add-photos">Add photos</button>
-<input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+<input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple hidden>
 </div>
 
 <p class="msg" id="item-error" role="alert"></p>
@@ -239,7 +239,7 @@
 <label for="post-summary">Short summary</label>
 <textarea id="post-summary" rows="2" maxlength="280" required placeholder="A sentence shown on the section page"></textarea>
 <label for="post-thumb">Thumbnail (optional)</label>
-<input id="post-thumb" type="file" accept="image/png,image/jpeg,image/webp">
+<input id="post-thumb" type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif">
 <p class="hint">Shown beside the post on its section page. If you skip it, the first photo in the post is used; with no photo, the section picture is used.</p>
 <label>Post content</label>
 <div class="tb" role="toolbar" aria-label="Post formatting">
@@ -261,7 +261,7 @@
 <span class="sz"><label for="font-size">Size</label><input id="font-size" type="number" min="10" max="72" step="1" value="18" aria-label="Font size in pixels"><button class="btn alt" type="button" id="apply-size">Set</button></span>
 <input id="text-color" type="color" value="#1c2321" aria-label="Text color">
 <button class="btn alt" type="button" id="add-image">Image</button>
-<input id="image-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+<input id="image-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif,.heic,.heif" hidden>
 </div>
 <div id="post-content" class="ed" contenteditable="true" role="textbox" aria-label="Post content" aria-multiline="true"><p>Start writing your repair notes here.</p></div>
 <div class="bar" id="image-tools" hidden>
@@ -309,6 +309,7 @@
 <option value="stereo/index.html"></option><option value="radio/index.html"></option><option value="test-equipment/index.html"></option>
 </datalist>
 </main>
+<script src="heic.js"></script>
 <script src="admin.js"></script>
 <script src="shop-builder.js"></script>
 <script src="post-builder.js"></script>
