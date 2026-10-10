@@ -56,7 +56,7 @@ export function renderHome(content) {
     beforeMain: hero,
     afterMain: carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "") +
       '<div class="cats" aria-label="Restoration blog sections">' + cats + "</div>",
-    scripts: '<script src="hero.js" defer></script>' + (pc.enabled ? '<script src="forsale.js" defer></script>' : "")
+    scripts: '<script src="hero.js" defer></script><script src="reveal.js" defer></script>' + (pc.enabled ? '<script src="forsale.js" defer></script>' : "")
   });
 }
 
