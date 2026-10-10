@@ -13,6 +13,7 @@
   var sessionListeners = [];
   // The Shop Builder and Post Builder tabs share this sign-in instead of having their own.
   window.AdminShell = {
+    api: api,
     onSession: function (listener) {
       sessionListeners.push(listener);
       if (session) listener(session);

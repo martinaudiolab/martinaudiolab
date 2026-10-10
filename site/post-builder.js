@@ -1,85 +1,125 @@
+// Post Builder: the "Post Builder" tab of the admin panel.
+// Sign-in and API access come from window.AdminShell (see admin.js); this file
+// owns the rich-text editor, drafts, publishing and published-post management.
 (function () {
   "use strict";
 
-  var categories = {
-    stereo: { folder: "stereo", name: "Stereo Repair" },
-    radio: { folder: "radio", name: "Radio Repair" },
-    "test-equipment": { folder: "test-equipment", name: "Test Equipment" }
-  };
-  var form = document.getElementById("post-form");
-  var editor = document.getElementById("post-content");
-  var status = document.getElementById("pb-status");
-  var selectedImage = null;
-  var savedRange = null;
-  var publisherApiUrl = document.querySelector('meta[name="publisher-api-url"]').content.trim().replace(/\/+$/, "");
-  var publisherSession = null;
-  var managedIndexSnapshot = null;
-  var draftKey = "martin-audio-labs-post-draft";
-  var allowedTags = new Set(["A", "BLOCKQUOTE", "BR", "CODE", "EM", "FIGURE", "H2", "H3", "H4", "HR", "IMG", "LI", "OL", "P", "PRE", "SPAN", "STRONG", "U", "UL"]);
+  var shell = window.AdminShell;
+  if (!shell) return;
 
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, function (character) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character];
+  var DRAFT_KEY = "martin-audio-labs-post-draft";
+  var ALLOWED_TAGS = new Set(["A", "BLOCKQUOTE", "BR", "CODE", "EM", "FIGURE", "H2", "H3", "H4", "HR", "IMG", "LI", "OL", "P", "PRE", "SPAN", "STRONG", "U", "UL"]);
+  var DROPPED_TAGS = "script,style,iframe,object,embed,svg,math,form,video,audio";
+  // execCommand("bold" / "italic") produces <b> and <i>; the site uses <strong> and <em>.
+  var RENAMED_TAGS = { B: "strong", I: "em" };
+  var IMAGE_DATA_URL = /^data:image\/(png|jpeg|gif|webp);base64,/i;
+  var IMAGE_FILE_TYPE = /^image\/(png|jpeg|gif|webp)$/;
+  var IMAGE_WIDTHS = ["25", "50", "75", "100"];
+  var IMAGE_ALIGNMENTS = ["c", "l", "r"];
+
+  var connected = false;
+  var savedRange = null;        // last selection inside the editor, restored before toolbar commands
+  var selectedImage = null;
+  var managedSnapshot = null;   // { category, indexSha, indexHtml } for the post list on screen
+
+  function $(id) { return document.getElementById(id); }
+  function say(message) { $("pb-status").textContent = message; }
+
+  // ---- Browser storage (may be unavailable or blocked) -----------------------
+
+  function storageGet(key) {
+    try { return localStorage.getItem(key); } catch (error) { return null; }
+  }
+
+  function storageSet(key, value) {
+    try { localStorage.setItem(key, value); return true; } catch (error) { return false; }
+  }
+
+  function storageRemove(key) {
+    try { localStorage.removeItem(key); } catch (error) { }
+  }
+
+  // ---- HTML sanitising --------------------------------------------------------
+  // The publisher Worker sanitises again on its side; this keeps previews and
+  // restored drafts to the same allow-list.
+
+  function isSafeLink(value) {
+    try {
+      var url = new URL(value, window.location.href);
+      return ["http:", "https:", "mailto:"].includes(url.protocol) || value.charAt(0) === "#";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /** font-size (10-72px) and color (#hex or rgb()) are the only styles allowed on spans. */
+  function safeSpanStyle(element) {
+    var styles = [];
+    var size = parseInt(element.style.fontSize, 10);
+    if (size >= 10 && size <= 72) styles.push("font-size: " + size + "px");
+    var color = element.style.color;
+    if (/^#[0-9a-f]{3,8}$/i.test(color)) {
+      styles.push("color: " + color);
+    } else {
+      var rgb = color.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
+      if (rgb && rgb.slice(1).every(function (component) { return Number(component) <= 255; })) {
+        styles.push("color: rgb(" + rgb.slice(1).join(", ") + ")");
+      }
+    }
+    return styles.join("; ");
+  }
+
+  /** Returns the value an attribute may keep, or null when it must be removed. */
+  function allowedAttribute(element, name, value) {
+    var tag = element.tagName;
+    if (tag === "A" && name === "href") return isSafeLink(value) ? value : null;
+    if (tag === "SPAN" && name === "style") return safeSpanStyle(element) || null;
+    if (tag === "IMG") {
+      if (name === "src") return IMAGE_DATA_URL.test(value) ? value : null;
+      if (name === "alt") return value;
+      if (name === "data-w") return IMAGE_WIDTHS.includes(value) ? value : null;
+      if (name === "data-a") return IMAGE_ALIGNMENTS.includes(value) ? value : null;
+    }
+    return null;
+  }
+
+  function renameElement(element, tagName) {
+    var replacement = document.createElement(tagName);
+    replacement.append.apply(replacement, Array.from(element.childNodes));
+    element.replaceWith(replacement);
+    return replacement;
+  }
+
+  function sanitizeChildren(parent) {
+    Array.from(parent.children).forEach(function (element) {
+      sanitizeChildren(element);
+      if (RENAMED_TAGS[element.tagName]) element = renameElement(element, RENAMED_TAGS[element.tagName]);
+      if (!ALLOWED_TAGS.has(element.tagName)) {
+        element.replaceWith.apply(element, Array.from(element.childNodes));
+        return;
+      }
+      Array.from(element.attributes).forEach(function (attribute) {
+        var name = attribute.name.toLowerCase();
+        var kept = allowedAttribute(element, name, attribute.value);
+        if (kept === null) element.removeAttribute(attribute.name);
+        else if (kept !== attribute.value) element.setAttribute(attribute.name, kept);
+      });
+      if (element.tagName === "IMG" && !element.hasAttribute("src")) element.remove();
     });
   }
 
   function cleanHtml(html) {
     var template = document.createElement("template");
     template.innerHTML = html;
-    Array.from(template.content.querySelectorAll("script,style,iframe,object,embed,svg,math,form,video,audio"))
-      .forEach(function (element) { element.remove(); });
-
-    function cleanNode(node) {
-      Array.from(node.children || []).forEach(function (element) {
-        cleanNode(element);
-        if (!allowedTags.has(element.tagName)) {
-          element.replaceWith.apply(element, Array.from(element.childNodes));
-          return;
-        }
-        Array.from(element.attributes).forEach(function (attribute) {
-          var name = attribute.name.toLowerCase();
-          var value = attribute.value;
-          if (element.tagName === "A" && name === "href") {
-            try {
-              var url = new URL(value, window.location.href);
-              if (!["http:", "https:", "mailto:"].includes(url.protocol) && value.charAt(0) !== "#") element.removeAttribute(name);
-            } catch (error) { element.removeAttribute(name); }
-          } else if (element.tagName === "IMG" && name === "src") {
-            if (!/^data:image\/(png|jpeg|gif|webp);base64,/i.test(value)) element.removeAttribute(name);
-            else return;
-          } else if (element.tagName === "IMG" && name === "alt") {
-            return;
-          } else if (element.tagName === "IMG" && name === "data-w" && ["25", "50", "75", "100"].includes(value)) {
-            return;
-          } else if (element.tagName === "IMG" && name === "data-a" && ["c", "l", "r"].includes(value)) {
-            return;
-          } else if (element.tagName === "SPAN" && name === "style") {
-            var styles = [];
-            var size = parseInt(element.style.fontSize, 10);
-            if (size >= 10 && size <= 72) styles.push("font-size: " + size + "px");
-            var color = element.style.color;
-            if (/^#[0-9a-f]{3,8}$/i.test(color)) styles.push("color: " + color);
-            else {
-              var rgb = color.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
-              if (rgb && rgb.slice(1).every(function (component) { return Number(component) <= 255; })) {
-                styles.push("color: rgb(" + rgb.slice(1).join(", ") + ")");
-              }
-            }
-            if (styles.length) element.setAttribute("style", styles.join("; "));
-            else element.removeAttribute("style");
-            if (styles.length) return;
-          }
-          element.removeAttribute(name);
-        });
-        if (element.tagName === "IMG" && !element.hasAttribute("src")) element.remove();
-      });
-    }
-    cleanNode(template.content);
+    template.content.querySelectorAll(DROPPED_TAGS).forEach(function (element) { element.remove(); });
+    sanitizeChildren(template.content);
     return template.innerHTML;
   }
 
+  // ---- Post data ----------------------------------------------------------------
+
   function slugify(value) {
-    return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    return value.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
   }
 
@@ -88,114 +128,140 @@
     return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
   }
 
+  /** Today's date in the author's time zone, as YYYY-MM-DD. */
+  function todayLocal() {
+    var now = new Date();
+    return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+  }
+
   function postData() {
-    var data = {
-      categoryKey: document.getElementById("category").value,
-      title: document.getElementById("post-title").value.trim(),
-      summary: document.getElementById("post-summary").value.trim(),
-      date: document.getElementById("post-date").value,
-      content: cleanHtml(editor.innerHTML)
+    var select = $("category");
+    var title = $("post-title").value.trim();
+    return {
+      categoryKey: select.value,
+      categoryName: select.selectedOptions[0].textContent,
+      title: title,
+      slug: slugify(title),
+      summary: $("post-summary").value.trim(),
+      date: $("post-date").value,
+      content: cleanHtml($("post-content").innerHTML)
     };
-    data.category = categories[data.categoryKey];
-    data.slug = slugify(data.title);
-    return data;
   }
 
-  async function publisherApi(path, options) {
-    var request = Object.assign({}, options || {});
-    request.headers = Object.assign({ Accept: "application/json" }, request.headers || {});
-    if (publisherSession) request.headers.Authorization = "Bearer " + publisherSession;
-    if (request.body && typeof request.body !== "string") {
-      request.headers["Content-Type"] = "application/json";
-      request.body = JSON.stringify(request.body);
-    }
-    var response = await fetch(publisherApiUrl + path, request);
-    var result = await response.json().catch(function () { return {}; });
-    if (!response.ok) {
-      var error = new Error(result.error || "Publisher returned HTTP " + response.status + ".");
-      error.status = response.status;
-      throw error;
-    }
-    return result;
+  // ---- Drafts ---------------------------------------------------------------------
+
+  function saveDraft() {
+    var draft = {
+      category: $("category").value,
+      title: $("post-title").value,
+      summary: $("post-summary").value,
+      date: $("post-date").value,
+      content: $("post-content").innerHTML
+    };
+    say(storageSet(DRAFT_KEY, JSON.stringify(draft)) ? "Draft saved in this browser." : "Draft could not be saved in this browser.");
   }
 
-  // Sign-in is handled by the admin panel, which hands this builder the session.
+  function loadDraft() {
+    var stored = storageGet(DRAFT_KEY);
+    if (!stored) return;
+    try {
+      var draft = JSON.parse(stored);
+      if (!draft || typeof draft !== "object") return;
+      var category = $("category");
+      if (Array.from(category.options).some(function (option) { return option.value === draft.category; })) category.value = draft.category;
+      $("post-title").value = draft.title || "";
+      $("post-summary").value = draft.summary || "";
+      if (draft.date) $("post-date").value = draft.date;
+      $("post-content").innerHTML = cleanHtml(draft.content || "");
+      say("Restored the saved draft from this browser.");
+    } catch (error) {
+      storageRemove(DRAFT_KEY);
+    }
+  }
+
+  function clearDraft() {
+    storageRemove(DRAFT_KEY);
+    $("post-form").reset();
+    $("post-date").value = todayLocal();
+    $("post-content").innerHTML = "<p></p>";
+    deselectImage();
+    hidePreview();
+    say("Draft cleared.");
+  }
+
+  // ---- Session ---------------------------------------------------------------------
+
   function applySession(session) {
-    publisherSession = session;
-    document.getElementById("pb-publish").disabled = !session;
-    document.getElementById("manage-posts-toolbar").hidden = !session;
-    if (!session) {
-      document.getElementById("post-manager").hidden = true;
-      document.getElementById("manage-posts-toggle").setAttribute("aria-expanded", "false");
+    connected = Boolean(session);
+    $("pb-publish").disabled = !connected;
+    $("manage-posts-toolbar").hidden = !connected;
+    if (!connected) {
+      managedSnapshot = null;
+      $("post-manager").hidden = true;
+      $("manage-posts-toggle").setAttribute("aria-expanded", "false");
     }
   }
 
-  function updateGitHubStatus(message) {
-    if (window.AdminShell) window.AdminShell.expired(message);
+  function isAuthError(error) {
+    return error.status === 401 || error.status === 403;
   }
+
+  // ---- Publishing --------------------------------------------------------------------
 
   async function publish() {
-    if (!form.reportValidity()) return;
-    if (!publisherSession) {
-      status.textContent = "Connect an administrator GitHub account before publishing.";
+    if (!$("post-form").reportValidity()) return;
+    if (!connected) {
+      say("Connect an administrator GitHub account before publishing.");
       return;
     }
     var data = postData();
-    if (!data.slug) { status.textContent = "Add a title with at least one letter or number."; return; }
-    if (!data.content.trim()) { status.textContent = "Add some post content before publishing."; return; }
+    if (!data.slug) { say("Add a title with at least one letter or number."); return; }
+    if (!data.content.trim()) { say("Add some post content before publishing."); return; }
 
-    var publishButton = document.getElementById("pb-publish");
-    publishButton.disabled = true;
+    var button = $("pb-publish");
+    button.disabled = true;
     try {
-      status.textContent = "Publishing to GitHub...";
-      var result = await publisherApi("/api/publish", {
+      say("Publishing to GitHub...");
+      var result = await shell.api("/api/publish", {
         method: "POST",
-        body: {
-          category: data.categoryKey,
-          title: data.title,
-          summary: data.summary,
-          date: data.date,
-          content: data.content
-        }
+        body: { category: data.categoryKey, title: data.title, summary: data.summary, date: data.date, content: data.content }
       });
-      status.textContent = "Published " + result.filename + " to " + result.section + ". The website will update after deployment.";
-      try { localStorage.removeItem(draftKey); } catch (ignored) { }
+      say("Published " + result.filename + " to " + result.section + ". The website will update after deployment.");
+      storageRemove(DRAFT_KEY);
     } catch (error) {
-      if (error.status === 401 || error.status === 403) {
-        publisherSession = null;
-        updateGitHubStatus("GitHub sign-in required", false);
-      }
-      status.textContent = error.message || "Could not publish to GitHub.";
+      if (isAuthError(error)) shell.expired(error.message);
+      say(error.message || "Could not publish to GitHub.");
     } finally {
-      publishButton.disabled = !publisherSession;
+      button.disabled = !connected;
     }
   }
 
-  function postsFromIndex(indexHtml) {
-    var parsed = new DOMParser().parseFromString(indexHtml, "text/html");
-    return Array.from(parsed.querySelectorAll("main article.post")).map(function (article) {
+  // ---- Managing published posts ---------------------------------------------------
+
+  /** The <article class="post"> entries of a section index that link to a post page. */
+  function indexPosts(doc) {
+    return Array.from(doc.querySelectorAll("main article.post")).map(function (article) {
       var link = article.querySelector("h2 a[href]");
-      if (!link) return null;
-      var filename = link.getAttribute("href");
-      var match = filename.match(/^([a-z0-9]+(?:-[a-z0-9]+)*)\.html$/);
-      if (!match) return null;
-      return { slug: match[1], title: link.textContent.trim() };
+      var match = link && link.getAttribute("href").match(/^([a-z0-9]+(?:-[a-z0-9]+)*)\.html$/);
+      return match ? { slug: match[1], title: link.textContent.trim(), article: article } : null;
     }).filter(Boolean);
+  }
+
+  function postsFromIndex(indexHtml) {
+    return indexPosts(new DOMParser().parseFromString(indexHtml, "text/html"))
+      .map(function (post) { return { slug: post.slug, title: post.title }; });
   }
 
   function indexWithoutPost(indexHtml, slug) {
     var parsed = new DOMParser().parseFromString(indexHtml, "text/html");
-    var matches = Array.from(parsed.querySelectorAll("main article.post")).filter(function (article) {
-      var link = article.querySelector("h2 a[href]");
-      return link && link.getAttribute("href") === slug + ".html";
-    });
+    var matches = indexPosts(parsed).filter(function (post) { return post.slug === slug; });
     if (matches.length !== 1) throw new Error("Could not find exactly one matching post in this section. Refresh the list and try again.");
-    matches[0].remove();
+    matches[0].article.remove();
     return "<!DOCTYPE html>\n" + parsed.documentElement.outerHTML;
   }
 
   function renderManagedPosts(indexHtml) {
-    var list = document.getElementById("managed-posts");
+    var list = $("managed-posts");
     var posts = postsFromIndex(indexHtml);
     list.replaceChildren();
     if (!posts.length) {
@@ -203,8 +269,6 @@
       return 0;
     }
     posts.forEach(function (post) {
-      var row = document.createElement("div");
-      row.className = "managed-post";
       var title = document.createElement("span");
       title.textContent = post.title;
       var button = document.createElement("button");
@@ -213,6 +277,8 @@
       button.textContent = "Delete";
       button.setAttribute("aria-label", "Delete " + post.title);
       button.addEventListener("click", function () { deleteManagedPost(post); });
+      var row = document.createElement("div");
+      row.className = "managed-post";
       row.append(title, button);
       list.appendChild(row);
     });
@@ -220,74 +286,47 @@
   }
 
   async function loadManagedPosts() {
-    var manageStatus = document.getElementById("manage-status");
-    var category = document.getElementById("manage-category").value;
+    var manageStatus = $("manage-status");
     manageStatus.textContent = "Loading posts...";
-    document.getElementById("managed-posts").textContent = "";
+    $("managed-posts").textContent = "";
     try {
-      managedIndexSnapshot = await publisherApi("/api/posts?category=" + encodeURIComponent(category));
-      var count = renderManagedPosts(managedIndexSnapshot.indexHtml);
+      managedSnapshot = await shell.api("/api/posts?category=" + encodeURIComponent($("manage-category").value));
+      var count = renderManagedPosts(managedSnapshot.indexHtml);
       manageStatus.textContent = count ? count + " post" + (count === 1 ? "" : "s") + " loaded." : "";
     } catch (error) {
-      managedIndexSnapshot = null;
+      managedSnapshot = null;
       manageStatus.textContent = error.message || "Could not load posts.";
     }
   }
 
   async function deleteManagedPost(post) {
-    if (!publisherSession || !managedIndexSnapshot) return;
-    var category = document.getElementById("manage-category").value;
+    if (!connected || !managedSnapshot) return;
     if (!window.confirm("Permanently delete \"" + post.title + "\" and remove it from this section?")) return;
-    var manageStatus = document.getElementById("manage-status");
+    var manageStatus = $("manage-status");
     manageStatus.textContent = "Deleting " + post.title + "...";
     try {
-      var updatedIndex = indexWithoutPost(managedIndexSnapshot.indexHtml, post.slug);
-      var result = await publisherApi("/api/delete", {
+      var result = await shell.api("/api/delete", {
         method: "POST",
         body: {
-          category: category,
+          // The section the list was loaded for, even if the dropdown has moved since.
+          category: managedSnapshot.category,
           slug: post.slug,
-          indexSha: managedIndexSnapshot.indexSha,
-          indexHtml: updatedIndex
+          indexSha: managedSnapshot.indexSha,
+          indexHtml: indexWithoutPost(managedSnapshot.indexHtml, post.slug)
         }
       });
       await loadManagedPosts();
       manageStatus.textContent = "Deleted " + result.filename + " from " + result.section + ". The website will update after deployment.";
     } catch (error) {
-      if (error.status === 401 || error.status === 403) {
-        publisherSession = null;
-        updateGitHubStatus("GitHub sign-in required", false, false);
-      }
+      if (isAuthError(error)) shell.expired(error.message);
       manageStatus.textContent = error.message || "Could not delete that post.";
     }
   }
 
-  function saveDraft() {
-    var draft = {
-      category: document.getElementById("category").value,
-      title: document.getElementById("post-title").value,
-      summary: document.getElementById("post-summary").value,
-      date: document.getElementById("post-date").value,
-      content: editor.innerHTML
-    };
-    try { localStorage.setItem(draftKey, JSON.stringify(draft)); status.textContent = "Draft saved in this browser."; }
-    catch (error) { status.textContent = "Draft could not be saved in this browser."; }
-  }
-
-  function loadDraft() {
-    try {
-      var draft = JSON.parse(localStorage.getItem(draftKey) || "null");
-      if (!draft) return;
-      if (categories[draft.category]) document.getElementById("category").value = draft.category;
-      document.getElementById("post-title").value = draft.title || "";
-      document.getElementById("post-summary").value = draft.summary || "";
-      document.getElementById("post-date").value = draft.date || "";
-      editor.innerHTML = cleanHtml(draft.content || "");
-      status.textContent = "Restored the saved draft from this browser.";
-    } catch (error) { localStorage.removeItem(draftKey); }
-  }
+  // ---- Editor commands ---------------------------------------------------------------
 
   function restoreSelection() {
+    var editor = $("post-content");
     editor.focus();
     if (!savedRange) return;
     var selection = window.getSelection();
@@ -295,142 +334,179 @@
     selection.addRange(savedRange);
   }
 
-  document.addEventListener("selectionchange", function () {
-    var selection = window.getSelection();
-    if (selection.rangeCount && editor.contains(selection.anchorNode) && editor.contains(selection.focusNode)) {
-      savedRange = selection.getRangeAt(0).cloneRange();
-    }
-  });
-
-  document.getElementById("post-date").value = new Date().toISOString().slice(0, 10);
-  loadDraft();
-  document.getElementById("manage-posts-toggle").addEventListener("click", function () {
-    var panel = document.getElementById("post-manager");
-    panel.hidden = !panel.hidden;
-    this.setAttribute("aria-expanded", String(!panel.hidden));
-    if (!panel.hidden) loadManagedPosts();
-  });
-  document.getElementById("manage-category").addEventListener("change", loadManagedPosts);
-  document.getElementById("refresh-posts").addEventListener("click", loadManagedPosts);
-  if (window.AdminShell) window.AdminShell.onSession(applySession);
-
-  document.querySelectorAll("[data-command]").forEach(function (button) {
-    button.addEventListener("mousedown", function (event) { event.preventDefault(); });
-    button.addEventListener("click", function () {
-      restoreSelection();
-      document.execCommand(button.dataset.command, false, null);
-      editor.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-  });
-
-  document.getElementById("apply-block").addEventListener("click", function () {
+  function runCommand(command, value) {
     restoreSelection();
-    document.execCommand("formatBlock", false, "<" + document.getElementById("block-style").value + ">");
-  });
-  document.getElementById("apply-size").addEventListener("click", function () {
-    var size = Math.max(10, Math.min(72, parseInt(document.getElementById("font-size").value, 10) || 18));
-    document.getElementById("font-size").value = size;
-    restoreSelection();
-    document.execCommand("fontSize", false, "7");
-    editor.querySelectorAll('font[size="7"]').forEach(function (font) {
+    document.execCommand(command, false, value === undefined ? null : value);
+  }
+
+  /** execCommand wraps styled text in <font>; swap those for the <span style> the site allows. */
+  function replaceFontElements(selector, applyStyle) {
+    $("post-content").querySelectorAll(selector).forEach(function (font) {
       var span = document.createElement("span");
-      span.style.fontSize = size + "px";
-      span.innerHTML = font.innerHTML;
+      if (applyStyle(span, font) === false) return;
+      span.append.apply(span, Array.from(font.childNodes));
       font.replaceWith(span);
     });
-    editor.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-  document.getElementById("text-color").addEventListener("input", function (event) {
-    restoreSelection();
-    document.execCommand("foreColor", false, event.target.value);
-    editor.querySelectorAll("font[color]").forEach(function (font) {
+  }
+
+  function applyFontSize() {
+    var input = $("font-size");
+    var size = Math.max(10, Math.min(72, parseInt(input.value, 10) || 18));
+    input.value = size;
+    runCommand("fontSize", "7");
+    replaceFontElements('font[size="7"]', function (span) { span.style.fontSize = size + "px"; });
+  }
+
+  function applyTextColor(event) {
+    runCommand("foreColor", event.target.value);
+    replaceFontElements("font[color]", function (span, font) {
       var color = font.getAttribute("color");
-      if (!/^#[0-9a-f]{3,8}$/i.test(color)) return;
-      var span = document.createElement("span");
+      if (!/^#[0-9a-f]{3,8}$/i.test(color)) return false;
       span.style.color = color;
-      span.innerHTML = font.innerHTML;
-      font.replaceWith(span);
     });
-    editor.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-  document.getElementById("apply-block").addEventListener("mousedown", function (event) { event.preventDefault(); });
-  document.getElementById("apply-size").addEventListener("mousedown", function (event) { event.preventDefault(); });
-  document.getElementById("add-link").addEventListener("mousedown", function (event) { event.preventDefault(); });
-  document.getElementById("add-link").addEventListener("click", function () {
+  }
+
+  function addLink() {
     var url = window.prompt("Enter a web or email link:");
     if (!url) return;
     if (!/^(https?:\/\/|mailto:)/i.test(url)) url = "https://" + url;
-    restoreSelection();
-    document.execCommand("createLink", false, url);
-  });
+    runCommand("createLink", url);
+  }
 
-  document.getElementById("add-image").addEventListener("mousedown", function (event) {
-    event.preventDefault();
-    var selection = window.getSelection();
-    savedRange = selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
-  });
-  document.getElementById("add-image").addEventListener("click", function () { document.getElementById("image-file").click(); });
-  document.getElementById("image-file").addEventListener("change", function (event) {
-    var file = event.target.files[0];
-    if (!file) return;
+  // ---- Images -------------------------------------------------------------------------
+
+  function insertImage(file) {
+    if (!IMAGE_FILE_TYPE.test(file.type)) {
+      say("Choose a PNG, JPEG, GIF or WebP image.");
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function () {
-      restoreSelection();
-      document.execCommand("insertHTML", false, '<img src="' + reader.result + '" alt="" data-w="100" data-a="c">');
-      editor.dispatchEvent(new Event("input", { bubbles: true }));
-      event.target.value = "";
+      runCommand("insertHTML", '<img src="' + reader.result + '" alt="" data-w="100" data-a="c">');
     };
+    reader.onerror = function () { say("That image could not be read."); };
     reader.readAsDataURL(file);
-  });
+  }
 
-  editor.addEventListener("click", function (event) {
+  function deselectImage() {
     if (selectedImage) selectedImage.classList.remove("sel");
-    selectedImage = event.target.closest("img");
-    var tools = document.getElementById("image-tools");
-    tools.hidden = !selectedImage;
-    if (!selectedImage) return;
-    selectedImage.classList.add("sel");
-    document.getElementById("image-width").value = selectedImage.dataset.w || "100";
-    document.getElementById("image-align").value = selectedImage.dataset.a || "c";
-    document.getElementById("image-alt").value = selectedImage.alt || "";
-  });
-  document.getElementById("image-width").addEventListener("change", function (event) {
-    if (selectedImage) selectedImage.dataset.w = event.target.value;
-  });
-  document.getElementById("image-align").addEventListener("change", function (event) {
-    if (selectedImage) selectedImage.dataset.a = event.target.value;
-  });
-  document.getElementById("image-alt").addEventListener("input", function (event) {
-    if (selectedImage) selectedImage.alt = event.target.value;
-  });
-  document.getElementById("remove-image").addEventListener("click", function () {
-    if (selectedImage) selectedImage.remove();
     selectedImage = null;
-    document.getElementById("image-tools").hidden = true;
-  });
+    $("image-tools").hidden = true;
+  }
 
-  document.getElementById("preview-toggle").addEventListener("click", function (event) {
-    var preview = document.getElementById("preview");
-    if (preview.hidden) {
-      var data = postData();
-      preview.innerHTML = '<h2>' + escapeHtml(data.title || "Post preview") + '</h2><div class="meta">' + (data.date ? escapeHtml(dateLabel(data.date)) : "") + ' &nbsp;|&nbsp; ' + escapeHtml(data.category.name) + '</div><div class="body">' + data.content + '</div>';
-      preview.hidden = false;
-      event.target.textContent = "Hide preview";
-    } else {
-      preview.hidden = true;
-      event.target.textContent = "Preview";
-    }
-  });
+  function selectImage(image) {
+    deselectImage();
+    selectedImage = image;
+    image.classList.add("sel");
+    $("image-width").value = image.dataset.w || "100";
+    $("image-align").value = image.dataset.a || "c";
+    $("image-alt").value = image.alt || "";
+    $("image-tools").hidden = false;
+  }
 
-  document.getElementById("save-draft").addEventListener("click", saveDraft);
-  document.getElementById("clear-draft").addEventListener("click", function () {
-    try { localStorage.removeItem(draftKey); } catch (error) { }
-    form.reset();
-    document.getElementById("post-date").value = new Date().toISOString().slice(0, 10);
-    editor.innerHTML = "<p></p>";
-    document.getElementById("preview").hidden = true;
-    document.getElementById("preview-toggle").textContent = "Preview";
-    status.textContent = "Draft cleared.";
-  });
-  document.getElementById("pb-publish").addEventListener("click", publish);
+  // ---- Preview ----------------------------------------------------------------------
+
+  function hidePreview() {
+    $("preview").hidden = true;
+    $("preview-toggle").textContent = "Preview";
+  }
+
+  function togglePreview() {
+    var preview = $("preview");
+    if (!preview.hidden) { hidePreview(); return; }
+    var data = postData();
+    var title = document.createElement("h2");
+    title.textContent = data.title || "Post preview";
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = (data.date ? dateLabel(data.date) : "") + "  |  " + data.categoryName;
+    var body = document.createElement("div");
+    body.className = "body";
+    body.innerHTML = data.content;   // already sanitised by postData()
+    preview.replaceChildren(title, meta, body);
+    preview.hidden = false;
+    $("preview-toggle").textContent = "Hide preview";
+  }
+
+  // ---- Wiring --------------------------------------------------------------------------
+
+  function wireToolbar() {
+    // Keep the editor's selection while a toolbar button is pressed.
+    document.querySelectorAll("#post-form .tb button").forEach(function (button) {
+      button.addEventListener("mousedown", function (event) { event.preventDefault(); });
+    });
+    document.querySelectorAll("#post-form [data-command]").forEach(function (button) {
+      button.addEventListener("click", function () { runCommand(button.dataset.command); });
+    });
+    $("apply-block").addEventListener("click", function () {
+      runCommand("formatBlock", "<" + $("block-style").value + ">");
+    });
+    $("apply-size").addEventListener("click", applyFontSize);
+    $("text-color").addEventListener("input", applyTextColor);
+    $("add-link").addEventListener("click", addLink);
+  }
+
+  function wireImages() {
+    var editor = $("post-content");
+    $("add-image").addEventListener("click", function () { $("image-file").click(); });
+    $("image-file").addEventListener("change", function (event) {
+      var file = event.target.files[0];
+      event.target.value = "";
+      if (file) insertImage(file);
+    });
+    editor.addEventListener("click", function (event) {
+      var image = event.target.closest("img");
+      if (image) selectImage(image);
+      else deselectImage();
+    });
+    $("image-width").addEventListener("change", function (event) {
+      if (selectedImage) selectedImage.dataset.w = event.target.value;
+    });
+    $("image-align").addEventListener("change", function (event) {
+      if (selectedImage) selectedImage.dataset.a = event.target.value;
+    });
+    $("image-alt").addEventListener("input", function (event) {
+      if (selectedImage) selectedImage.alt = event.target.value;
+    });
+    $("remove-image").addEventListener("click", function () {
+      if (selectedImage) selectedImage.remove();
+      deselectImage();
+    });
+  }
+
+  function wireManager() {
+    $("manage-posts-toggle").addEventListener("click", function () {
+      var panel = $("post-manager");
+      panel.hidden = !panel.hidden;
+      this.setAttribute("aria-expanded", String(!panel.hidden));
+      if (!panel.hidden) loadManagedPosts();
+    });
+    $("manage-category").addEventListener("change", loadManagedPosts);
+    $("refresh-posts").addEventListener("click", loadManagedPosts);
+  }
+
+  function init() {
+    $("post-date").value = todayLocal();
+    try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (error) { }
+    loadDraft();
+
+    document.addEventListener("selectionchange", function () {
+      var editor = $("post-content");
+      var selection = window.getSelection();
+      if (selection.rangeCount && editor.contains(selection.anchorNode) && editor.contains(selection.focusNode)) {
+        savedRange = selection.getRangeAt(0).cloneRange();
+      }
+    });
+
+    wireToolbar();
+    wireImages();
+    wireManager();
+    $("preview-toggle").addEventListener("click", togglePreview);
+    $("save-draft").addEventListener("click", saveDraft);
+    $("clear-draft").addEventListener("click", clearDraft);
+    $("pb-publish").addEventListener("click", publish);
+    shell.onSession(applySession);
+  }
+
+  init();
 })();
