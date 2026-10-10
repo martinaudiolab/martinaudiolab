@@ -261,19 +261,19 @@ body.home header.site{position:fixed;top:0;left:0;right:0;z-index:100;width:100%
 body.home header.site.solid{background:rgba(18,18,18,.95)}
 body.home .brand{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 /* One continuous translucent bar; items are flush inside it */
-body.home nav,body.bar nav{gap:0;padding:0;border-radius:0;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-body.home nav > a,body.home .dd-toggle,body.bar nav > a,body.bar .dd-toggle{color:#fff;background:none;border:0;border-radius:0;padding:12px 18px;font-size:.95rem;transition:background-color .15s ease}
-body.home nav > a:hover,body.home .dd-toggle:hover,body.home .dd.open .dd-toggle,body.bar nav > a:hover,body.bar .dd-toggle:hover,body.bar .dd.open .dd-toggle{color:#fff;background:rgba(255,255,255,.14)}
-body.home nav > a.on,body.home .dd-toggle.on,body.bar nav > a.on,body.bar .dd-toggle.on{color:#fff;background:rgba(255,255,255,.18);box-shadow:inset 0 -2px 0 #72c4ba}
-body.home .dd-menu,body.bar .dd-menu{background:rgba(18,18,18,.96);border-color:rgba(255,255,255,.14)}
-body.home .dd-menu a,body.bar .dd-menu a{color:#fff;background:none}
-body.home .dd-menu a:hover,body.bar .dd-menu a:hover{background:rgba(255,255,255,.1)}
-body.home .dd-menu a.on,body.bar .dd-menu a.on{box-shadow:inset 3px 0 0 #72c4ba}
+body.home nav,body.navbar nav{gap:0;padding:0;border-radius:0;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+body.home nav > a,body.home .dd-toggle,body.navbar nav > a,body.navbar .dd-toggle{color:#fff;background:none;border:0;border-radius:0;padding:12px 18px;font-size:.95rem;transition:background-color .15s ease}
+body.home nav > a:hover,body.home .dd-toggle:hover,body.home .dd.open .dd-toggle,body.navbar nav > a:hover,body.navbar .dd-toggle:hover,body.navbar .dd.open .dd-toggle{color:#fff;background:rgba(255,255,255,.14)}
+body.home nav > a.on,body.home .dd-toggle.on,body.navbar nav > a.on,body.navbar .dd-toggle.on{color:#fff;background:rgba(255,255,255,.18);box-shadow:inset 0 -2px 0 #72c4ba}
+body.home .dd-menu,body.navbar .dd-menu{background:rgba(18,18,18,.96);border-color:rgba(255,255,255,.14)}
+body.home .dd-menu a,body.navbar .dd-menu a{color:#fff;background:none}
+body.home .dd-menu a:hover,body.navbar .dd-menu a:hover{background:rgba(255,255,255,.1)}
+body.home .dd-menu a.on,body.navbar .dd-menu a.on{box-shadow:inset 3px 0 0 #72c4ba}
 /* Pages without a hero use the same bar, on a solid panel */
-body.bar nav{background:var(--panel)}
-body.bar header.site{align-items:center}
+body.navbar nav{background:var(--panel)}
+body.navbar header.site{align-items:center}
 @media(max-width:700px){
   body.home header.site{padding:10px 1rem;gap:.5rem}
-  body.home nav > a,body.home .dd-toggle,body.bar nav > a,body.bar .dd-toggle{padding:6px 11px;font-size:.85rem}
+  body.home nav > a,body.home .dd-toggle,body.navbar nav > a,body.navbar .dd-toggle{padding:6px 11px;font-size:.85rem}
   .hero-text{padding:0 1rem 2rem}
 }

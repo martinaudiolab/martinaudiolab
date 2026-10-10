@@ -75,7 +75,7 @@ export function renderRequest(content) {
     '<button class="btn request-submit" type="submit">Send Request</button>' +
     '<p class="request-result" id="request-result" role="status" aria-live="polite"></p>' +
     "</form></div>";
-  return shell(content, { bodyClass: "bar",
+  return shell(content, { bodyClass: "navbar",
     title: r.title + " - " + content.site_name,
     description: "Request a restoration from " + content.site_name,
     inner,
