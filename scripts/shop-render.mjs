@@ -61,7 +61,8 @@ const links = [
 ];
 const nav = () => links.map((l) => '<a href="' + l[0] + '"' + (l[2] === "shop" ? ' class="on" aria-current="page"' : "") + ">" + l[1] + "</a>").join("");
 const THEME = '<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()</script>';
-const page = (title, desc, inner) => '<!DOCTYPE html>\n' + SHOP_MARK + '\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + esc(title) + '</title><meta name="description" content="' + esc(desc) + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">' + BRAND + '</a><nav>' + nav() + '<button class="theme" type="button" id="th">Theme</button></nav></header><main>' + inner + '</main>' + THEME + '</body></html>\n';
+const LIGHTBOX = '<script src="../lightbox.js" defer></script>';
+const page = (title, desc, inner, extra) =>'<!DOCTYPE html>\n' + SHOP_MARK + '\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + esc(title) + '</title><meta name="description" content="' + esc(desc) + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">' + BRAND + '</a><nav>' + nav() + '<button class="theme" type="button" id="th">Theme</button></nav></header><main>' + inner + '</main>' + (extra || "") + THEME + '</body></html>\n';
 
 /**
  * Renders the gallery and one page per item.
@@ -89,9 +90,9 @@ export function renderShop(data) {
     const subject = encodeURIComponent("Inquiry: " + it.title);
     const body = encodeURIComponent("Hello,\n\nI would like to ask about: " + it.title + "\n\nThank you,\n");
     const specs = Array.isArray(it.details) && it.details.length ? '<dl class="shop-specs">' + it.details.map((d) => "<dt>" + esc(d[0]) + "</dt><dd>" + esc(d[1]) + "</dd>").join("") + "</dl>" : "";
-    const more = it.images.length > 1 ? '<div class="shop-more">' + it.images.slice(1).map((p) => '<img src="' + esc(imgSrc(p)) + '" alt="' + esc(it.title) + ' (additional photo)" loading="lazy">').join("") + "</div>" : "";
+    const photos = it.images.map((p, n) => '<img class="shop-photo" src="' + esc(imgSrc(p)) + '" alt="' + esc(it.title) + (n ? " (photo " + (n + 1) + ")" : "") + '"' + (n ? ' loading="lazy"' : "") + ">").join("");
     const action = st === "sold" ? '<p class="shop-note">This item has been sold.</p>' : email ? '<p><a class="btn" href="mailto:' + esc(email) + "?subject=" + subject + "&amp;body=" + body + '">Inquire about this item</a></p>' : "";
-    return '<a class="back" href="index.html">Back to ' + esc(shop.title || "Shop") + '</a><article class="shop-detail"><div class="shop-gallery"><img class="shop-main" src="' + esc(imgSrc(it.images[0])) + '" alt="' + esc(it.title) + '">' + more + '</div><div class="shop-info"><h1>' + esc(it.title) + "</h1>" +
+    return '<a class="back" href="index.html">Back to ' + esc(shop.title || "Shop") + '</a><article class="shop-detail"><div class="shop-gallery">' + photos + '</div><div class="shop-info"><h1>' + esc(it.title) + "</h1>" +
       (it.category ? '<div class="meta">' + esc(it.category) + (STATUS[st] ? " &nbsp;|&nbsp; " + STATUS[st] : "") + "</div>" : "") +
       '<div class="shop-price big">' + priceHtml(it) + "</div>" +
       (it.sample ? '<p class="shop-note">Sample listing. Replace or remove it before the shop goes live.</p>' : "") +
@@ -100,7 +101,7 @@ export function renderShop(data) {
 
   const files = {};
   files["index.html"] = page((shop.title || "Shop") + " - " + BRAND, shop.intro || "Shop", indexInner);
-  for (const it of items) files[it.slug + ".html"] = page(it.title + " - " + (shop.title || "Shop") + " - " + BRAND, it.summary || it.title, detail(it));
+  for (const it of items) files[it.slug + ".html"] = page(it.title + " - " + (shop.title || "Shop") + " - " + BRAND, it.summary || it.title, detail(it), LIGHTBOX);
   return files;
 }
 

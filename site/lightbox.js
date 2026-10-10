@@ -31,7 +31,7 @@
   }
 
   document.addEventListener("click", function (event) {
-    var image = event.target.closest && event.target.closest(".post .body img");
+    var image = event.target.closest && event.target.closest(".post .body img, .shop-gallery img");
     if (image) open(image);
   });
 })();

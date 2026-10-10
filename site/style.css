@@ -116,9 +116,9 @@ a.btn{display:inline-block;text-decoration:none}
 .shop-card.sold img{filter:grayscale(1);opacity:.55}
 .shop-detail{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:2rem;align-items:start}
 @media(max-width:720px){.shop-detail{grid-template-columns:1fr}}
-.shop-main{width:100%;height:auto;border-radius:6px;display:block}
-.shop-more{display:grid;grid-template-columns:repeat(auto-fill,minmax(6rem,1fr));gap:.6rem;margin-top:.6rem}
-.shop-more img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;display:block}
+.shop-gallery{display:flex;flex-direction:column;gap:1rem}
+.shop-photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;display:block;background:var(--panel);cursor:zoom-in}
+@media(min-width:721px){.shop-info{position:sticky;top:1.5rem}}
 .shop-info h1{font-size:1.9rem;line-height:1.2;font-weight:600;margin:0 0 .3rem}
 .shop-price.big{font-size:1.4rem;margin:.6rem 0 1rem}
 .shop-specs{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-family:var(--sans);font-size:.9rem;margin:0 0 1.25rem}
