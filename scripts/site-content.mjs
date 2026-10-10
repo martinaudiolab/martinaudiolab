@@ -47,10 +47,11 @@ export const DEFAULT_NAV = [
   { label: "About Me", href: "about.html" }
 ];
 
+const CTA_DEFAULT = "See the work";
 const DEFAULT_CATEGORIES = [
-  { label: "Stereo Repair", description: "", href: "stereo/index.html", image: "images/category-stereo.jpg" },
-  { label: "Radio Repair", description: "", href: "radio/index.html", image: "images/category-radio.jpg" },
-  { label: "Test Equipment", description: "", href: "test-equipment/index.html", image: "images/category-test-equipment.jpg" }
+  { label: "Stereo Repair", description: "Receivers, amplifiers and turntables brought back to specification, with every step documented.", cta_label: CTA_DEFAULT, href: "stereo/index.html", image: "images/category-stereo.jpg" },
+  { label: "Radio Repair", description: "Vintage tube and solid-state radios restored for safe, reliable listening, from chassis to cabinet.", cta_label: CTA_DEFAULT, href: "radio/index.html", image: "images/category-radio.jpg" },
+  { label: "Test Equipment", description: "Bench instruments serviced and recalibrated so your measurements can be trusted.", cta_label: CTA_DEFAULT, href: "test-equipment/index.html", image: "images/category-test-equipment.jpg" }
 ];
 
 export const MAX = { nav: 8, navChildren: 8, categories: 6, sections: 12, heroSlides: 4 };
@@ -103,13 +104,15 @@ export function normalizeContent(input) {
 
   const categories = (Array.isArray(h.categories) ? h.categories : DEFAULT_CATEGORIES).slice(0, MAX.categories)
     .map((cat, i) => {
-      const d = DEFAULT_CATEGORIES[i] || { label: "", description: "", href: "", image: "" };
+      const d = DEFAULT_CATEGORIES[i] || { label: "", description: "", cta_label: CTA_DEFAULT, href: "", image: "" };
       const o = cat && typeof cat === "object" ? cat : {};
       return {
         label: str(o.label, 60, d.label),
-        description: text(o.description, 160, ""),
+        description: typeof o.description === "string" ? text(o.description, 400) : d.description,
+        cta_label: str(o.cta_label, 40, d.cta_label),
         href: href(o.href, d.href),
-        image: image(o.image, d.image)
+        // an explicitly empty image is kept: the row then renders as text only
+        image: o.image === "" ? "" : image(o.image, d.image)
       };
     }).filter((cat) => cat.label && cat.href);
 

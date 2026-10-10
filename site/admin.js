@@ -313,25 +313,36 @@
     var holder = $("category-editor");
     holder.replaceChildren();
     content.homepage.categories.forEach(function (category, index) {
-      var thumb = el("img", { class: "ae-thumb", alt: "", src: imageSrc(category.image) });
+      var thumb = category.image
+        ? el("img", { class: "ae-thumb", alt: "", src: imageSrc(category.image) })
+        : el("div", { class: "ae-thumb ae-empty", text: "No image" });
       var file = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp", hidden: "" });
-      var pick = smallButton("Choose photo", "Choose photo for " + (category.label || "category"), function () { file.click(); });
+      var pick = smallButton(category.image ? "Replace image" : "Choose image", "Choose image for " + (category.label || "category"), function () { file.click(); });
       file.addEventListener("change", async function () {
         var chosen = file.files[0];
         file.value = "";
         if (!chosen) return;
         try {
-          category.image = await pickImage(chosen, "category", 1400);
-          thumb.src = imageSrc(category.image);
+          category.image = await pickImage(chosen, "category", 1800);
           markDirty();
+          renderCategories();
         } catch (error) { say(error.message); }
       });
+      var remove = smallButton("Remove image", "Remove image for " + (category.label || "category"), function () {
+        category.image = "";
+        markDirty();
+        renderCategories();
+      }, !category.image);
+      var description = el("textarea", { rows: "3", maxlength: "400", "aria-label": "Description for " + (category.label || "category"), placeholder: "Description" });
+      description.value = category.description || "";
+      description.addEventListener("input", function () { category.description = description.value; markDirty(); });
       var fields = el("div", { class: "ae-fields" }, [
-        textInput(category.label, "Name", "Category name", function (v) { category.label = v; }),
-        textInput(category.description, "Description (optional)", "Category description", function (v) { category.description = v; }),
-        textInput(category.href, "Link (e.g. stereo/index.html)", "Category link", function (v) { category.href = v; }, "page-list")
+        textInput(category.label, "Heading", "Category heading", function (v) { category.label = v; }),
+        description,
+        textInput(category.cta_label, "Button label (default: See the work)", "Category button label", function (v) { category.cta_label = v; }),
+        textInput(category.href, "Button link (e.g. stereo/index.html)", "Category button link", function (v) { category.href = v; }, "page-list")
       ]);
-      holder.appendChild(el("div", { class: "ae-row ae-cat" }, [thumb, fields, el("div", {}, [pick, file])]));
+      holder.appendChild(el("div", { class: "ae-row ae-cat" }, [thumb, fields, el("div", { class: "sb-actions" }, [pick, file, remove])]));
     });
   }
 

@@ -15,7 +15,7 @@ function shell(content, o) {
   return "<!DOCTYPE html>\n<html lang=\"en\"" + themeAttr(content) + '><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
     esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + prefix + 'style.css"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
     '<header class="site"><a class="brand" href="' + prefix + 'index.html">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active, prefix) + "</header>" +
-    (o.beforeMain || "") + "<main>" + o.inner + "</main>" + (o.scripts || "") + NAV_SCRIPT(prefix) + THEME + "</body></html>\n";
+    (o.beforeMain || "") + "<main>" + o.inner + "</main>" + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT(prefix) + THEME + "</body></html>\n";
 }
 
 /** Paragraphs separated by blank lines; single line breaks become <br>. */
@@ -27,8 +27,11 @@ const mailto = (email) => '<a href="mailto:' + esc(email) + '">' + esc(email) + 
 export function renderHome(content) {
   const h = content.homepage;
   const cats = h.categories.map((c) =>
-    '<a class="cat" href="' + esc(c.href) + '"><img src="' + esc(c.image) + '" alt="' + esc(c.label) + '" loading="lazy"><strong>' + esc(c.label) + "</strong>" +
-    (c.description ? '<small class="cat-desc">' + esc(c.description) + "</small>" : "") + "<span>See the work &rarr;</span></a>").join("");
+    '<section class="cat-row' + (c.image ? "" : " no-image") + '" aria-label="' + esc(c.label) + '">' +
+    (c.image ? '<div class="cat-media"><img src="' + esc(c.image) + '" alt="" loading="lazy"></div>' : "") +
+    '<div class="cat-text"><div class="cat-copy"><h2>' + esc(c.label) + "</h2>" +
+    (c.description ? "<p>" + esc(c.description) + "</p>" : "") +
+    '<a class="cat-cta" href="' + esc(c.href) + '">' + esc(c.cta_label) + "</a></div></div></section>").join("");
   const pc = h.product_carousel;
   const carousel = pc.enabled
     ? '<section class="forsale" id="forsale" aria-label="' + esc(pc.heading) + '" hidden><h2 class="fs-label">' + esc(pc.heading) + "</h2>" +
@@ -43,8 +46,7 @@ export function renderHome(content) {
     (h.hero.subtitle ? "<p>" + esc(h.hero.subtitle) + "</p>" : "") + "</div></section>";
   // The hero is full width; everything after it sits in the centered content container.
   const inner = '<div class="lead"><p>' + esc(h.intro.text) + "</p></div>" +
-    carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "") +
-    '<section class="cats" aria-label="Restoration blog sections">' + cats + "</section>";
+    carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "");
   return shell(content, {
     title: content.site_name + " - " + h.hero.title,
     description: h.hero.subtitle || h.hero.title,
@@ -52,6 +54,7 @@ export function renderHome(content) {
     active: "index.html",
     bodyClass: "home",
     beforeMain: hero,
+    afterMain: '<div class="cats" aria-label="Restoration blog sections">' + cats + "</div>",
     scripts: '<script src="hero.js" defer></script>' + (pc.enabled ? '<script src="forsale.js" defer></script>' : "")
   });
 }
