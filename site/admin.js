@@ -413,7 +413,7 @@
 
   $("github-connect").addEventListener("click", function () {
     say("Redirecting to GitHub sign-in...");
-    window.location.assign(apiUrl + "/auth/start?return=admin");
+    window.location.assign(apiUrl + "/auth/start");
   });
   $("github-disconnect").addEventListener("click", async function () {
     try { if (session) await api("/api/logout", { method: "POST" }); } catch (error) { }

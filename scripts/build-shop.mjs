@@ -2,7 +2,7 @@
 // Builds the Shop pages (site/shop/*.html) from shop-data/items.json.
 // Usage, from the repository root:  node scripts/build-shop.mjs
 // Use scripts/build-site.mjs to rebuild the whole site (shop, home, request, about and navigation).
-// The shop builder page (site/shop-builder.html) does the same thing in the
+// The Shop Builder tab of the admin panel (site/admin.html) does the same thing in the
 // browser through the publisher Worker; both share scripts/shop-render.mjs.
 import fs from "node:fs";
 import path from "node:path";

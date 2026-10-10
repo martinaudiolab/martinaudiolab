@@ -45,9 +45,9 @@ function jsonResponse(request, env, value, status) {
   return new Response(responseStatus === 204 ? null : JSON.stringify(value), { status: responseStatus, headers: headers });
 }
 
-function redirect(url, cookies) {
+function redirect(url, cookie) {
   const headers = new Headers({ "Cache-Control": "no-store", Location: url });
-  [].concat(cookies || []).forEach(function (cookie) { headers.append("Set-Cookie", cookie); });
+  if (cookie) headers.append("Set-Cookie", cookie);
   return new Response(null, {
     status: 302,
     headers: headers
@@ -57,7 +57,7 @@ function redirect(url, cookies) {
 function assertConfigured(env) {
   if (!env.GITHUB_CLIENT_ID || env.GITHUB_CLIENT_ID.startsWith("REPLACE_") ||
       !env.GITHUB_CLIENT_SECRET || !env.SITE_ORIGIN || env.SITE_ORIGIN.includes("YOUR_SITE_HOST") ||
-      !env.BUILDER_URL || env.BUILDER_URL.includes("YOUR_SITE_HOST") || !env.PUBLISHER_SESSIONS ||
+      !env.PUBLISHER_SESSIONS ||
       !env.GITHUB_OWNER || !env.GITHUB_REPOSITORY) {
     throw new HttpError(503, "The publisher Worker is not fully configured.");
   }
@@ -729,9 +729,7 @@ async function startLogin(request, env) {
   const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
   const challenge = base64Url(new Uint8Array(digest));
-  const requestedReturn = new URL(request.url).searchParams.get("return");
-  const returnTo = requestedReturn === "shop" || requestedReturn === "admin" ? requestedReturn : "post";
-  await env.PUBLISHER_SESSIONS.put("oauth:" + state, JSON.stringify({ verifier: verifier, returnTo: returnTo }), { expirationTtl: 600 });
+  await env.PUBLISHER_SESSIONS.put("oauth:" + state, JSON.stringify({ verifier: verifier }), { expirationTtl: 600 });
   const authorize = new URL("https://github.com/login/oauth/authorize");
   authorize.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
   authorize.searchParams.set("redirect_uri", new URL("/auth/callback", request.url).toString());
@@ -740,19 +738,13 @@ async function startLogin(request, env) {
   authorize.searchParams.set("allow_signup", "false");
   authorize.searchParams.set("code_challenge", challenge);
   authorize.searchParams.set("code_challenge_method", "S256");
-  return redirect(authorize.toString(), [
-    "oauth_state=" + encodeURIComponent(state) + "; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600",
-    "oauth_return=" + returnTo + "; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600"
-  ]);
+  return redirect(authorize.toString(), "oauth_state=" + encodeURIComponent(state) + "; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600");
 }
 
-const CLEAR_LOGIN_COOKIES = [
-  "oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0",
-  "oauth_return=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0"
-];
+const CLEAR_STATE_COOKIE = "oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0";
 
-function builderDestination(env, returnTo) {
-  // The Post Builder and Shop Builder are tabs of the admin panel now, so every sign-in lands there.
+/** Every sign-in, successful or not, lands on the admin panel. */
+function adminUrl(env) {
   return new URL("/admin", env.SITE_ORIGIN);
 }
 
@@ -795,9 +787,9 @@ async function finishLogin(request, env) {
   };
   await env.PUBLISHER_SESSIONS.put("session:" + sessionId, JSON.stringify(session), { expirationTtl: SESSION_TTL });
   await env.PUBLISHER_SESSIONS.put("ticket:" + ticket, sessionId, { expirationTtl: 90 });
-  const destination = builderDestination(env, pending.returnTo);
+  const destination = adminUrl(env);
   destination.hash = "ticket=" + encodeURIComponent(ticket);
-  return redirect(destination.toString(), CLEAR_LOGIN_COOKIES);
+  return redirect(destination.toString(), CLEAR_STATE_COOKIE);
 }
 
 async function handleApi(request, env, url) {
@@ -910,8 +902,8 @@ export default {
     } catch (error) {
       const status = error.status || 500;
       const message = status >= 500 ? "The publisher service could not complete this request." : error.message;
-      if (url.pathname === "/auth/callback" && env.BUILDER_URL && !env.BUILDER_URL.includes("YOUR_SITE_HOST")) {
-        const destination = builderDestination(env, cookieValue(request, "oauth_return"));
+      if (url.pathname === "/auth/callback" && env.SITE_ORIGIN && !env.SITE_ORIGIN.includes("YOUR_SITE_HOST")) {
+        const destination = adminUrl(env);
         const details = error.authDiagnostic || {};
         const fragment = new URLSearchParams({
           auth_error: error.authDiagnostic ? "not_admin" : "oauth_failed",
@@ -924,7 +916,7 @@ export default {
           detail: String(error.message || message).slice(0, 240)
         });
         destination.hash = fragment.toString();
-        return redirect(destination.toString(), CLEAR_LOGIN_COOKIES);
+        return redirect(destination.toString(), CLEAR_STATE_COOKIE);
       }
       if (url.pathname.startsWith("/api/")) return jsonResponse(request, env, { error: message }, status);
       return new Response(message, {
