@@ -78,10 +78,6 @@
     return template.innerHTML;
   }
 
-  function currentCategory() {
-    return categories[document.getElementById("category").value];
-  }
-
   function slugify(value) {
     return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
@@ -103,61 +99,6 @@
     data.category = categories[data.categoryKey];
     data.slug = slugify(data.title);
     return data;
-  }
-
-  function navHtml(activeKey) {
-    var links = [
-      ["../index.html", "Home", ""],
-      ["../stereo/index.html", "Stereo Repair", "stereo"],
-      ["../radio/index.html", "Radio Repair", "radio"],
-      ["../test-equipment/index.html", "Test Equipment", "test-equipment"],
-      ["../shop/index.html", "Shop", "shop"],
-      ["../contact.html", "Contact", ""]
-    ];
-    return links.map(function (link) {
-      return '<a href="' + link[0] + '"' + (link[2] === activeKey ? ' class="on" aria-current="page"' : "") + ">" + link[1] + "</a>";
-    }).join("");
-  }
-
-  function themeScript() {
-    return '<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()<\/script>';
-  }
-
-  function articleHtml(data) {
-    var categoryLink = "index.html";
-    return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + escapeHtml(data.title) + ' - Martin Audio Labs</title><meta name="description" content="' + escapeHtml(data.summary) + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">Martin Audio Labs</a><nav>' + navHtml(data.categoryKey) + '<button class="theme" type="button" id="th">Theme</button></nav></header><main><a class="back" href="' + categoryLink + '">Back to ' + escapeHtml(data.category.name) + '</a><article class="post"><h1 class="post-title">' + escapeHtml(data.title) + '</h1><div class="meta">' + escapeHtml(dateLabel(data.date)) + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(data.category.name) + '</a></div><div class="body">' + data.content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + themeScript() + '</body></html>\n';
-  }
-
-  function listingHtml(data) {
-    return '<article class="post"><h2><a href="' + escapeHtml(data.slug) + '.html">' + escapeHtml(data.title) + '</a></h2><div class="meta">' + escapeHtml(dateLabel(data.date)) + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(data.category.name) + '</a></div><div class="body"><p>' + escapeHtml(data.summary) + '</p></div><a class="more" href="' + escapeHtml(data.slug) + '.html">Read the post</a></article>';
-  }
-
-  function updatedIndexHtml(indexHtml, data) {
-    var parsed = new DOMParser().parseFromString(indexHtml, "text/html");
-    var main = parsed.querySelector("main");
-    if (!main || !main.querySelector(".intro")) throw new Error("The selected file is not a section index page.");
-    var template = document.createElement("template");
-    template.innerHTML = listingHtml(data);
-    main.querySelector(".intro").after(template.content.firstElementChild);
-    return "<!DOCTYPE html>\n" + parsed.documentElement.outerHTML;
-  }
-
-  function download(name, content) {
-    var link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([content], { type: "text/html;charset=utf-8" }));
-    link.download = name;
-    link.click();
-    setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
-  }
-
-  async function downloadFiles(data) {
-    var file = document.getElementById("section-index").files[0];
-    if (!file) throw new Error("Choose the current section index file first so its post list can be updated.");
-    var indexHtml = await file.text();
-    var indexOutput = updatedIndexHtml(indexHtml, data);
-    download(data.slug + ".html", articleHtml(data));
-    download("index.html", indexOutput);
-    status.textContent = "Downloaded the post and updated section index. Place both files in the " + data.category.folder + " folder.";
   }
 
   async function publisherApi(path, options) {
@@ -544,11 +485,4 @@
     status.textContent = "Draft cleared.";
   });
   document.getElementById("publish").addEventListener("click", publish);
-  document.getElementById("download").addEventListener("click", async function () {
-    if (!form.reportValidity()) return;
-    var data = postData();
-    if (!data.slug || !data.content.trim()) { status.textContent = "Add a title and post content before downloading."; return; }
-    try { await downloadFiles(data); }
-    catch (error) { status.textContent = error.message; }
-  });
 })();
