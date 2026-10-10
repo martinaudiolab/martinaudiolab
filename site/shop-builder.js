@@ -153,7 +153,6 @@
 
   function fillSettings() {
     $("set-title").value = data.shop.title || "";
-    $("set-intro").value = data.shop.intro || "";
     $("set-how").value = data.shop.howToBuy || "";
     $("set-email").value = data.shop.email || "";
   }
@@ -161,11 +160,10 @@
   function readSettings() {
     var next = {
       title: $("set-title").value.trim() || "Shop",
-      intro: $("set-intro").value.trim(),
       howToBuy: $("set-how").value.trim(),
       email: $("set-email").value.trim()
     };
-    var changed = ["title", "intro", "howToBuy", "email"].some(function (key) { return (data.shop[key] || "") !== next[key]; });
+    var changed = ["title", "howToBuy", "email"].some(function (key) { return (data.shop[key] || "") !== next[key]; });
     if (changed) {
       Object.assign(data.shop, next);
       markDirty();

@@ -13,8 +13,8 @@ If the content changed somewhere else after you opened the page, saving is refus
 The shop listing manager and the blog post editor. Each has its own Publish button; the Save changes bar applies to the five content tabs only. See `SHOP.md` for how shop listings work.
 
 ## Where the content lives
-- `site-data/site-content.json`: the single source of truth for everything on the tabs except the shop title and introduction.
-- `shop-data/items.json`: the shop. The **Shop** tab edits its `shop.title` and `shop.intro`; products are still managed in the **Shop Builder** tab.
+- `site-data/site-content.json`: the single source of truth for everything on the tabs except the shop title.
+- `shop-data/items.json`: the shop. The **Shop** tab edits its `shop.title`; products are still managed in the **Shop Builder** tab.
 
 | Tab | Keys |
 | --- | --- |

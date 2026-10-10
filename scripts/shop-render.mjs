@@ -79,10 +79,11 @@ export function renderShop(data, options) {
     return '<li class="shop-card' + (status(it) === "sold" ? " sold" : "") + '"><a href="' + it.slug + '.html"><div class="shop-thumb"><img src="' + esc(imgSrc(it.images[0])) + '" alt="" loading="lazy">' + badge + "</div><strong>" + esc(it.title) + "</strong>" + (it.summary ? '<span class="shop-sum">' + esc(it.summary) + "</span>" : "") + '<span class="shop-price">' + priceHtml(it) + "</span></a></li>";
   };
 
+  // The title and note sit in the centered container; the gallery runs edge to edge after it.
   const indexInner = '<h1 class="h2" style="font-size:2rem">' + esc(shop.title || "Shop") + "</h1>" +
-    (shop.intro ? '<p class="intro">' + esc(shop.intro) + "</p>" : "") +
     (shop.howToBuy ? '<p class="shop-note">' + esc(shop.howToBuy) + "</p>" : "") +
-    (ordered.length ? '<ul class="shop-grid">' + ordered.map(card).join("") + "</ul>" : "<p>Nothing is listed right now. Please check back soon.</p>");
+    (ordered.length ? "" : "<p>Nothing is listed right now. Please check back soon.</p>");
+  const indexGallery = ordered.length ? '<div class="shop-wide"><ul class="shop-grid">' + ordered.map(card).join("") + "</ul></div>" : "";
 
   const detail = (it) => {
     const st = status(it);
@@ -99,7 +100,7 @@ export function renderShop(data, options) {
   };
 
   const files = {};
-  files["index.html"] = page(ctx, (shop.title || "Shop") + " - " + ctx.content.site_name, shop.intro || "Shop", indexInner);
+  files["index.html"] = page(ctx, (shop.title || "Shop") + " - " + ctx.content.site_name, "Shop", indexInner, indexGallery);
   for (const it of items) files[it.slug + ".html"] = page(ctx, it.title + " - " + (shop.title || "Shop") + " - " + ctx.content.site_name, it.summary || it.title, detail(it), LIGHTBOX);
   // Small public feed used by the homepage "For Sale Now" carousel.
   const feed = ordered.filter((it) => status(it) !== "sold").map((it) => ({
@@ -125,7 +126,6 @@ export function normalizeShop(input) {
   const s = src.shop && typeof src.shop === "object" ? src.shop : {};
   const shop = {
     title: text(s.title, 80) || "Shop",
-    intro: text(s.intro, 600),
     howToBuy: text(s.howToBuy, 600),
     email: text(s.email, 120),
     placeholder: /^images\/[a-zA-Z0-9._\/-]+$/.test(s.placeholder || "") ? s.placeholder : "images/banner.jpg"

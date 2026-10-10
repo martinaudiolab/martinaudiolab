@@ -7,7 +7,7 @@ Open `/admin` on the website, select **Connect GitHub**, sign in with the admini
 
 - **Add item** opens a form: title, one-line summary, category, status, price, optional previous price (shows a sale), description (blank line between paragraphs), optional detail rows and photos.
 - Photos are resized to 1600 px JPEGs in your browser before upload. The first photo is the gallery picture.
-- **Edit**, **Remove**, **Up** and **Down** manage existing listings. **Shop page text** edits the title, introduction, how-to-buy note and inquiry email.
+- **Edit**, **Remove**, **Up** and **Down** manage existing listings. **Shop page text** edits the title, how-to-buy note and inquiry email.
 - Nothing goes live until you select **Publish changes**. That commits `shop-data/items.json`, the new photos and the regenerated `site/shop/` pages in one GitHub commit, and the site workflow deploys it.
 - Removing an item also deletes its page and any photos in `site/images/shop/` that no other item uses.
 - If the shop changed somewhere else (for example someone ran the script) after you opened the page, publishing is refused so nothing is overwritten. Reload and repeat your edit.
