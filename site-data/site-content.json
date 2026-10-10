@@ -41,7 +41,15 @@
     "hero": {
       "slides": [
         {
-          "image": "images/banner.jpg",
+          "image": "images/site/hero-mv217tx8-9uq2.jpg",
+          "alt": ""
+        },
+        {
+          "image": "images/site/hero-mv217yr8-xm8p.jpg",
+          "alt": ""
+        },
+        {
+          "image": "images/site/hero-mv21808l-3nm2.jpg",
           "alt": ""
         }
       ],
