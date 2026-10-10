@@ -8,14 +8,47 @@
   },
   "items": [
     {
+      "slug": "zenith-6d221",
+      "title": "Zenith 6D221",
+      "summary": "Fully restored.",
+      "category": "Radio",
+      "price": 500,
+      "status": "available",
+      "images": [
+        "images/shop/photo-mv1p8kwl-hb4x.jpg",
+        "images/shop/photo-mv1p8kul-slpl.jpg",
+        "images/shop/photo-mv1p8kp4-0sr1.jpg",
+        "images/shop/photo-mv1p8kr2-ikqe.jpg",
+        "images/shop/photo-mv1p8ksc-loy5.jpg"
+      ],
+      "description": [
+        "Fully restored."
+      ]
+    },
+    {
       "slug": "sample-restored-receiver",
       "title": "Sample Item: Restored Stereo Receiver",
       "summary": "Fully restored solid-state receiver",
       "category": "Stereo",
       "price": 650,
       "status": "available",
-      "images": ["images/banner.jpg"],
-      "details": [["Type", "Stereo receiver"], ["Condition", "Sample text"], ["Included", "Sample text"]],
+      "images": [
+        "images/banner.jpg"
+      ],
+      "details": [
+        [
+          "Type",
+          "Stereo receiver"
+        ],
+        [
+          "Condition",
+          "Sample text"
+        ],
+        [
+          "Included",
+          "Sample text"
+        ]
+      ],
       "description": [
         "This is a sample listing that shows how an item page looks. Replace it with the real description: what the unit is, what was restored, how it sounds, and what is included.",
         "Each paragraph in the description becomes its own paragraph on the page."
@@ -30,8 +63,12 @@
       "price": 325,
       "was": 375,
       "status": "available",
-      "images": ["images/banner.jpg"],
-      "description": ["Sample listing. Adding a \"was\" price in items.json shows a sale price in the gallery."],
+      "images": [
+        "images/banner.jpg"
+      ],
+      "description": [
+        "Sample listing. Adding a \"was\" price in items.json shows a sale price in the gallery."
+      ],
       "sample": true
     },
     {
@@ -41,8 +78,12 @@
       "category": "Radio",
       "price": 285,
       "status": "pending",
-      "images": ["images/banner.jpg"],
-      "description": ["Sample listing with the status set to pending."],
+      "images": [
+        "images/banner.jpg"
+      ],
+      "description": [
+        "Sample listing with the status set to pending."
+      ],
       "sample": true
     },
     {
@@ -52,8 +93,12 @@
       "category": "Test Equipment",
       "price": 480,
       "status": "available",
-      "images": ["images/banner.jpg"],
-      "description": ["Sample listing for a piece of test equipment."],
+      "images": [
+        "images/banner.jpg"
+      ],
+      "description": [
+        "Sample listing for a piece of test equipment."
+      ],
       "sample": true
     },
     {
@@ -63,8 +108,12 @@
       "category": "Parts",
       "price": 45,
       "status": "available",
-      "images": ["images/banner.jpg"],
-      "description": ["Sample listing for a part or accessory."],
+      "images": [
+        "images/banner.jpg"
+      ],
+      "description": [
+        "Sample listing for a part or accessory."
+      ],
       "sample": true
     },
     {
@@ -74,8 +123,12 @@
       "category": "Stereo",
       "price": 400,
       "status": "sold",
-      "images": ["images/banner.jpg"],
-      "description": ["Sample listing with the status set to sold. Sold items move to the end of the gallery and are greyed out."],
+      "images": [
+        "images/banner.jpg"
+      ],
+      "description": [
+        "Sample listing with the status set to sold. Sold items move to the end of the gallery and are greyed out."
+      ],
       "sample": true
     }
   ]
