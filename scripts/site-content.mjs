@@ -95,6 +95,7 @@ export function normalizeContent(input) {
   const hero = h.hero && typeof h.hero === "object" ? h.hero : {};
   const pc = h.product_carousel && typeof h.product_carousel === "object" ? h.product_carousel : {};
   const vl = pc.view_all_link && typeof pc.view_all_link === "object" ? pc.view_all_link : {};
+  const sh = c.shop_hero && typeof c.shop_hero === "object" ? c.shop_hero : {};
   const r = c.request && typeof c.request === "object" ? c.request : {};
   const a = c.about && typeof c.about === "object" ? c.about : {};
   const ac = a.contact && typeof a.contact === "object" ? a.contact : {};
@@ -134,6 +135,7 @@ export function normalizeContent(input) {
       },
       trust_line: text(h.trust_line, 240, "")
     },
+    shop_hero: { slides: heroSlides(sh) },
     request: {
       title: str(r.title, 80, "Request a Restoration"),
       intro: text(r.intro, 600, "Have a unit that needs attention? Send me the details and I will get back to you."),
@@ -159,6 +161,8 @@ export function normalizeContent(input) {
 
 /** Image paths under images/site/ that this content refers to (for cleanup). */
 export function contentImages(content) {
-  const paths = content.homepage.hero.slides.map((s) => s.image).concat(content.homepage.categories.map((c) => c.image));
+  const paths = content.homepage.hero.slides.map((s) => s.image)
+    .concat(content.shop_hero.slides.map((s) => s.image))
+    .concat(content.homepage.categories.map((c) => c.image));
   return paths.filter((p) => typeof p === "string" && p.startsWith("images/"));
 }

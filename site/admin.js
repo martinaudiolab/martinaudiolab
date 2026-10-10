@@ -190,15 +190,14 @@
   var HERO_SLOTS = 4;
 
   function renderHeroSlots() {
-    var holder = $("hero-slots");
-    holder.replaceChildren();
-    var slides = content.homepage.hero.slides;
-    for (var index = 0; index < HERO_SLOTS; index++) {
-      holder.appendChild(heroSlot(slides, index));
-    }
+    [["hero-slots", content.homepage.hero.slides, "hero"], ["shop-hero-slots", content.shop_hero.slides, "shop"]].forEach(function (pool) {
+      var holder = $(pool[0]);
+      holder.replaceChildren();
+      for (var index = 0; index < HERO_SLOTS; index++) holder.appendChild(heroSlot(pool[1], index, pool[2]));
+    });
   }
 
-  function heroSlot(slides, index) {
+  function heroSlot(slides, index, kind) {
     var slide = slides[index] || null;
     var number = index + 1;
     var row = el("div", { class: "ae-row ae-cat" });
@@ -213,7 +212,7 @@
       file.value = "";
       if (!chosen) return;
       try {
-        var path = await pickImage(chosen, "hero", 2000);
+        var path = await pickImage(chosen, kind === "shop" ? "shophero" : "hero", 2000);
         if (slide) slide.image = path;
         else slides.push({ image: path, alt: "" });
         markDirty();
@@ -383,6 +382,8 @@
     say("Loading the site content...");
     var result = await api("/api/content");
     content = result.content;
+    // an older publisher Worker does not know the shop slideshow yet
+    if (!content.shop_hero || !Array.isArray(content.shop_hero.slides) || !content.shop_hero.slides.length) content.shop_hero = { slides: [{ image: "images/banner.jpg", alt: "" }] };
     shop = result.shop || { title: "", intro: "" };
     contentSha = result.contentSha || "";
     shopSha = result.shopSha;
@@ -395,6 +396,7 @@
   function referencedImages() {
     var used = {};
     content.homepage.hero.slides.forEach(function (slide) { used[slide.image] = true; });
+    content.shop_hero.slides.forEach(function (slide) { used[slide.image] = true; });
     content.homepage.categories.forEach(function (c) { used[c.image] = true; });
     return used;
   }

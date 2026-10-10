@@ -24,6 +24,16 @@ const paragraphs = (value) => String(value || "").split(/\n\s*\n/).map((p) => p.
 
 const mailto = (email) => '<a href="mailto:' + esc(email) + '">' + esc(email) + "</a>";
 
+/** The full-width slideshow hero shared by the homepage and the shop page. */
+export function heroHtml(o) {
+  const slides = o.slides.map((slide, i) =>
+    '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc((o.prefix || "") + slide.image) + '" alt="' + esc(slide.alt) + '"' +
+    (i === 0 ? ' fetchpriority="high"' : ' loading="lazy"') + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
+  return '<section class="hero" id="hero" aria-label="' + esc(o.label) + '">' + slides +
+    '<div class="hero-scrim"></div><div class="hero-text"><h1>' + esc(o.title) + "</h1>" +
+    (o.subtitle ? "<p>" + esc(o.subtitle) + "</p>" : "") + "</div></section>";
+}
+
 export function renderHome(content) {
   const h = content.homepage;
   const cats = h.categories.map((c) =>
@@ -38,12 +48,7 @@ export function renderHome(content) {
       '<div class="fs-grid" id="fs-grid"></div>' +
       '<p class="fs-more"><a class="fs-viewall" href="' + esc(pc.view_all_link.href) + '">' + esc(pc.view_all_link.label) + "</a></p></section>"
     : "";
-  const slides = h.hero.slides.map((slide, i) =>
-    '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(slide.image) + '" alt="' + esc(slide.alt) + '"' +
-    (i === 0 ? ' fetchpriority="high"' : ' loading="lazy"') + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
-  const hero = '<section class="hero" id="hero" aria-label="' + esc(content.site_name) + '">' + slides +
-    '<div class="hero-scrim"></div><div class="hero-text"><h1>' + esc(h.hero.title) + "</h1>" +
-    (h.hero.subtitle ? "<p>" + esc(h.hero.subtitle) + "</p>" : "") + "</div></section>";
+  const hero = heroHtml({ slides: h.hero.slides, title: h.hero.title, subtitle: h.hero.subtitle, label: content.site_name });
   // The homepage is full-bleed from the hero down: no centered container.
   return shell(content, {
     title: content.site_name + " - " + h.hero.title,

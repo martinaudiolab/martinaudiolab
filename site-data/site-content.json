@@ -89,6 +89,14 @@
     },
     "trust_line": ""
   },
+  "shop_hero": {
+    "slides": [
+      {
+        "image": "images/banner.jpg",
+        "alt": ""
+      }
+    ]
+  },
   "request": {
     "title": "Request a Restoration",
     "intro": "Have a unit that needs attention? Send me the details and I will get back to you.",
