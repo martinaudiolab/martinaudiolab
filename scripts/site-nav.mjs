@@ -28,7 +28,7 @@ export function navHtml(items, active, prefix) {
     }
     return link(item, false);
   });
-  return "<nav>" + parts.join("") + '<button class="theme" type="button" id="th">Theme</button></nav>';
+  return "<nav>" + parts.join("") + "</nav>";
 }
 
 export const NAV_SCRIPT = (prefix) => '<script src="' + (prefix || "") + 'nav.js" defer></script>';

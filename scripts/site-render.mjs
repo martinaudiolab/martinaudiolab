@@ -1,21 +1,18 @@
 // Renders the pages driven by site-data/site-content.json (home, request, about)
-// and applies the global fields (site name, navigation, default theme) to
+// and applies the global fields (site name, navigation) to
 // hand-written or published pages. Pure string code: no file-system APIs.
 
 import { NAV_SCRIPT, navHtml } from "./site-nav.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const external = (h) => /^(https?:|mailto:)/i.test(h);
-const THEME = '<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()</script>';
-
-export const themeAttr = (content) => (content.theme === "dark" || content.theme === "light" ? ' data-theme="' + content.theme + '"' : "");
 
 function shell(content, o) {
   const prefix = o.prefix || "";
-  return "<!DOCTYPE html>\n<html lang=\"en\"" + themeAttr(content) + '><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
+  return "<!DOCTYPE html>\n<html lang=\"en\">" + '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
     esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + prefix + 'style.css"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
     '<header class="site"><a class="brand" href="' + prefix + 'index.html">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active, prefix) + "</header>" +
-    (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT(prefix) + THEME + "</body></html>\n";
+    (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT(prefix) + "</body></html>\n";
 }
 
 /** Paragraphs separated by blank lines; single line breaks become <br>. */
@@ -112,7 +109,7 @@ export function activeFor(rel) {
 
 /**
  * Applies the global fields to an existing page: brand, <title> suffix, default
- * theme, navigation and the nav script. Pages with no <nav> are returned as is.
+ * navigation and the nav script. Pages with no <nav> are returned as is.
  */
 export function applyGlobals(html, content, rel) {
   const prefix = rel.includes("/") ? "../" : "";
@@ -122,7 +119,9 @@ export function applyGlobals(html, content, rel) {
   let out = html.slice(0, navStart) + navHtml(content.nav_items, activeFor(rel), prefix) + html.slice(navEnd + "</nav>".length);
 
   out = out.replace(/(<a class="brand"[^>]*>)[^<]*(<\/a>)/, (m, a, b) => a + esc(content.site_name) + b);
-  out = out.replace(/<html lang="en"(?: data-theme="[^"]*")?>/, () => '<html lang="en"' + themeAttr(content) + ">");
+  // The site is dark only: drop the old theme attribute and toggle script from pages written before it was removed.
+  out = out.replace(/<html lang="en"(?: data-theme="[^"]*")?>/, () => '<html lang="en">');
+  out = out.replace(/<script>\(function\(\)\{var r=document\.documentElement;try\{var t=localStorage\.getItem\("th"\)[\s\S]*?\)\(\)<\/script>/, "");
   const t1 = out.indexOf("<title>");
   const t2 = out.indexOf("</title>", t1);
   if (t1 >= 0 && t2 > t1) {

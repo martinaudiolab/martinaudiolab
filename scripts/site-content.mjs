@@ -3,7 +3,6 @@
 // Pure code, shared by the admin API (publisher/worker.js) and the build scripts.
 
 export const CONTENT_PATH = "site-data/site-content.json";
-export const THEMES = ["auto", "dark", "light"];
 
 const text = (v, max, fallback) => (typeof v === "string" ? v.replace(/\r\n/g, "\n").trim().slice(0, max) : fallback === undefined ? "" : fallback);
 const str = (v, max, fallback) => {
@@ -120,7 +119,6 @@ export function normalizeContent(input) {
     site_name: str(c.site_name, 60, "Martin Audio Labs"),
     contact_email: contactEmail,
     nav_items: normalizeNav(c.nav_items),
-    theme: THEMES.includes(c.theme) ? c.theme : "auto",
     homepage: {
       hero: {
         slides: heroSlides(hero),

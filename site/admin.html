@@ -12,7 +12,7 @@
 <body>
 <header class="site">
 <a class="brand" href="index.html">Martin Audio Labs</a>
-<nav><a href="index.html">Home</a><a href="shop/index.html">Shop</a><a href="request.html">Request a Restoration</a><div class="dd"><button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">Restoration Blog</button><div class="dd-menu"><a href="stereo/index.html">Stereo Repair</a><a href="radio/index.html">Radio Repair</a><a href="test-equipment/index.html">Test Equipment</a></div></div><a href="about.html">About Me</a><button class="theme" type="button" id="th">Theme</button></nav>
+<nav><a href="index.html">Home</a><a href="shop/index.html">Shop</a><a href="request.html">Request a Restoration</a><div class="dd"><button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">Restoration Blog</button><div class="dd-menu"><a href="stereo/index.html">Stereo Repair</a><a href="radio/index.html">Radio Repair</a><a href="test-equipment/index.html">Test Equipment</a></div></div><a href="about.html">About Me</a></nav>
 </header>
 <main class="builder admin">
 <h1 class="h2">Site Admin</h1>
@@ -57,13 +57,6 @@
 <label for="g-email">Contact email</label>
 <input id="g-email" type="email" maxlength="120" data-path="contact_email">
 <p class="hint">Shown on the About page.</p>
-<label for="g-theme">Default theme</label>
-<select id="g-theme" data-path="theme">
-<option value="auto">Match the visitor&#39;s device</option>
-<option value="dark">Dark</option>
-<option value="light">Light</option>
-</select>
-<p class="hint">What visitors see before they use the Theme toggle.</p>
 <label>Navigation</label>
 <p class="hint">An item with sub-items becomes a dropdown. Use a page path such as <code>shop/index.html</code>, or a full https:// address.</p>
 <div id="nav-editor"></div>
@@ -316,6 +309,6 @@
 <script src="admin.js"></script>
 <script src="shop-builder.js"></script>
 <script src="post-builder.js"></script>
-<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()</script>
+
 <script src="nav.js" defer></script></body>
 </html>

@@ -18,14 +18,13 @@ The shop listing manager and the blog post editor. Each has its own Publish butt
 
 | Tab | Keys |
 | --- | --- |
-| Global | `site_name`, `contact_email`, `nav_items` (with `children` for dropdowns), `theme` |
+| Global | `site_name`, `contact_email`, `nav_items` (with `children` for dropdowns) |
 | Homepage | `homepage.hero.{slides[],title,subtitle}` (up to 4 slides, each `{image, alt}`), `homepage.categories[]`, `homepage.product_carousel.{enabled,heading,view_all_link}`, `homepage.trust_line` |
 | Shop page | `shop_hero.slides[]` (its own set of up to 4 slides, separate from the homepage), plus the shop title and intro from `shop-data/items.json` |
 | Request | `request.{title,intro,form_action,subject,success_message}` |
 | About | `about.{title,bio}`, `about.sections[]`, `about.contact.{heading,email}`, `about.location`, `about.response_time` |
 
 Notes:
-- `theme` is `auto` (match the visitor's device, the previous behavior), `dark` or `light`. It is the default; visitors can still use the Theme toggle.
 - `trust_line`, `location` and `response_time` are empty until you fill them in, and are hidden while empty.
 - In `secondary_contact_text`, `{email}` is replaced by the contact address as a link.
 - Images chosen in the admin are resized in the browser and stored in `site/images/site/`. The previous image is removed when nothing uses it any more.
@@ -34,7 +33,7 @@ Notes:
 There is no server and no database. `node scripts/build-site.mjs` turns the JSON into pages:
 
 - generates `index.html`, `request.html`, `about.html` and everything under `shop/`;
-- applies the site name, navigation and default theme to every other page (posts, section indexes, 404, the builder pages).
+- applies the site name and navigation to every other page (posts, section indexes, 404, the builder pages).
 
 The deploy workflow runs that script before publishing, so the live site always matches the JSON. The admin also writes the pages it directly affects into the same commit. To preview locally, run the script from the repository root.
 
