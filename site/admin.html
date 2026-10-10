@@ -38,6 +38,7 @@
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="shop">Shop</button>
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="shop-builder">Shop Builder</button>
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="post-builder">Post Builder</button>
+<button class="tab" type="button" role="tab" aria-selected="false" data-tab="manage-posts">Manage Blog Posts</button>
 </div>
 
 <div class="admin-save">
@@ -294,11 +295,17 @@
 <div>
 <p class="msg" id="pb-status" role="status" aria-live="polite"></p>
 </div>
-<div id="manage-posts-toolbar" class="row" hidden>
-<button class="btn alt" type="button" id="manage-posts-toggle" aria-expanded="false">Manage published posts</button>
+<div class="row">
+<button class="btn" type="button" id="pb-publish" disabled>Publish post</button>
 </div>
-<section id="post-manager" class="builder-preview" aria-labelledby="post-manager-title" hidden>
-<h2 id="post-manager-title">Manage published posts</h2>
+</div>
+</form>
+</section>
+
+<!-- Manage Blog Posts -->
+<section class="admin-panel" data-panel="manage-posts" role="tabpanel" hidden>
+<h2>Manage Blog Posts</h2>
+<p class="hint">Review the posts published in each section and delete the ones you no longer want. Deleting removes the page and its entry in the section list.</p>
 <div class="row">
 <label for="manage-category">Section</label>
 <select id="manage-category"><option value="stereo">Stereo Repair</option><option value="radio">Radio Repair</option><option value="test-equipment">Test Equipment</option></select>
@@ -306,12 +313,6 @@
 </div>
 <div id="managed-posts" aria-live="polite"></div>
 <p class="msg" id="manage-status" role="status" aria-live="polite"></p>
-</section>
-<div class="row">
-<button class="btn" type="button" id="pb-publish" disabled>Publish post</button>
-</div>
-</div>
-</form>
 </section>
 </section>
 <datalist id="page-list">

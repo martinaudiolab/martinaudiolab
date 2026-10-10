@@ -102,7 +102,7 @@ To check the publisher sign-in route, open `<publisher-Worker-URL>/auth/start` i
 
 After connecting, create a real post and select **Publish post**. It will appear in `site/stereo`, `site/radio`, or `site/test-equipment`, and its category index will link to it. Avoid test posts on production because they create real commits on `main`.
 
-To remove a published post, connect as an administrator and select **Manage published posts**. Choose its section, select **Delete**, and confirm. The Worker removes the article and its index entry together in one commit; the site workflow then redeploys the updated pages.
+To remove a published post, connect as an administrator and open the **Manage Blog Posts** tab of the admin panel. Choose its section, select **Delete**, and confirm. The Worker removes the article and its index entry together in one commit; the site workflow then redeploys the updated pages.
 
 ## Optional: test without publishing to the live site
 

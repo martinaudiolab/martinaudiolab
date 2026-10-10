@@ -194,12 +194,17 @@
   function applySession(session) {
     connected = Boolean(session);
     $("pb-publish").disabled = !connected;
-    $("manage-posts-toolbar").hidden = !connected;
     if (!connected) {
       managedSnapshot = null;
-      $("post-manager").hidden = true;
-      $("manage-posts-toggle").setAttribute("aria-expanded", "false");
+      $("managed-posts").textContent = "";
+      $("manage-status").textContent = "";
+    } else if (managePanelVisible()) {
+      loadManagedPosts();
     }
+  }
+
+  function managePanelVisible() {
+    return !document.querySelector('[data-panel="manage-posts"]').hidden;
   }
 
   function isAuthError(error) {
@@ -475,11 +480,9 @@
   }
 
   function wireManager() {
-    $("manage-posts-toggle").addEventListener("click", function () {
-      var panel = $("post-manager");
-      panel.hidden = !panel.hidden;
-      this.setAttribute("aria-expanded", String(!panel.hidden));
-      if (!panel.hidden) loadManagedPosts();
+    // The list is fetched fresh each time the Manage Blog Posts tab opens.
+    document.addEventListener("admin:tab", function (event) {
+      if (event.detail === "manage-posts" && connected) loadManagedPosts();
     });
     $("manage-category").addEventListener("change", loadManagedPosts);
     $("refresh-posts").addEventListener("click", loadManagedPosts);

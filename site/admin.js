@@ -89,6 +89,7 @@
     });
     document.querySelector(".admin-save").hidden = CONTENT_TABS.indexOf(name) === -1;
     try { sessionStorage.setItem("admin-tab", name); } catch (error) { }
+    document.dispatchEvent(new CustomEvent("admin:tab", { detail: name }));
   }
 
   // ---- Data paths ---------------------------------------------------------

@@ -1,6 +1,6 @@
 # Site Admin
 
-`/admin` is the one place to manage the site. It has seven tabs: **Global**, **Homepage**, **Request**, **About** and **Shop** edit the site content, and **Shop Builder** and **Post Builder** hold the shop listing manager and the blog post editor. One GitHub sign-in covers all of them, through the publisher Worker.
+`/admin` is the one place to manage the site. It has eight tabs: **Global**, **Homepage**, **Request**, **About** and **Shop** edit the site content, and **Shop Builder**, **Post Builder** and **Manage Blog Posts** hold the shop listing manager, the blog post editor and the published-post manager. One GitHub sign-in covers all of them, through the publisher Worker.
 
 ## Using it
 1. Open `/admin`, select **Connect GitHub** and sign in with the administrator account.
