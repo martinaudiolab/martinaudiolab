@@ -1,4 +1,5 @@
 import { normalizeShop, renderShop, validateShop } from "../scripts/shop-render.mjs";
+import { NAV_SCRIPT, navHtml } from "../scripts/site-nav.mjs";
 
 const SESSION_TTL = 7 * 24 * 60 * 60;
 const DROP_TAGS = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "FORM", "VIDEO", "AUDIO"]);
@@ -265,25 +266,11 @@ function dateLabel(value) {
   }).format(date);
 }
 
-function navigationHtml(activeKey) {
-  const links = [
-    ["../index.html", "Home", ""],
-    ["../stereo/index.html", "Stereo Repair", "stereo"],
-    ["../radio/index.html", "Radio Repair", "radio"],
-    ["../test-equipment/index.html", "Test Equipment", "test-equipment"],
-    ["../shop/index.html", "Shop", "shop"],
-    ["../contact.html", "Contact", ""]
-  ];
-  return links.map(function (link) {
-    return '<a href="' + link[0] + '"' + (link[2] === activeKey ? ' class="on" aria-current="page"' : "") + ">" + link[1] + "</a>";
-  }).join("");
-}
-
 function articleHtml(data, category, content) {
   const title = escapeHtml(data.title);
   const summary = escapeHtml(data.summary);
   const label = escapeHtml(dateLabel(data.date));
-  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - Martin Audio Labs</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">Martin Audio Labs</a><nav>' + navigationHtml(data.category) + '<button class="theme" type="button" id="th">Theme</button></nav></header><main><a class="back" href="index.html">Back to ' + escapeHtml(category.name) + '</a><article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script><script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()<\/script></body></html>\n';
+  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - Martin Audio Labs</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">Martin Audio Labs</a>' + navHtml(data.category, "../") + '</header><main><a class="back" href="index.html">Back to ' + escapeHtml(category.name) + '</a><article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + NAV_SCRIPT("../") + '<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()<\/script></body></html>\n';
 }
 
 function listingHtml(data, category) {

@@ -172,3 +172,30 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .fs-btn:hover{border-color:#72c4ba}
 .fs-prev{left:-.6rem}.fs-next{right:-.6rem}
 @media(max-width:600px){.fs-card{flex-basis:11rem}.fs-prev{left:-.25rem}.fs-next{right:-.25rem}}
+
+/* Navigation dropdown */
+.dd{position:relative}
+.dd-toggle{font:inherit;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:0 0 2px;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem}
+.dd-toggle::after{content:"";width:.4em;height:.4em;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-.15em) rotate(45deg)}
+.dd-toggle:hover,.dd.open .dd-toggle{color:var(--ink)}
+.dd-toggle.on{color:var(--ink);border-bottom-color:var(--accent)}
+.dd-menu{display:none;position:absolute;top:100%;left:0;z-index:50;min-width:12.5rem;padding:.35rem 0;margin-top:.15rem;background:var(--bg);border:1px solid var(--rule);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.dd.open .dd-menu,.dd:focus-within .dd-menu{display:block}
+.dd-menu::before{content:"";position:absolute;left:0;right:0;top:-.5rem;height:.5rem}
+.dd-menu a{display:block;padding:.5rem 1rem;border-bottom:0;white-space:nowrap}
+.dd-menu a:hover{background:var(--panel)}
+.dd-menu a.on{color:var(--ink);box-shadow:inset 3px 0 0 var(--accent)}
+@media(max-width:600px){
+  .dd{flex-basis:100%}
+  .dd-menu{position:static;box-shadow:none;margin:.35rem 0 0;border:0;border-left:2px solid var(--rule);border-radius:0;padding:0 0 0 .5rem;background:none}
+}
+
+/* Homepage category columns */
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin:2.5rem 0}
+.cat{display:flex;flex-direction:column;gap:.4rem;color:var(--ink);text-decoration:none;font-family:var(--sans)}
+.cat img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;display:block;background:var(--panel);border:1px solid var(--rule);transition:transform .2s,border-color .2s}
+.cat:hover img,.cat:focus-visible img{border-color:var(--accent);transform:translateY(-2px)}
+.cat strong{font-size:1.15rem;font-weight:600}
+.cat span{font-size:.9rem;color:var(--accent)}
+@media(max-width:600px){.cats{grid-template-columns:1fr}}
+.about-contact{font-family:var(--sans);margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--rule)}
