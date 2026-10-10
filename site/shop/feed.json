@@ -22,5 +22,13 @@
     "price": "$2.00",
     "was": "",
     "pending": false
+  },
+  {
+    "slug": "alps-rk27-board",
+    "title": "Alps RK27 Gold Plated Breakout Board",
+    "image": "images/shop/photo-mv21t7su-l4s6.jpg",
+    "price": "$6.00",
+    "was": "",
+    "pending": false
   }
 ]

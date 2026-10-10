@@ -78,6 +78,27 @@
         "These boards are made out of an aluminum PCB substrate, making them both incredibly rigid and strong, and impervious to any issues caused by the heat emitted from the power transistors. Simply remove the original transistor, solder in your TO3P replacement device, and bolt it down using the PCB plate to clamp down the new transistor. A simple and elegant solution requiring no additional labor, and no drilling of the heat sinks. See the photos above to get an idea of how these plates work.",
         "Note: Due to the incredible variety of screw sizes present in this gear, I cannot guarantee the original screws used to hold down the original MT200 transistors will be long enough to thread through the hole with the adapter plate added. These have been tested on multiple pieces of gear and so far there have been no issues observed with screw length, but keep in mind it is a possibility with using this adapter board."
       ]
+    },
+    {
+      "slug": "alps-rk27-board",
+      "title": "Alps RK27 Gold Plated Breakout Board",
+      "summary": "Gold Plated Breakout PCB",
+      "category": "Parts",
+      "price": 6,
+      "status": "available",
+      "images": [
+        "images/shop/photo-mv21t7su-l4s6.jpg",
+        "images/shop/photo-mv21t7w2-jix1.jpg",
+        "images/shop/photo-mv21t7u0-fcsk.jpg",
+        "images/shop/photo-mv21t7v1-k282.jpg"
+      ],
+      "description": [
+        "This is a breakout PCB for the Alps Blue Velvet, or by their part number RK27 potentiometers. These pots are very popular in DIY audio circles, and I have used them for a number of projects over the years. Unfortunately these potentiometers are designed for PCB mounting, so soldering bare wire to the terminals can be very difficult and finnicky.",
+        "I designed this PCB for my own in-house prototyping and found it to be more useful than alternative PCB solutions. Most designs are based around large, bulky connectors typically suited for power applications, not small signal applications. They are also usually large and add side to side width. This board does not do that, and adds a convenient set of holes to attach wires.",
+        "This boards been gold plated, and manufactured to a high tolerance. The quality of these PCBs is unmatched on the market, and the black color makes them stand out less. Silkscreen is double sided, making it easy to know which wires go where, regardless of orientation.",
+        "Does NOT include an Alps RK27. Photo in listing is for demonstration purposes only.",
+        "Board information: 28mm wide, 32mm deep, hole diameter is 1.5mm."
+      ]
     }
   ]
 }
