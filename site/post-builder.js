@@ -213,6 +213,34 @@
 
   // ---- Publishing --------------------------------------------------------------------
 
+  /** A small JPEG (base64) for the section page: the chosen file, else the first photo in the post. */
+  function thumbnailBase64() {
+    var chosen = $("post-thumb").files && $("post-thumb").files[0];
+    var firstPhoto = $("post-content").querySelector('img[src^="data:image"]');
+    var source = chosen ? URL.createObjectURL(chosen) : firstPhoto ? firstPhoto.getAttribute("src") : "";
+    if (!source) return Promise.resolve("");
+    return new Promise(function (resolve) {
+      var timer = window.setTimeout(function () { resolve(""); }, 6000);
+      var image = new Image();
+      image.onload = function () {
+        window.clearTimeout(timer);
+        if (chosen) URL.revokeObjectURL(source);
+        var scale = Math.min(1, 720 / Math.max(image.naturalWidth, image.naturalHeight));
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        var context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        var url = canvas.toDataURL("image/jpeg", 0.82);
+        resolve(url.slice(url.indexOf(",") + 1));
+      };
+      image.onerror = function () { window.clearTimeout(timer); if (chosen) URL.revokeObjectURL(source); resolve(""); };
+      image.src = source;
+    });
+  }
+
   async function publish() {
     if (!$("post-form").reportValidity()) return;
     if (!connected) {
@@ -227,10 +255,12 @@
     button.disabled = true;
     try {
       say("Publishing to GitHub...");
+      var thumbnail = await thumbnailBase64();
       var result = await shell.api("/api/publish", {
         method: "POST",
-        body: { category: data.categoryKey, title: data.title, summary: data.summary, date: data.date, content: data.content }
+        body: { category: data.categoryKey, title: data.title, summary: data.summary, date: data.date, content: data.content, thumbnail: thumbnail }
       });
+      $("post-thumb").value = "";
       say("Published " + result.filename + " to " + result.section + ". The website will update after deployment.");
       storageRemove(DRAFT_KEY);
     } catch (error) {

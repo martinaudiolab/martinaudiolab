@@ -2,6 +2,7 @@ import { normalizeShop, renderShop, validateShop } from "../scripts/shop-render.
 import { NAV_SCRIPT, navHtml } from "../scripts/site-nav.mjs";
 import { CONTENT_PATH, contentImages, normalizeContent } from "../scripts/site-content.mjs";
 import { renderAbout, renderHome, renderRequest } from "../scripts/site-render.mjs";
+import { fallbackThumb, listingWithThumb, thumbFile } from "../scripts/site-posts.mjs";
 
 const SESSION_TTL = 7 * 24 * 60 * 60;
 const DROP_TAGS = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "FORM", "VIDEO", "AUDIO"]);
@@ -275,16 +276,21 @@ function articleHtml(data, category, content, site) {
   return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html", "../") + '</header><main><a class="back" href="index.html">Back to ' + escapeHtml(category.name) + '</a><article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + NAV_SCRIPT("../") + '</body></html>\n';
 }
 
-function listingHtml(data, category) {
-  return '<article class="post"><h2><a href="' + escapeHtml(data.slug) + '.html">' + escapeHtml(data.title) + '</a></h2><div class="meta">' + escapeHtml(dateLabel(data.date)) + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body"><p>' + escapeHtml(data.summary) + '</p></div><a class="more" href="' + escapeHtml(data.slug) + '.html">Read the post</a></article>';
+function listingHtml(data, category, folder, hasThumbnail) {
+  const slug = escapeHtml(data.slug);
+  const src = hasThumbnail ? "../" + thumbFile(folder, data.slug) : fallbackThumb(folder);
+  return listingWithThumb(data.slug, src,
+    '<h2><a href="' + slug + '.html">' + escapeHtml(data.title) + '</a></h2><div class="meta">' + escapeHtml(dateLabel(data.date)) +
+    ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body"><p>' + escapeHtml(data.summary) +
+    '</p></div><a class="more" href="' + slug + '.html">Read the post</a>');
 }
 
-async function updateIndex(indexHtml, data, category) {
+async function updateIndex(indexHtml, data, category, hasThumbnail) {
   let heading = "";
   let introCount = 0;
   const output = await new HTMLRewriter()
     .on("main h1", { text: function (text) { heading += text.text; } })
-    .on("main .intro", { element: function (element) { introCount += 1; element.after(listingHtml(data, category), { html: true }); } })
+    .on("main .intro", { element: function (element) { introCount += 1; element.after(listingHtml(data, category, category.folder, hasThumbnail), { html: true }); } })
     .transform(new Response(indexHtml, { headers: { "Content-Type": "text/html; charset=utf-8" } }))
     .text();
   if (heading.trim() !== category.name || introCount !== 1) {
@@ -310,6 +316,11 @@ async function publishPost(request, env, session, body) {
   if (!rawContent.trim() || rawContent.length > 5_000_000) throw new HttpError(400, "Post content is empty or exceeds the 5 MB limit.");
   const slug = slugify(title);
   if (!slug) throw new HttpError(400, "Add a title with at least one letter or number.");
+  // Optional thumbnail: a small JPEG, base64 encoded, made in the browser.
+  const thumbnail = typeof body.thumbnail === "string" ? body.thumbnail : "";
+  if (thumbnail && (!/^[A-Za-z0-9+\/]+={0,2}$/.test(thumbnail) || !thumbnail.startsWith("/9j/") || thumbnail.length * 0.75 > 400000)) {
+    throw new HttpError(400, "The thumbnail must be a JPEG under 400 KB.");
+  }
 
   const owner = env.GITHUB_OWNER;
   const repository = env.GITHUB_REPOSITORY;
@@ -335,7 +346,7 @@ async function publishPost(request, env, session, body) {
     apiBase + "/contents/" + encodePath(indexPath) + "?ref=" + encodeURIComponent(reference.object.sha));
   const indexOutput = await updateIndex(decodeBase64Utf8(indexFile.content), {
     title: title, summary: summary, date: date, slug: slug
-  }, category);
+  }, category, Boolean(thumbnail));
   const safeContent = await sanitizeContent(rawContent, env.SITE_ORIGIN);
   const data = { title: title, summary: summary, date: date, slug: slug, category: body.category };
   const site = (await loadSiteContent(session.accessToken, apiBase, reference.object.sha)).content;
@@ -347,15 +358,19 @@ async function publishPost(request, env, session, body) {
   const indexBlob = await githubRequest(session.accessToken, apiBase + "/git/blobs", {
     method: "POST", body: { content: indexOutput, encoding: "utf-8" }
   });
+  const entries = [
+    { path: folder + "/" + filename, mode: "100644", type: "blob", sha: articleBlob.sha },
+    { path: indexPath, mode: "100644", type: "blob", sha: indexBlob.sha }
+  ];
+  if (thumbnail) {
+    const thumbBlob = await githubRequest(session.accessToken, apiBase + "/git/blobs", {
+      method: "POST", body: { content: thumbnail, encoding: "base64" }
+    });
+    entries.push({ path: "site/" + thumbFile(category.folder, slug), mode: "100644", type: "blob", sha: thumbBlob.sha });
+  }
   const tree = await githubRequest(session.accessToken, apiBase + "/git/trees", {
     method: "POST",
-    body: {
-      base_tree: parent.tree.sha,
-      tree: [
-        { path: folder + "/" + filename, mode: "100644", type: "blob", sha: articleBlob.sha },
-        { path: indexPath, mode: "100644", type: "blob", sha: indexBlob.sha }
-      ]
-    }
+    body: { base_tree: parent.tree.sha, tree: entries }
   });
   const commit = await githubRequest(session.accessToken, apiBase + "/git/commits", {
     method: "POST",
@@ -435,15 +450,20 @@ async function deletePost(request, env, session, body) {
   const indexBlob = await githubRequest(session.accessToken, apiBase + "/git/blobs", {
     method: "POST", body: { content: updatedIndex.html, encoding: "utf-8" }
   });
+  const removals = [
+    { path: indexPath, mode: "100644", type: "blob", sha: indexBlob.sha },
+    { path: postPath, mode: "100644", type: "blob", sha: null }
+  ];
+  const thumbPath = "site/" + thumbFile(category.folder, slug);
+  try {
+    await githubRequest(session.accessToken, apiBase + "/contents/" + encodePath(thumbPath) + "?ref=" + encodeURIComponent(reference.object.sha));
+    removals.push({ path: thumbPath, mode: "100644", type: "blob", sha: null });
+  } catch (error) {
+    if (error.status !== 404) throw error;
+  }
   const tree = await githubRequest(session.accessToken, apiBase + "/git/trees", {
     method: "POST",
-    body: {
-      base_tree: parent.tree.sha,
-      tree: [
-        { path: indexPath, mode: "100644", type: "blob", sha: indexBlob.sha },
-        { path: postPath, mode: "100644", type: "blob", sha: null }
-      ]
-    }
+    body: { base_tree: parent.tree.sha, tree: removals }
   });
   const commit = await githubRequest(session.accessToken, apiBase + "/git/commits", {
     method: "POST",

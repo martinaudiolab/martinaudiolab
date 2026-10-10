@@ -12,6 +12,8 @@ If the content changed somewhere else after you opened the page, saving is refus
 ## Shop Builder and Post Builder tabs
 The shop listing manager and the blog post editor. Each has its own Publish button; the Save changes bar applies to the five content tabs only. See `SHOP.md` for how shop listings work.
 
+Every post listed on a section page (Stereo Repair, Radio Repair, Test Equipment) has a thumbnail. In the Post Builder you can choose one; otherwise the first photo in the post is used, and a post with no photo shows the section picture. Thumbnails are small JPEGs stored in `site/images/posts/` and are removed when the post is deleted.
+
 ## Where the content lives
 - `site-data/site-content.json`: the single source of truth for everything on the tabs except the shop title and introduction.
 - `shop-data/items.json`: the shop. The **Shop** tab edits its `shop.title` and `shop.intro`; products are still managed in the **Shop Builder** tab.

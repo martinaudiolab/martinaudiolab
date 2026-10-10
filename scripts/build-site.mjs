@@ -2,7 +2,7 @@
 // Builds every page that depends on the editable site content.
 //   - site/index.html, site/request.html, site/about.html   (generated)
 //   - site/shop/*.html                                       (generated from shop-data/items.json)
-//   - every other page under site/                           (site name, navigation, default theme applied)
+//   - every other page under site/                           (site name and navigation applied)
 // Sources: site-data/site-content.json and shop-data/items.json.
 // Usage, from the repository root:  node scripts/build-site.mjs
 // The deploy workflow runs this before publishing, so edits saved in /admin go live.
@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { CONTENT_PATH, normalizeContent } from "./site-content.mjs";
 import { renderAbout, renderHome, renderRequest, applyGlobals } from "./site-render.mjs";
 import { SHOP_MARK, renderShop, validateShop } from "./shop-render.mjs";
+import { addThumbnails } from "./site-posts.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
@@ -64,7 +65,19 @@ for (const [name, html] of Object.entries(shopFiles)) if (writeIfChanged(path.jo
 const generated = { "index.html": renderHome(content), "request.html": renderRequest(content), "about.html": renderAbout(content) };
 for (const [name, html] of Object.entries(generated)) if (writeIfChanged(path.join(SITE, name), html)) written++;
 
-// 3. Everything else: apply the global fields
+// 3. Blog section pages: every listing gets a thumbnail (its own, else the section picture) and the nav bar
+for (const folder of ["stereo", "radio", "test-equipment"]) {
+  const file = path.join(SITE, folder, "index.html");
+  if (!fs.existsSync(file)) continue;
+  const raw = fs.readFileSync(file, "utf8");
+  const crlf = raw.includes("\r\n");
+  const before = crlf ? raw.split("\r\n").join("\n") : raw;
+  let after = addThumbnails(before, folder, (p) => fs.existsSync(path.join(SITE, p)));
+  after = after.replace("<body>", () => '<body class="navbar">');
+  if (after !== before) fs.writeFileSync(file, crlf ? after.split("\n").join("\r\n") : after);
+}
+
+// 4. Everything else: apply the global fields
 let applied = 0;
 for (const file of walk(SITE)) {
   const rel = path.relative(SITE, file).split(path.sep).join("/");
