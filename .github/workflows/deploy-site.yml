@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "site/**"
+      - "site-data/**"
+      - "shop-data/**"
+      - "scripts/**"
       - "wrangler.jsonc"
       - ".github/workflows/deploy-site.yml"
   workflow_dispatch:
@@ -21,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Build pages from site content
+        run: node scripts/build-site.mjs
       - name: Verify Cloudflare credentials
         run: npx --yes wrangler@4.149.0 whoami
         env:

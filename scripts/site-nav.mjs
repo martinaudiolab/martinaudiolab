@@ -1,33 +1,34 @@
-// The site's top navigation, shared by scripts/update-nav.mjs (static pages),
-// scripts/shop-render.mjs and publisher/worker.js (generated pages).
+// The site's top navigation, built from content.nav_items. Shared by
+// scripts/build-site.mjs, scripts/shop-render.mjs and publisher/worker.js.
 // Pure string code: no file-system or runtime APIs.
 
-const BLOG = [
-  { key: "stereo", href: "stereo/index.html", label: "Stereo Repair" },
-  { key: "radio", href: "radio/index.html", label: "Radio Repair" },
-  { key: "test-equipment", href: "test-equipment/index.html", label: "Test Equipment" }
-];
+import { DEFAULT_NAV } from "./site-content.mjs";
 
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const external = (h) => /^(https?:|mailto:)/i.test(h);
 
 /**
- * @param {string} active  one of: home, shop, request, stereo, radio, test-equipment, about (or "")
+ * @param {Array}  items   content.nav_items
+ * @param {string} active  site-relative path of the current page's nav entry, e.g. "stereo/index.html" ("" for none)
  * @param {string} prefix  "" for pages in the site root, "../" for pages one folder down
  */
-export function navHtml(active, prefix) {
+export function navHtml(items, active, prefix) {
   const p = prefix || "";
-  const link = (key, href, label) =>
-    '<a href="' + p + href + '"' + (active === key ? ' class="on" aria-current="page"' : "") + ">" + esc(label) + "</a>";
-  const blogActive = BLOG.some((b) => b.key === active);
-  const menu = BLOG.map((b) => link(b.key, b.href, b.label)).join("");
-  return "<nav>" +
-    link("home", "index.html", "Home") +
-    link("shop", "shop/index.html", "Shop") +
-    link("request", "request.html", "Request a Restoration") +
-    '<div class="dd"><button class="dd-toggle' + (blogActive ? " on" : "") + '" type="button" aria-haspopup="true" aria-expanded="false">Restoration Blog</button>' +
-    '<div class="dd-menu">' + menu + "</div></div>" +
-    link("about", "about.html", "About Me") +
-    '<button class="theme" type="button" id="th">Theme</button></nav>';
+  const list = Array.isArray(items) && items.length ? items : DEFAULT_NAV;
+  const url = (h) => (external(h) ? h : p + h);
+  const link = (item, menu) => {
+    const here = !external(item.href) && item.href.split("#")[0] === active;
+    return '<a href="' + esc(url(item.href)) + '"' + (here ? ' class="on" aria-current="page"' : "") + (external(item.href) && !/^mailto:/i.test(item.href) ? ' rel="noopener"' : "") + ">" + esc(item.label) + "</a>";
+  };
+  const parts = list.map((item) => {
+    if (Array.isArray(item.children) && item.children.length) {
+      const hereChild = item.children.some((c) => !external(c.href) && c.href.split("#")[0] === active);
+      return '<div class="dd"><button class="dd-toggle' + (hereChild ? " on" : "") + '" type="button" aria-haspopup="true" aria-expanded="false">' + esc(item.label) + "</button>" +
+        '<div class="dd-menu">' + item.children.map((c) => link(c, true)).join("") + "</div></div>";
+    }
+    return link(item, false);
+  });
+  return "<nav>" + parts.join("") + '<button class="theme" type="button" id="th">Theme</button></nav>';
 }
 
 export const NAV_SCRIPT = (prefix) => '<script src="' + (prefix || "") + 'nav.js" defer></script>';

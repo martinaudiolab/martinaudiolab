@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // Builds the Shop pages (site/shop/*.html) from shop-data/items.json.
 // Usage, from the repository root:  node scripts/build-shop.mjs
+// Use scripts/build-site.mjs to rebuild the whole site (shop, home, request, about and navigation).
 // The shop builder page (site/shop-builder.html) does the same thing in the
 // browser through the publisher Worker; both share scripts/shop-render.mjs.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SHOP_MARK, renderShop, validateShop } from "./shop-render.mjs";
+import { CONTENT_PATH } from "./site-content.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
@@ -26,7 +28,9 @@ if (errors.length) {
   process.exit(1);
 }
 
-const files = renderShop(data);
+let content = {};
+try { content = JSON.parse(fs.readFileSync(path.join(ROOT, CONTENT_PATH), "utf8")); } catch (error) { }
+const files = renderShop(data, { content });
 fs.mkdirSync(OUT, { recursive: true });
 for (const f of fs.readdirSync(OUT)) {
   const p = path.join(OUT, f);

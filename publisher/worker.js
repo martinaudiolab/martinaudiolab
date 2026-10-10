@@ -1,5 +1,7 @@
 import { normalizeShop, renderShop, validateShop } from "../scripts/shop-render.mjs";
 import { NAV_SCRIPT, navHtml } from "../scripts/site-nav.mjs";
+import { CONTENT_PATH, contentImages, normalizeContent } from "../scripts/site-content.mjs";
+import { renderAbout, renderHome, renderRequest, themeAttr } from "../scripts/site-render.mjs";
 
 const SESSION_TTL = 7 * 24 * 60 * 60;
 const DROP_TAGS = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "FORM", "VIDEO", "AUDIO"]);
@@ -266,11 +268,11 @@ function dateLabel(value) {
   }).format(date);
 }
 
-function articleHtml(data, category, content) {
+function articleHtml(data, category, content, site) {
   const title = escapeHtml(data.title);
   const summary = escapeHtml(data.summary);
   const label = escapeHtml(dateLabel(data.date));
-  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - Martin Audio Labs</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">Martin Audio Labs</a>' + navHtml(data.category, "../") + '</header><main><a class="back" href="index.html">Back to ' + escapeHtml(category.name) + '</a><article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + NAV_SCRIPT("../") + '<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()<\/script></body></html>\n';
+  return '<!DOCTYPE html>\n<html lang="en"' + themeAttr(site) + '><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html", "../") + '</header><main><a class="back" href="index.html">Back to ' + escapeHtml(category.name) + '</a><article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + NAV_SCRIPT("../") + '<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()<\/script></body></html>\n';
 }
 
 function listingHtml(data, category) {
@@ -336,7 +338,8 @@ async function publishPost(request, env, session, body) {
   }, category);
   const safeContent = await sanitizeContent(rawContent, env.SITE_ORIGIN);
   const data = { title: title, summary: summary, date: date, slug: slug, category: body.category };
-  const article = articleHtml(data, category, safeContent);
+  const site = (await loadSiteContent(session.accessToken, apiBase, reference.object.sha)).content;
+  const article = articleHtml(data, category, safeContent, site);
 
   const articleBlob = await githubRequest(session.accessToken, apiBase + "/git/blobs", {
     method: "POST", body: { content: article, encoding: "utf-8" }
@@ -550,7 +553,8 @@ async function publishShop(request, env, session, body) {
     await addBlob("site/" + upload.path, { content: upload.data, encoding: "base64" });
   }
   await addBlob(SHOP_DATA_PATH, { content: JSON.stringify(shopData, null, 2) + "\n", encoding: "utf-8" });
-  const pages = renderShop(shopData);
+  const siteContent = (await loadSiteContent(token, apiBase, reference.object.sha)).content;
+  const pages = renderShop(shopData, { content: siteContent });
   for (const name of Object.keys(pages)) {
     await addBlob("site/shop/" + name, { content: pages[name], encoding: "utf-8" });
   }
@@ -587,13 +591,146 @@ async function publishShop(request, env, session, body) {
   return { commit: commit.sha, sha: updated.sha, items: shopData.items.length, removed: removed, uploaded: uploads.length, data: shopData };
 }
 
+
+// ---- Site content (admin panel) -------------------------------------------
+
+const SITE_UPLOAD_PATH = /^images\/site\/[a-z0-9][a-z0-9._-]{0,100}\.(jpg|png|webp)$/;
+const MAX_CONTENT_REQUEST = 12_000_000;
+const MAX_SITE_IMAGE = 3_500_000;
+
+async function loadSiteContent(token, apiBase, ref) {
+  try {
+    const file = await githubRequest(token, apiBase + "/contents/" + encodePath(CONTENT_PATH) + "?ref=" + encodeURIComponent(ref));
+    return { content: normalizeContent(JSON.parse(decodeBase64Utf8(file.content))), sha: file.sha, exists: true };
+  } catch (error) {
+    if (error.status === 404 || error instanceof SyntaxError) return { content: normalizeContent({}), sha: "", exists: false };
+    throw error;
+  }
+}
+
+async function loadShopFile(token, apiBase, ref) {
+  const file = await githubRequest(token, apiBase + "/contents/" + encodePath(SHOP_DATA_PATH) + "?ref=" + encodeURIComponent(ref));
+  let data;
+  try { data = JSON.parse(decodeBase64Utf8(file.content)); }
+  catch (error) { throw new HttpError(409, "shop-data/items.json on GitHub is not valid JSON."); }
+  return { sha: file.sha, data: data };
+}
+
+async function getAdminContent(token, env) {
+  const branch = env.GITHUB_BRANCH || "main";
+  const apiBase = "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY;
+  const site = await loadSiteContent(token, apiBase, branch);
+  const shop = await loadShopFile(token, apiBase, branch);
+  const shopBlock = shop.data && shop.data.shop ? shop.data.shop : {};
+  return {
+    content: site.content,
+    contentSha: site.sha,
+    shop: { title: String(shopBlock.title || "Shop"), intro: String(shopBlock.intro || "") },
+    shopSha: shop.sha
+  };
+}
+
+async function publishContent(request, env, session, body) {
+  if (!body || typeof body !== "object") throw new HttpError(400, "Invalid content.");
+  const contentSha = typeof body.contentSha === "string" ? body.contentSha : "";
+  const shopSha = typeof body.shopSha === "string" ? body.shopSha : "";
+  if (contentSha && !/^[0-9a-f]{40,64}$/i.test(contentSha)) throw new HttpError(400, "The content version is invalid. Reload the page and try again.");
+  if (!/^[0-9a-f]{40,64}$/i.test(shopSha)) throw new HttpError(400, "The shop version is missing. Reload the page and try again.");
+
+  const content = normalizeContent(body.content);
+  const shopIn = body.shop && typeof body.shop === "object" ? body.shop : {};
+  const shopTitle = typeof shopIn.title === "string" && shopIn.title.trim() ? shopIn.title.trim().slice(0, 80) : "Shop";
+  const shopIntro = typeof shopIn.intro === "string" ? shopIn.intro.replace(/\r\n/g, "\n").trim().slice(0, 600) : "";
+
+  const uploads = Array.isArray(body.images) ? body.images : [];
+  if (uploads.length > 12) throw new HttpError(400, "Too many new images in one save.");
+  const uploadedPaths = new Set();
+  uploads.forEach(function (upload) {
+    const path = upload && typeof upload.path === "string" ? upload.path : "";
+    const data = upload && typeof upload.data === "string" ? upload.data : "";
+    if (!SITE_UPLOAD_PATH.test(path)) throw new HttpError(400, "Invalid image name: " + path.slice(0, 80));
+    if (!/^[A-Za-z0-9+\/]+={0,2}$/.test(data) || data.length * 0.75 > MAX_SITE_IMAGE) {
+      throw new HttpError(400, "Image " + path + " is invalid or larger than 3.5 MB.");
+    }
+    if (uploadedPaths.has(path)) throw new HttpError(400, "Duplicate image upload: " + path);
+    uploadedPaths.add(path);
+  });
+
+  const branch = shopBranch(env);
+  const apiBase = "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY;
+  const token = session.accessToken;
+  const reference = await githubRequest(token, apiBase + "/git/ref/heads/" + encodeURIComponent(branch));
+  const parent = await githubRequest(token, apiBase + "/git/commits/" + reference.object.sha);
+
+  const currentSite = await loadSiteContent(token, apiBase, reference.object.sha);
+  const currentShop = await loadShopFile(token, apiBase, reference.object.sha);
+  if (currentSite.sha !== contentSha || currentShop.sha !== shopSha) {
+    throw new HttpError(409, "The site content was changed somewhere else after this page loaded. Reload the page and apply your edits again.");
+  }
+
+  const listing = await githubRequest(token, apiBase + "/git/trees/" + parent.tree.sha + "?recursive=1");
+  if (listing.truncated) throw new HttpError(503, "The repository is too large to save the site content automatically.");
+  const existing = new Set(listing.tree.map(function (entry) { return entry.path; }));
+
+  const used = new Set(contentImages(content));
+  used.forEach(function (path) {
+    if (!uploadedPaths.has(path) && !existing.has("site/" + path)) {
+      throw new HttpError(400, "An image used on the homepage is not in the repository: " + path);
+    }
+  });
+  uploadedPaths.forEach(function (path) {
+    if (!used.has(path)) throw new HttpError(400, "Uploaded image is not used anywhere: " + path);
+  });
+
+  const entries = [];
+  async function addBlob(path, payload) {
+    const blob = await githubRequest(token, apiBase + "/git/blobs", { method: "POST", body: payload });
+    entries.push({ path: path, mode: "100644", type: "blob", sha: blob.sha });
+  }
+
+  for (const upload of uploads) await addBlob("site/" + upload.path, { content: upload.data, encoding: "base64" });
+  await addBlob(CONTENT_PATH, { content: JSON.stringify(content, null, 2) + "\n", encoding: "utf-8" });
+
+  // The shop title and introduction live in the shop data, so there is one source for them.
+  const shopData = currentShop.data && typeof currentShop.data === "object" ? currentShop.data : { items: [] };
+  shopData.shop = Object.assign({}, shopData.shop || {}, { title: shopTitle, intro: shopIntro });
+  await addBlob(SHOP_DATA_PATH, { content: JSON.stringify(shopData, null, 2) + "\n", encoding: "utf-8" });
+
+  const pages = renderShop(normalizeShop(shopData), { content: content });
+  for (const name of Object.keys(pages)) await addBlob("site/shop/" + name, { content: pages[name], encoding: "utf-8" });
+  await addBlob("site/index.html", { content: renderHome(content), encoding: "utf-8" });
+  await addBlob("site/request.html", { content: renderRequest(content), encoding: "utf-8" });
+  await addBlob("site/about.html", { content: renderAbout(content), encoding: "utf-8" });
+
+  // Remove site images that the previous content used and the new content does not.
+  contentImages(currentSite.content).forEach(function (path) {
+    if (used.has(path) || !SITE_UPLOAD_PATH.test(path) || !existing.has("site/" + path)) return;
+    entries.push({ path: "site/" + path, mode: "100644", type: "blob", sha: null });
+  });
+
+  const tree = await githubRequest(token, apiBase + "/git/trees", { method: "POST", body: { base_tree: parent.tree.sha, tree: entries } });
+  const commit = await githubRequest(token, apiBase + "/git/commits", {
+    method: "POST", body: { message: "Update site content", tree: tree.sha, parents: [reference.object.sha] }
+  });
+  await githubRequest(token, apiBase + "/git/refs/heads/" + encodeURIComponent(branch), {
+    method: "PATCH", body: { sha: commit.sha, force: false }
+  });
+  const updatedSite = await githubRequest(token, apiBase + "/contents/" + encodePath(CONTENT_PATH) + "?ref=" + encodeURIComponent(commit.sha));
+  const updatedShop = await githubRequest(token, apiBase + "/contents/" + encodePath(SHOP_DATA_PATH) + "?ref=" + encodeURIComponent(commit.sha));
+  return {
+    commit: commit.sha, contentSha: updatedSite.sha, shopSha: updatedShop.sha,
+    content: content, shop: { title: shopTitle, intro: shopIntro }, uploaded: uploads.length
+  };
+}
+
 async function startLogin(request, env) {
   assertConfigured(env);
   const state = crypto.randomUUID();
   const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
   const challenge = base64Url(new Uint8Array(digest));
-  const returnTo = new URL(request.url).searchParams.get("return") === "shop" ? "shop" : "post";
+  const requestedReturn = new URL(request.url).searchParams.get("return");
+  const returnTo = requestedReturn === "shop" || requestedReturn === "admin" ? requestedReturn : "post";
   await env.PUBLISHER_SESSIONS.put("oauth:" + state, JSON.stringify({ verifier: verifier, returnTo: returnTo }), { expirationTtl: 600 });
   const authorize = new URL("https://github.com/login/oauth/authorize");
   authorize.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
@@ -615,7 +752,9 @@ const CLEAR_LOGIN_COOKIES = [
 ];
 
 function builderDestination(env, returnTo) {
-  return returnTo === "shop" ? new URL("/shop-builder", env.SITE_ORIGIN) : new URL(env.BUILDER_URL);
+  if (returnTo === "shop") return new URL("/shop-builder", env.SITE_ORIGIN);
+  if (returnTo === "admin") return new URL("/admin", env.SITE_ORIGIN);
+  return new URL(env.BUILDER_URL);
 }
 
 async function finishLogin(request, env) {
@@ -698,6 +837,22 @@ async function handleApi(request, env, url) {
     const categoryKey = url.searchParams.get("category");
     const result = await getSectionIndex(session.accessToken, env, categoryKey);
     return jsonResponse(request, env, Object.assign({ category: categoryKey }, result), 200);
+  }
+
+  if (url.pathname === "/api/content" && request.method === "GET") {
+    const session = await requirePublisherAccess(request, env, sessionId);
+    return jsonResponse(request, env, await getAdminContent(session.accessToken, env), 200);
+  }
+
+  if (url.pathname === "/api/content/publish" && request.method === "POST") {
+    const session = await requirePublisherAccess(request, env, sessionId);
+    if (Number(request.headers.get("Content-Length") || 0) > MAX_CONTENT_REQUEST) throw new HttpError(413, "The update is too large. Use smaller images.");
+    const text = await request.text();
+    if (text.length > MAX_CONTENT_REQUEST) throw new HttpError(413, "The update is too large. Use smaller images.");
+    let body;
+    try { body = JSON.parse(text); }
+    catch (error) { throw new HttpError(400, "Invalid content."); }
+    return jsonResponse(request, env, await publishContent(request, env, session, body), 201);
   }
 
   if (url.pathname === "/api/shop" && request.method === "GET") {
