@@ -752,9 +752,8 @@ const CLEAR_LOGIN_COOKIES = [
 ];
 
 function builderDestination(env, returnTo) {
-  if (returnTo === "shop") return new URL("/shop-builder", env.SITE_ORIGIN);
-  if (returnTo === "admin") return new URL("/admin", env.SITE_ORIGIN);
-  return new URL(env.BUILDER_URL);
+  // The Post Builder and Shop Builder are tabs of the admin panel now, so every sign-in lands there.
+  return new URL("/admin", env.SITE_ORIGIN);
 }
 
 async function finishLogin(request, env) {

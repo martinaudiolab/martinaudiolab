@@ -8,7 +8,7 @@
   };
   var form = document.getElementById("post-form");
   var editor = document.getElementById("post-content");
-  var status = document.getElementById("status");
+  var status = document.getElementById("pb-status");
   var selectedImage = null;
   var savedRange = null;
   var publisherApiUrl = document.querySelector('meta[name="publisher-api-url"]').content.trim().replace(/\/+$/, "");
@@ -119,61 +119,19 @@
     return result;
   }
 
-  function updateGitHubStatus(message, connected, administrator) {
-    document.getElementById("github-status").textContent = message;
-    document.getElementById("github-connect").hidden = connected;
-    document.getElementById("github-disconnect").hidden = !connected;
-    document.getElementById("publish").disabled = !connected;
-    document.getElementById("manage-posts-toolbar").hidden = !connected || !administrator;
-    if (!connected || !administrator) {
+  // Sign-in is handled by the admin panel, which hands this builder the session.
+  function applySession(session) {
+    publisherSession = session;
+    document.getElementById("pb-publish").disabled = !session;
+    document.getElementById("manage-posts-toolbar").hidden = !session;
+    if (!session) {
       document.getElementById("post-manager").hidden = true;
       document.getElementById("manage-posts-toggle").setAttribute("aria-expanded", "false");
     }
   }
 
-  async function connectGitHub() {
-    if (!publisherApiUrl || publisherApiUrl.indexOf("REPLACE_WITH_WORKER") !== -1) {
-      status.textContent = "Set the publisher Worker URL in post-builder.html before connecting.";
-      return;
-    }
-    status.textContent = "Redirecting to GitHub sign-in...";
-    window.location.assign(publisherApiUrl + "/auth/start");
-  }
-
-  async function resumeGitHubSession() {
-    var fragment = new URLSearchParams(window.location.hash.slice(1));
-    var ticket = fragment.get("ticket");
-    var authError = fragment.get("auth_error");
-    if (ticket || authError) window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    if (authError) {
-      status.textContent = authError === "not_admin"
-        ? "Repository owner: " + (fragment.get("owner") || "unknown") + "; admin: " + fragment.get("admin") + "; push: " + fragment.get("push") + "."
-        : "GitHub sign-in failed during " + (fragment.get("stage") || "callback") + " (HTTP " + (fragment.get("status") || "unknown") + "): " + (fragment.get("detail") || "Please try again.");
-      return;
-    }
-    if (!ticket) return;
-
-    status.textContent = "Finishing GitHub sign-in...";
-    try {
-      var handoff = await publisherApi("/api/session", { method: "POST", body: { ticket: ticket } });
-      publisherSession = handoff.session;
-      var user = await publisherApi("/api/me");
-      updateGitHubStatus("Connected (" + user.role + ")", true, user.role === "administrator");
-      status.textContent = "GitHub publishing is ready.";
-    } catch (error) {
-      publisherSession = null;
-      updateGitHubStatus("GitHub sign-in required", false);
-      status.textContent = error.message || "Could not finish GitHub sign-in.";
-    }
-  }
-
-  async function disconnectGitHub() {
-    try {
-      if (publisherSession) await publisherApi("/api/logout", { method: "POST" });
-    } catch (error) { }
-    publisherSession = null;
-    updateGitHubStatus("GitHub sign-in required", false);
-    status.textContent = "Signed out of GitHub.";
+  function updateGitHubStatus(message) {
+    if (window.AdminShell) window.AdminShell.expired(message);
   }
 
   async function publish() {
@@ -186,7 +144,7 @@
     if (!data.slug) { status.textContent = "Add a title with at least one letter or number."; return; }
     if (!data.content.trim()) { status.textContent = "Add some post content before publishing."; return; }
 
-    var publishButton = document.getElementById("publish");
+    var publishButton = document.getElementById("pb-publish");
     publishButton.disabled = true;
     try {
       status.textContent = "Publishing to GitHub...";
@@ -346,16 +304,6 @@
 
   document.getElementById("post-date").value = new Date().toISOString().slice(0, 10);
   loadDraft();
-  var githubConnectButton = document.getElementById("github-connect");
-  var githubSetupHint = document.getElementById("github-setup-hint");
-  if (!publisherApiUrl || publisherApiUrl.indexOf("REPLACE_WITH_WORKER") !== -1) {
-    githubConnectButton.disabled = true;
-    document.getElementById("github-status").textContent = "Publisher Worker is not configured";
-  } else {
-    githubSetupHint.textContent = "Sign in with a GitHub administrator account to publish directly to the website.";
-  }
-  githubConnectButton.addEventListener("click", connectGitHub);
-  document.getElementById("github-disconnect").addEventListener("click", disconnectGitHub);
   document.getElementById("manage-posts-toggle").addEventListener("click", function () {
     var panel = document.getElementById("post-manager");
     panel.hidden = !panel.hidden;
@@ -364,7 +312,7 @@
   });
   document.getElementById("manage-category").addEventListener("change", loadManagedPosts);
   document.getElementById("refresh-posts").addEventListener("click", loadManagedPosts);
-  resumeGitHubSession();
+  if (window.AdminShell) window.AdminShell.onSession(applySession);
 
   document.querySelectorAll("[data-command]").forEach(function (button) {
     button.addEventListener("mousedown", function (event) { event.preventDefault(); });
@@ -484,5 +432,5 @@
     document.getElementById("preview-toggle").textContent = "Preview";
     status.textContent = "Draft cleared.";
   });
-  document.getElementById("publish").addEventListener("click", publish);
+  document.getElementById("pb-publish").addEventListener("click", publish);
 })();

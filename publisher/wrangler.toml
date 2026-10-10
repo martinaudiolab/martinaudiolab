@@ -10,7 +10,7 @@ GITHUB_REPOSITORY = "martinaudiolab"
 GITHUB_BRANCH = "main"
 ALLOW_NON_ADMIN_PUBLISHING = "false"
 SITE_ORIGIN = "https://martinaudiolab-main.thealexandersound.workers.dev"
-BUILDER_URL = "https://martinaudiolab-main.thealexandersound.workers.dev/post-builder"
+BUILDER_URL = "https://martinaudiolab-main.thealexandersound.workers.dev/admin"
 
 [[kv_namespaces]]
 binding = "PUBLISHER_SESSIONS"
@@ -27,7 +27,7 @@ GITHUB_REPOSITORY = "martinaudiolab"
 GITHUB_BRANCH = "post-builder-test"
 ALLOW_NON_ADMIN_PUBLISHING = "true"
 SITE_ORIGIN = "https://martinaudiolab-main.thealexandersound.workers.dev"
-BUILDER_URL = "https://martinaudiolab-main.thealexandersound.workers.dev/post-builder"
+BUILDER_URL = "https://martinaudiolab-main.thealexandersound.workers.dev/admin"
 
 [[env.testing.kv_namespaces]]
 binding = "PUBLISHER_SESSIONS"

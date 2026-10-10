@@ -10,6 +10,20 @@
   var shopSha = "";
   var pending = {};             // new image path -> { base64, dataUrl, uploaded }
   var dirty = false;
+  var sessionListeners = [];
+  // The Shop Builder and Post Builder tabs share this sign-in instead of having their own.
+  window.AdminShell = {
+    onSession: function (listener) {
+      sessionListeners.push(listener);
+      if (session) listener(session);
+    },
+    expired: function (message) { signedOut(message); }
+  };
+  var CONTENT_TABS = ["global", "homepage", "request", "about", "shop"];
+
+  function notifySession() {
+    sessionListeners.forEach(function (listener) { listener(session); });
+  }
 
   function $(id) { return document.getElementById(id); }
   function say(message) { statusLine.textContent = message || ""; }
@@ -56,7 +70,24 @@
     session = null;
     content = null;
     setConnected(false, "GitHub sign-in required");
+    notifySession();
     if (message) say(message);
+  }
+
+  function showTab(name) {
+    var found = false;
+    document.querySelectorAll(".tab").forEach(function (tab) {
+      var on = tab.dataset.tab === name;
+      found = found || on;
+      tab.classList.toggle("on", on);
+      tab.setAttribute("aria-selected", String(on));
+    });
+    if (!found) return;
+    document.querySelectorAll(".admin-panel").forEach(function (panel) {
+      panel.hidden = panel.dataset.panel !== name;
+    });
+    document.querySelector(".admin-save").hidden = CONTENT_TABS.indexOf(name) === -1;
+    try { sessionStorage.setItem("admin-tab", name); } catch (error) { }
   }
 
   // ---- Data paths ---------------------------------------------------------
@@ -369,6 +400,7 @@
       session = handoff.session;
       var me = await api("/api/me");
       setConnected(true, "Connected (" + me.role + ")");
+      notifySession();
       await load();
     } catch (error) {
       signedOut(error.message || "Could not finish GitHub sign-in.");
@@ -386,17 +418,15 @@
     signedOut("Signed out of GitHub.");
   });
   document.querySelectorAll(".tab").forEach(function (tab) {
-    tab.addEventListener("click", function () {
-      document.querySelectorAll(".tab").forEach(function (other) {
-        var on = other === tab;
-        other.classList.toggle("on", on);
-        other.setAttribute("aria-selected", String(on));
-      });
-      document.querySelectorAll(".admin-panel").forEach(function (panel) {
-        panel.hidden = panel.dataset.panel !== tab.dataset.tab;
-      });
-    });
+    tab.addEventListener("click", function () { showTab(tab.dataset.tab); });
   });
+  (function restoreTab() {
+    var wanted = window.location.hash.slice(1);
+    if (!/^[a-z-]+$/.test(wanted)) {
+      try { wanted = sessionStorage.getItem("admin-tab") || ""; } catch (error) { wanted = ""; }
+    }
+    if (wanted) showTab(wanted);
+  })();
   $("add-nav").addEventListener("click", function () {
     if (content.nav_items.length >= 8) { say("The menu can have up to 8 items."); return; }
     content.nav_items.push({ label: "", href: "" });

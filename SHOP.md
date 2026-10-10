@@ -3,7 +3,7 @@
 The shop is a gallery page (`site/shop/index.html`) plus one page per item. Both are generated from one file, so you never edit the shop HTML by hand.
 
 ## Using the Shop Builder (recommended)
-Open `/shop-builder` on the website, select **Connect GitHub** and sign in with the administrator account (the same sign-in the Post Builder uses).
+Open `/admin` on the website, select **Connect GitHub**, sign in with the administrator account, and choose the **Shop Builder** tab.
 
 - **Add item** opens a form: title, one-line summary, category, status, price, optional previous price (shows a sale), description (blank line between paragraphs), optional detail rows and photos.
 - Photos are resized to 1600 px JPEGs in your browser before upload. The first photo is the gallery picture.

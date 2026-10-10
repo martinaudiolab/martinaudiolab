@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var statusLine = document.getElementById("status");
+  var statusLine = document.getElementById("sb-status");
   var apiUrl = document.querySelector('meta[name="publisher-api-url"]').content.trim().replace(/\/+$/, "");
   var session = null;
   var baseSha = "";
@@ -50,18 +50,11 @@
     return result;
   }
 
-  function setConnected(connected, message) {
-    $("github-status").textContent = message;
-    $("github-connect").hidden = connected;
-    $("github-disconnect").hidden = !connected;
-    $("shop-app").hidden = !connected;
-  }
-
+  // Sign-in is handled by the admin panel, which hands this builder the session.
   function signedOut(message) {
     session = null;
     data = null;
-    setConnected(false, "GitHub sign-in required");
-    if (message) say(message);
+    if (window.AdminShell) window.AdminShell.expired(message);
   }
 
   async function loadShop() {
@@ -77,35 +70,6 @@
     renderItems();
     updatePending();
     say("");
-  }
-
-  async function connect() {
-    say("Redirecting to GitHub sign-in...");
-    window.location.assign(apiUrl + "/auth/start?return=shop");
-  }
-
-  async function resume() {
-    var fragment = new URLSearchParams(window.location.hash.slice(1));
-    var ticket = fragment.get("ticket");
-    var authError = fragment.get("auth_error");
-    if (ticket || authError) window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    if (authError) {
-      say(authError === "not_admin"
-        ? "This GitHub account is not an administrator of the repository."
-        : "GitHub sign-in failed during " + (fragment.get("stage") || "callback") + ": " + (fragment.get("detail") || "Please try again."));
-      return;
-    }
-    if (!ticket) return;
-    say("Finishing GitHub sign-in...");
-    try {
-      var handoff = await api("/api/session", { method: "POST", body: { ticket: ticket } });
-      session = handoff.session;
-      var me = await api("/api/me");
-      setConnected(true, "Connected (" + me.role + ")");
-      await loadShop();
-    } catch (error) {
-      signedOut(error.message || "Could not finish GitHub sign-in.");
-    }
   }
 
   // ---- Listing ------------------------------------------------------------
@@ -162,8 +126,8 @@
   }
 
   function updatePending() {
-    $("publish").disabled = !dirty;
-    $("discard").disabled = !dirty;
+    $("sb-publish").disabled = !dirty;
+    $("sb-discard").disabled = !dirty;
     $("pending-note").textContent = dirty ? "You have unpublished changes." : "Everything shown here is live.";
   }
 
@@ -409,7 +373,7 @@
       say("These photos are too large to publish at once. Publish a few items at a time.");
       return;
     }
-    var button = $("publish");
+    var button = $("sb-publish");
     button.disabled = true;
     say("Publishing" + (images.length ? " (uploading " + images.length + " photo" + (images.length === 1 ? "" : "s") + ")" : "") + "...");
     try {
@@ -441,14 +405,15 @@
 
   // ---- Wiring ---------------------------------------------------------------
 
-  if (!apiUrl) {
-    $("github-connect").disabled = true;
-    $("github-status").textContent = "Publisher Worker is not configured";
-  }
-  $("github-connect").addEventListener("click", connect);
-  $("github-disconnect").addEventListener("click", async function () {
-    try { if (session) await api("/api/logout", { method: "POST" }); } catch (error) { }
-    signedOut("Signed out of GitHub.");
+  if (window.AdminShell) window.AdminShell.onSession(function (token) {
+    session = token;
+    if (!token) {
+      data = null;
+      dirty = false;
+      $("items").replaceChildren();
+      return;
+    }
+    loadShop().catch(function (error) { say(error.message || "Could not load the shop."); });
   });
   $("add-item").addEventListener("click", function () { openEditor(null); });
   $("toggle-settings").addEventListener("click", function () {
@@ -474,11 +439,10 @@
     event.target.value = "";
     if (files.length && editing) await addPhotos(files);
   });
-  $("publish").addEventListener("click", publish);
-  $("discard").addEventListener("click", discard);
+  $("sb-publish").addEventListener("click", publish);
+  $("sb-discard").addEventListener("click", discard);
   window.addEventListener("beforeunload", function (event) {
     if (dirty) { event.preventDefault(); event.returnValue = ""; }
   });
 
-  resume();
 })();

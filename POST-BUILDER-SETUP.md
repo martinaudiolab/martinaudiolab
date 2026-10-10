@@ -1,5 +1,7 @@
 # Post Builder Setup
 
+> The Post Builder is now the **Post Builder** tab of the admin panel at `/admin`. Everything below still applies; read "post builder page" as "admin panel". The old `/post-builder` address redirects there.
+
 This guide connects the post builder to GitHub so an administrator can publish a post without editing or uploading HTML by hand.
 
 When it is set up, **Publish post** will add the article and update its category page in one GitHub commit. GitHub Pages will then deploy the change. Production publishing is restricted to GitHub repository administrators.
@@ -21,7 +23,7 @@ Open the repository's **Settings > Pages** page on GitHub and note the published
 You will use this address in two places in `publisher/wrangler.toml`:
 
 - `SITE_ORIGIN` is just the origin, such as `https://example.com`. Do not include a page path or a trailing slash.
-- `BUILDER_URL` is the complete address of the builder page, such as `https://example.com/post-builder.html`.
+- `BUILDER_URL` is the complete address of the builder page, such as `https://example.com/admin`.
 
 Replace `YOUR_SITE_HOST` in both values. Do not guess these URLs; use the address shown in GitHub Pages or your custom-domain settings.
 
@@ -78,7 +80,7 @@ The website and publisher are two different Workers URLs:
 
 The website URL goes in `SITE_ORIGIN` and `BUILDER_URL` in `publisher/wrangler.toml`. The publisher URL goes in the `publisher-api-url` meta tag in `site/post-builder.html`. If `npx wrangler deploy` prints a different publisher URL, use the URL Wrangler prints.
 
-1. In `site/post-builder.html`, set `publisher-api-url` to the publisher Worker URL. Do not add a trailing slash.
+1. In `site/admin.html`, set `publisher-api-url` to the publisher Worker URL. Do not add a trailing slash.
 2. Save and publish that site change to GitHub.
 3. Check that `SITE_ORIGIN` and `BUILDER_URL` in `publisher/wrangler.toml` match the website address from Step 1. If you change either value, deploy the Worker again with `npx wrangler deploy`.
 4. Open the published post builder and select **Connect GitHub**. Sign in with an administrator account and approve the GitHub App.

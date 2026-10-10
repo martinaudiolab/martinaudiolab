@@ -1,6 +1,6 @@
 # Site Admin
 
-`/admin` is a form for the text, navigation and images that appear across the site. It is the third builder page, next to the Post Builder and the Shop Builder, and uses the same GitHub sign-in and publisher Worker.
+`/admin` is the one place to manage the site. It has seven tabs: **Global**, **Homepage**, **Request**, **About** and **Shop** edit the site content, and **Shop Builder** and **Post Builder** hold the shop listing manager and the blog post editor. One GitHub sign-in covers all of them, through the publisher Worker.
 
 ## Using it
 1. Open `/admin`, select **Connect GitHub** and sign in with the administrator account.
@@ -9,9 +9,12 @@
 
 If the content changed somewhere else after you opened the page, saving is refused so nothing is overwritten. Reload and repeat the edit.
 
+## Shop Builder and Post Builder tabs
+These are the former `/shop-builder` and `/post-builder` pages, moved here without changes to how they work (see `SHOP.md` and `POST-BUILDER-SETUP.md`). The old addresses redirect to the matching tab. Each has its own Publish button; the Save changes bar applies to the five content tabs only.
+
 ## Where the content lives
 - `site-data/site-content.json`: the single source of truth for everything on the tabs except the shop title and introduction.
-- `shop-data/items.json`: the shop. The **Shop** tab edits its `shop.title` and `shop.intro`; products are still managed in `/shop-builder`.
+- `shop-data/items.json`: the shop. The **Shop** tab edits its `shop.title` and `shop.intro`; products are still managed in the **Shop Builder** tab.
 
 | Tab | Keys |
 | --- | --- |

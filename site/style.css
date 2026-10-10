@@ -228,3 +228,8 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .ae-thumb{width:8rem;aspect-ratio:4/3;object-fit:cover;border-radius:4px;background:var(--bg)}
 .ae-fields{flex:1;min-width:14rem;display:flex;flex-direction:column;gap:.4rem}
 .admin code{font-size:.85em;background:var(--panel);padding:.05rem .3rem;border-radius:3px}
+
+/* Builders inside the admin panel */
+.admin-save[hidden]{display:none}
+.builder-panel .msg:empty{display:none}
+.builder-panel .publish-tools{margin-top:1.5rem}
