@@ -290,7 +290,15 @@ body.home .dd-menu a.on,body.navbar .dd-menu a.on{box-shadow:inset 3px 0 0 #72c4
 body.navbar nav{background:var(--panel)}
 body.navbar header.site{align-items:center}
 @media(max-width:700px){
-  body.home header.site{padding:10px 1rem;gap:.5rem}
-  body.home nav > a,body.home .dd-toggle,body.navbar nav > a,body.navbar .dd-toggle{padding:6px 11px;font-size:.85rem}
+  /* Phones: brand on its own line, then the bar spans the width as tidy full-width rows */
+  body.home header.site{padding:10px 12px;gap:.4rem}
+  body.navbar header.site{padding:10px 12px;gap:.5rem}
+  body.home .brand,body.navbar .brand{font-size:1.15rem}
+  body.home nav,body.navbar nav{width:100%}
+  body.home nav > a,body.home .dd,body.navbar nav > a,body.navbar .dd{flex:1 1 auto;text-align:center}
+  body.home nav > a,body.home .dd-toggle,body.navbar nav > a,body.navbar .dd-toggle{padding:11px 10px;font-size:.85rem;line-height:1.2}
+  body.home .dd-toggle,body.navbar .dd-toggle{width:100%;justify-content:center}
+  /* The dropdown opens over the content below instead of stretching the bar */
+  body.home .dd-menu,body.navbar .dd-menu{position:absolute;top:100%;left:0;min-width:max(100%,11.5rem);margin:0;padding:.35rem 0;border:1px solid rgba(255,255,255,.14);border-radius:0;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.35)}
   .hero-text{padding:0 1rem 2rem}
 }
