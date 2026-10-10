@@ -74,13 +74,20 @@ export function renderShop(data, options) {
   const items = Array.isArray(data.items) ? data.items : [];
   const ordered = items.filter((i) => status(i) !== "sold").concat(items.filter((i) => status(i) === "sold"));
 
+  // Same card as the homepage "For Sale Now" grid (see site/forsale.js): image, name, price, status badge.
   const card = (it) => {
-    const badge = STATUS[status(it)] ? '<span class="shop-badge">' + STATUS[status(it)] + "</span>" : "";
-    return '<li class="shop-card' + (status(it) === "sold" ? " sold" : "") + '"><a href="' + it.slug + '.html"><div class="shop-thumb"><img src="' + esc(imgSrc(it.images[0])) + '" alt="" loading="lazy">' + badge + "</div><strong>" + esc(it.title) + "</strong>" + (it.summary ? '<span class="shop-sum">' + esc(it.summary) + "</span>" : "") + '<span class="shop-price">' + priceHtml(it) + "</span></a></li>";
+    const st = status(it);
+    const badge = STATUS[st] ? '<span class="fs-badge">' + STATUS[st] + "</span>" : "";
+    const price = st === "sold" ? "Sold"
+      : typeof it.price === "number" && typeof it.was === "number" ? "<s>" + money(it.was) + '</s><span class="fs-sale">' + money(it.price) + "</span>"
+      : priceHtml(it);
+    return '<a class="fs-card' + (st === "sold" ? " sold" : "") + '" href="' + it.slug + '.html"><div class="fs-thumb"><img src="' + esc(imgSrc(it.images[0])) + '" alt="" loading="lazy">' + badge + "</div>" +
+      '<div class="fs-name">' + esc(it.title) + '</div><div class="fs-price">' + price + "</div></a>";
   };
 
   const indexInner =     (shop.howToBuy ? '<p class="shop-note">' + esc(shop.howToBuy) + "</p>" : "") +
-    (ordered.length ? '<ul class="shop-grid">' + ordered.map(card).join("") + "</ul>" : "<p>Nothing is listed right now. Please check back soon.</p>");
+    (ordered.length ? "" : "<p>Nothing is listed right now. Please check back soon.</p>");
+  const gallery = ordered.length ? '<section class="forsale shop-list" aria-label="' + esc(shop.title || "Shop") + '"><div class="fs-grid">' + ordered.map(card).join("") + "</div></section>" : "";
 
   const detail = (it) => {
     const st = status(it);
@@ -102,7 +109,7 @@ export function renderShop(data, options) {
     slides: ctx.content.shop_hero.slides, prefix: "../", title: shop.title || "Shop", subtitle: shop.intro || "", label: shop.title || "Shop"
   });
   files["index.html"] = page(ctx, (shop.title || "Shop") + " - " + ctx.content.site_name, shop.intro || "Shop", indexInner,
-    '<script src="../hero.js" defer></script>', { bodyClass: "home", beforeMain: hero });
+    gallery + '<script src="../hero.js" defer></script>', { bodyClass: "home", beforeMain: hero });
   for (const it of items) files[it.slug + ".html"] = page(ctx, it.title + " - " + (shop.title || "Shop") + " - " + ctx.content.site_name, it.summary || it.title, detail(it), LIGHTBOX);
   // Small public feed used by the homepage "For Sale Now" carousel.
   const feed = ordered.filter((it) => status(it) !== "sold").map((it) => ({
