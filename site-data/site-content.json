@@ -59,23 +59,23 @@
       {
         "label": "Stereo Repair",
         "description": "Receivers, amplifiers and turntables brought back to specification, with every step documented.",
+        "cta_label": "See the work",
         "href": "stereo/index.html",
-        "image": "images/category-stereo.jpg",
-        "cta_label": "See the work"
+        "image": "images/category-stereo.jpg"
       },
       {
         "label": "Radio Repair",
         "description": "Vintage tube and solid-state radios restored for safe, reliable listening, from chassis to cabinet.",
+        "cta_label": "See the work",
         "href": "radio/index.html",
-        "image": "images/category-radio.jpg",
-        "cta_label": "See the work"
+        "image": "images/category-radio.jpg"
       },
       {
         "label": "Test Equipment",
         "description": "Bench instruments serviced and recalibrated so your measurements can be trusted.",
+        "cta_label": "See the work",
         "href": "test-equipment/index.html",
-        "image": "images/category-test-equipment.jpg",
-        "cta_label": "See the work"
+        "image": "images/category-test-equipment.jpg"
       }
     ],
     "product_carousel": {
