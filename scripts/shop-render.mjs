@@ -60,7 +60,7 @@ const paras = (d) => (Array.isArray(d) ? d : d ? [d] : []).map((p) => "<p>" + es
 
 const THEME = '<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem("th");if(t)r.setAttribute("data-theme",t)}catch(e){}document.getElementById("th").onclick=function(){var d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme:dark)").matches),n=d?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("th",n)}catch(e){}}})()</script>';
 const LIGHTBOX = '<script src="../lightbox.js" defer></script>';
-const page = (ctx, title, desc, inner, extra, o = {}) =>'<!DOCTYPE html>\n' + SHOP_MARK + '\n<html lang="en"' + themeAttr(ctx.content) + '><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + esc(title) + '</title><meta name="description" content="' + esc(desc) + '"><link rel="stylesheet" href="../style.css"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + '><header class="site"><a class="brand" href="../index.html">' + esc(ctx.content.site_name) + '</a>' + navHtml(ctx.content.nav_items, "shop/index.html", "../") + '</header>' + (o.beforeMain || "") + '<main>' + inner + '</main>' + (extra || "") + NAV_SCRIPT("../") + THEME + '</body></html>\n';
+const page = (ctx, title, desc, inner, extra, o = {}) =>'<!DOCTYPE html>\n' + SHOP_MARK + '\n<html lang="en"' + themeAttr(ctx.content) + '><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + esc(title) + '</title><meta name="description" content="' + esc(desc) + '"><link rel="stylesheet" href="../style.css"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + '><header class="site"><a class="brand" href="../index.html">' + esc(ctx.content.site_name) + '</a>' + navHtml(ctx.content.nav_items, "shop/index.html", "../") + '</header>' + (o.beforeMain || "") + (inner ? '<main>' + inner + '</main>' : "") + (extra || "") + NAV_SCRIPT("../") + THEME + '</body></html>\n';
 
 /**
  * Renders the gallery and one page per item.
@@ -85,8 +85,7 @@ export function renderShop(data, options) {
       '<div class="fs-name">' + esc(it.title) + '</div><div class="fs-price">' + price + "</div></a>";
   };
 
-  const indexInner =     (shop.howToBuy ? '<p class="shop-note">' + esc(shop.howToBuy) + "</p>" : "") +
-    (ordered.length ? "" : "<p>Nothing is listed right now. Please check back soon.</p>");
+  const indexInner = ordered.length ? "" : "<p>Nothing is listed right now. Please check back soon.</p>";
   const gallery = ordered.length ? '<section class="forsale shop-list" aria-label="' + esc(shop.title || "Shop") + '"><div class="fs-grid">' + ordered.map(card).join("") + "</div></section>" : "";
 
   const detail = (it) => {
@@ -136,7 +135,6 @@ export function normalizeShop(input) {
   const shop = {
     title: text(s.title, 80) || "Shop",
     intro: text(s.intro, 600),
-    howToBuy: text(s.howToBuy, 600),
     email: text(s.email, 120),
     placeholder: /^images\/[a-zA-Z0-9._\/-]+$/.test(s.placeholder || "") ? s.placeholder : "images/banner.jpg"
   };
