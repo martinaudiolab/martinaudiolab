@@ -217,13 +217,13 @@
   async function thumbnailBase64() {
     var chosen = $("post-thumb").files && $("post-thumb").files[0];
     if (chosen && window.HeicSupport) {
-      try { chosen = await window.HeicSupport.prepare(chosen); } catch (error) { chosen = null; }
+      try { chosen = await window.HeicSupport.prepare(chosen, { maxSide: 1000 }); } catch (error) { chosen = null; }
     }
     var firstPhoto = $("post-content").querySelector('img[src^="data:image"]');
     var source = chosen ? URL.createObjectURL(chosen) : firstPhoto ? firstPhoto.getAttribute("src") : "";
     if (!source) return Promise.resolve("");
     return new Promise(function (resolve) {
-      var timer = window.setTimeout(function () { resolve(""); }, 6000);
+      var timer = window.setTimeout(function () { resolve(""); }, 20000);
       var image = new Image();
       image.onload = function () {
         window.clearTimeout(timer);
@@ -416,8 +416,9 @@
   async function insertImage(file) {
     try {
       if (window.HeicSupport) {
-        if (window.HeicSupport.isHeic(file)) say("Converting HEIC photo...");
-        file = await window.HeicSupport.prepare(file);
+        if (await window.HeicSupport.detect(file)) say("Converting HEIC photo...");
+        // inline photos are stored inside the post (5 MB limit), so converted photos are scaled to a web size
+        file = await window.HeicSupport.prepare(file, { maxSide: 2400 });
         say("");
       }
     } catch (error) {
