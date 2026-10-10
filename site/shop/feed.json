@@ -6,45 +6,5 @@
     "price": "$500.00",
     "was": "",
     "pending": false
-  },
-  {
-    "slug": "sample-restored-receiver",
-    "title": "Sample Item: Restored Stereo Receiver",
-    "image": "images/banner.jpg",
-    "price": "$650.00",
-    "was": "",
-    "pending": false
-  },
-  {
-    "slug": "sample-turntable",
-    "title": "Sample Item: Serviced Turntable",
-    "image": "images/banner.jpg",
-    "price": "$325.00",
-    "was": "$375.00",
-    "pending": false
-  },
-  {
-    "slug": "sample-tube-radio",
-    "title": "Sample Item: Tube Table Radio",
-    "image": "images/banner.jpg",
-    "price": "$285.00",
-    "was": "",
-    "pending": true
-  },
-  {
-    "slug": "sample-signal-generator",
-    "title": "Sample Item: Calibrated Signal Generator",
-    "image": "images/banner.jpg",
-    "price": "$480.00",
-    "was": "",
-    "pending": false
-  },
-  {
-    "slug": "sample-replacement-part",
-    "title": "Sample Item: Replacement Part",
-    "image": "images/banner.jpg",
-    "price": "$45.00",
-    "was": "",
-    "pending": false
   }
 ]
