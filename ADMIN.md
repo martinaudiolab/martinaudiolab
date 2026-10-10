@@ -20,7 +20,7 @@ These are the former `/shop-builder` and `/post-builder` pages, moved here witho
 | --- | --- |
 | Global | `site_name`, `contact_email`, `nav_items` (with `children` for dropdowns), `theme` |
 | Homepage | `homepage.hero.{image,title,subtitle}`, `homepage.intro.text`, `homepage.categories[]`, `homepage.product_carousel.{enabled,heading,view_all_link}`, `homepage.trust_line` |
-| Request | `request.{title,intro}`, `request.instructions.{heading,items}`, `request.email.{subject,body_template}`, `request.secondary_contact_text` |
+| Request | `request.{title,intro,form_action,subject,success_message}` |
 | About | `about.{title,bio}`, `about.sections[]`, `about.contact.{heading,email}`, `about.location`, `about.response_time` |
 
 Notes:

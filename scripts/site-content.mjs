@@ -28,6 +28,7 @@ export function safeImage(value) {
   return /^images\/[a-zA-Z0-9][a-zA-Z0-9._\/-]*\.(jpe?g|png|webp)$/.test(v) && !v.includes("..") && !v.includes("//");
 }
 
+const httpsUrl = (v, fallback) => (typeof v === "string" && /^https:\/\/[^\s"'<>]+$/i.test(v.trim()) ? v.trim().slice(0, 300) : fallback);
 const href = (v, fallback) => (safeHref(v) ? v.trim() : fallback);
 const image = (v, fallback) => (safeImage(v) ? v.trim() : fallback);
 
@@ -52,7 +53,7 @@ const DEFAULT_CATEGORIES = [
   { label: "Test Equipment", description: "", href: "test-equipment/index.html", image: "images/category-test-equipment.jpg" }
 ];
 
-export const MAX = { nav: 8, navChildren: 8, categories: 6, instructions: 12, sections: 12 };
+export const MAX = { nav: 8, navChildren: 8, categories: 6, sections: 12 };
 
 function normalizeNav(input) {
   const list = Array.isArray(input) ? input : null;
@@ -83,8 +84,6 @@ export function normalizeContent(input) {
   const pc = h.product_carousel && typeof h.product_carousel === "object" ? h.product_carousel : {};
   const vl = pc.view_all_link && typeof pc.view_all_link === "object" ? pc.view_all_link : {};
   const r = c.request && typeof c.request === "object" ? c.request : {};
-  const ins = r.instructions && typeof r.instructions === "object" ? r.instructions : {};
-  const em = r.email && typeof r.email === "object" ? r.email : {};
   const a = c.about && typeof c.about === "object" ? c.about : {};
   const ac = a.contact && typeof a.contact === "object" ? a.contact : {};
 
@@ -125,19 +124,9 @@ export function normalizeContent(input) {
     request: {
       title: str(r.title, 80, "Request a Restoration"),
       intro: text(r.intro, 600, "Have a unit that needs attention? Send me the details and I will get back to you."),
-      instructions: {
-        heading: text(ins.heading, 120, "To get started, include:"),
-        items: (Array.isArray(ins.items) ? ins.items : [
-          "The make and model, and a photo or two if you can.",
-          "What it is doing, or not doing.",
-          "Any work that has been done on it before."
-        ]).filter((s) => typeof s === "string" && s.trim()).slice(0, MAX.instructions).map((s) => s.trim().slice(0, 240))
-      },
-      email: {
-        subject: str(em.subject, 120, "Restoration request"),
-        body_template: text(em.body_template, 1500, "Hello,\n\nI would like to request a restoration.\n\nMake and model:\nWhat it is doing (or not doing):\nAnything else I should know:\n\nThank you,\n")
-      },
-      secondary_contact_text: text(r.secondary_contact_text, 240, "Or write to {email}.")
+      form_action: httpsUrl(r.form_action, "https://formspree.io/f/YOUR_FORM_ID"),
+      subject: str(r.subject, 120, "New Restoration Request \u2014 Martin Audio Labs"),
+      success_message: str(r.success_message, 240, "Thanks \u2014 I'll get back to you within 1-2 business days.")
     },
     about: {
       title: str(a.title, 80, "About Me"),

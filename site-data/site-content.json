@@ -79,19 +79,9 @@
   "request": {
     "title": "Request a Restoration",
     "intro": "Have a unit that needs attention? Send me the details and I will get back to you.",
-    "instructions": {
-      "heading": "To get started, include:",
-      "items": [
-        "The make and model, and a photo or two if you can.",
-        "What it is doing, or not doing.",
-        "Any work that has been done on it before."
-      ]
-    },
-    "email": {
-      "subject": "Restoration request",
-      "body_template": "Hello,\n\nI would like to request a restoration.\n\nMake and model:\nWhat it is doing (or not doing):\nAnything else I should know:\n\nThank you,"
-    },
-    "secondary_contact_text": "Or write to {email}."
+    "form_action": "https://formspree.io/f/YOUR_FORM_ID",
+    "subject": "New Restoration Request — Martin Audio Labs",
+    "success_message": "Thanks — I'll get back to you within 1-2 business days."
   },
   "about": {
     "title": "About Me",

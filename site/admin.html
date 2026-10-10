@@ -56,7 +56,7 @@
 <p class="hint">Shown in the top bar and in each page&#39;s browser tab title.</p>
 <label for="g-email">Contact email</label>
 <input id="g-email" type="email" maxlength="120" data-path="contact_email">
-<p class="hint">Used on the Request and About pages.</p>
+<p class="hint">Shown on the About page.</p>
 <label for="g-theme">Default theme</label>
 <select id="g-theme" data-path="theme">
 <option value="auto">Match the visitor&#39;s device</option>
@@ -104,23 +104,20 @@
 <!-- Request -->
 <section class="admin-panel" data-panel="request" role="tabpanel" hidden>
 <h2>Request page</h2>
+<p class="hint">The restoration request form: name, email, unit model and description.</p>
 <label for="r-title">Title</label>
 <input id="r-title" type="text" maxlength="80" data-path="request.title">
 <label for="r-intro">Intro</label>
 <textarea id="r-intro" rows="2" maxlength="600" data-path="request.intro"></textarea>
-<label for="r-ins-heading">Instructions heading</label>
-<input id="r-ins-heading" type="text" maxlength="120" data-path="request.instructions.heading">
-<label for="r-ins-items">Instruction items</label>
-<textarea id="r-ins-items" rows="5" data-path="request.instructions.items" data-list="lines"></textarea>
-<p class="hint">One item per line; each becomes a bullet.</p>
+<label for="r-action">Form address</label>
+<input id="r-action" type="text" maxlength="300" data-path="request.form_action" placeholder="https://formspree.io/f/YOUR_FORM_ID">
+<p class="hint">Where submissions are sent. In Formspree, create a form and paste its address here (it must start with https://).</p>
 <label for="r-subject">Email subject</label>
-<input id="r-subject" type="text" maxlength="120" data-path="request.email.subject">
-<label for="r-body">Email body template</label>
-<textarea id="r-body" rows="8" maxlength="1500" data-path="request.email.body_template"></textarea>
-<p class="hint">Pre-fills the visitor&#39;s email. Line breaks are kept.</p>
-<label for="r-secondary">Line under the email button</label>
-<input id="r-secondary" type="text" maxlength="240" data-path="request.secondary_contact_text">
-<p class="hint">Write <code>{email}</code> where the contact address should appear as a link.</p>
+<input id="r-subject" type="text" maxlength="120" data-path="request.subject">
+<p class="hint">The subject line of the notification email you receive for each request.</p>
+<label for="r-success">Success message</label>
+<input id="r-success" type="text" maxlength="240" data-path="request.success_message">
+<p class="hint">Shown under the button after a request is sent.</p>
 </section>
 
 <!-- About -->

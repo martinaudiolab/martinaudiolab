@@ -24,12 +24,6 @@ const paragraphs = (value) => String(value || "").split(/\n\s*\n/).map((p) => p.
 
 const mailto = (email) => '<a href="mailto:' + esc(email) + '">' + esc(email) + "</a>";
 
-/** Escapes text, then turns the contact address (or the {email} token) into a mailto link. */
-function withEmailLink(value, email) {
-  const safe = esc(String(value || "").replace(/\{email\}/g, email));
-  return safe.split(esc(email)).join(mailto(email));
-}
-
 export function renderHome(content) {
   const h = content.homepage;
   const cats = h.categories.map((c) =>
@@ -56,15 +50,26 @@ export function renderHome(content) {
 
 export function renderRequest(content) {
   const r = content.request;
-  const subject = encodeURIComponent(r.email.subject);
-  const body = encodeURIComponent(r.email.body_template.replace(/\\n/g, "\n"));
-  const items = r.instructions.items.length ? "<ul>" + r.instructions.items.map((i) => "<li>" + esc(i) + "</li>").join("") + "</ul>" : "";
-  const inner = '<h1 class="h2" style="font-size:2rem">' + esc(r.title) + "</h1>" +
+  const field = (id, label, control) => '<div class="field"><label for="' + id + '">' + label + "</label>" + control + "</div>";
+  const inner = '<div class="request-wrap"><h1 class="h2" style="font-size:2rem">' + esc(r.title) + "</h1>" +
     (r.intro ? '<p class="intro">' + esc(r.intro) + "</p>" : "") +
-    (r.instructions.heading || items ? '<div class="body">' + (r.instructions.heading ? "<p>" + esc(r.instructions.heading) + "</p>" : "") + items + "</div>" : "") +
-    '<p><a class="btn" href="mailto:' + esc(content.contact_email) + "?subject=" + subject + "&amp;body=" + body + '">Email a restoration request</a></p>' +
-    (r.secondary_contact_text ? '<p class="hint">' + withEmailLink(r.secondary_contact_text, content.contact_email) + "</p>" : "");
-  return shell(content, { title: r.title + " - " + content.site_name, description: "Request a restoration from " + content.site_name, inner, active: "request.html" });
+    '<form class="request-form" id="request-form" action="' + esc(r.form_action) + '" method="POST" data-success="' + esc(r.success_message) + '">' +
+    field("req-name", "Name", '<input type="text" id="req-name" name="name" required placeholder="Your name" autocomplete="name">') +
+    field("req-email", "Email", '<input type="email" id="req-email" name="email" required placeholder="you@example.com" autocomplete="email">') +
+    field("req-model", "Unit Model Number", '<input type="text" id="req-model" name="unit_model" required placeholder="e.g. Zenith 6D221, Sansui AU-9000, Marantz 2230S">') +
+    field("req-description", "Description of unit", '<textarea id="req-description" name="description" rows="6" required placeholder="What is it doing, or not doing? Any prior work? Include as much detail as you can."></textarea>') +
+    '<input type="hidden" name="_subject" value="' + esc(r.subject) + '">' +
+    '<input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">' +
+    '<button class="btn request-submit" type="submit">Send Request</button>' +
+    '<p class="request-result" id="request-result" role="status" aria-live="polite"></p>' +
+    "</form></div>";
+  return shell(content, {
+    title: r.title + " - " + content.site_name,
+    description: "Request a restoration from " + content.site_name,
+    inner,
+    active: "request.html",
+    scripts: '<script src="request.js" defer></script>'
+  });
 }
 
 export function renderAbout(content) {
