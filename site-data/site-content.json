@@ -83,7 +83,7 @@
       "enabled": true,
       "heading": "For Sale Now",
       "view_all_link": {
-        "label": "View the shop",
+        "label": "View All",
         "href": "shop/index.html"
       }
     },

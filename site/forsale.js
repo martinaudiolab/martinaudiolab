@@ -1,14 +1,29 @@
+// Homepage "For Sale Now": a centered grid of available products that quietly
+// fades to the next set every 30 seconds. Reads shop/feed.json, which the shop
+// build writes (sold items are not in it).
 (function () {
   "use strict";
 
   var section = document.getElementById("forsale");
   if (!section) return;
-  var track = section.querySelector(".fs-track");
-  var previous = section.querySelector(".fs-prev");
-  var next = section.querySelector(".fs-next");
+  var grid = section.querySelector(".fs-grid");
+
+  var ROTATE_MS = 30000;      // time between sets
+  var FADE_MS = 300;          // fade out, then fade in: about 600ms in total
+  var DESKTOP_COUNT = 4;      // products shown at once (tablet shows the same four as 2 x 2)
+  var PHONE_COUNT = 1;        // phones show one product at a time and rotate through the rest
+
+  var phone = window.matchMedia ? window.matchMedia("(max-width: 599px)") : { matches: false };
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var paused = false;
+  var items = [];
+  var offset = 0;             // index of the first product in the current set
+  var hovering = false;
+  var busy = false;
   var timer = null;
+
+  function setSize() {
+    return phone.matches ? PHONE_COUNT : DESKTOP_COUNT;
+  }
 
   function card(item) {
     var link = document.createElement("a");
@@ -29,74 +44,85 @@
       thumb.appendChild(badge);
     }
 
-    var name = document.createElement("strong");
+    var name = document.createElement("div");
+    name.className = "fs-name";
     name.textContent = item.title;
-    var price = document.createElement("span");
+
+    var price = document.createElement("div");
     price.className = "fs-price";
     if (item.was) {
       var was = document.createElement("s");
       was.textContent = item.was;
-      price.append(was, " ");
+      var sale = document.createElement("span");
+      sale.className = "fs-sale";
+      sale.textContent = item.price;
+      price.append(was, sale);
+    } else {
+      price.textContent = item.price;
     }
-    price.append(item.price);
 
     link.append(thumb, name, price);
     return link;
   }
 
-  function step() {
-    return Math.max(160, track.firstElementChild ? track.firstElementChild.getBoundingClientRect().width + 16 : 240);
+  /** The current set, wrapping around the catalogue so it is always full when it can be. */
+  function currentSet() {
+    var size = Math.min(setSize(), items.length);
+    var set = [];
+    for (var i = 0; i < size; i++) set.push(items[(offset + i) % items.length]);
+    return set;
   }
 
-  function atEnd() {
-    return track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+  function render() {
+    grid.replaceChildren.apply(grid, currentSet().map(card));
   }
 
-  function advance(direction) {
-    var behavior = reduceMotion ? "auto" : "smooth";
-    if (direction > 0 && atEnd()) track.scrollTo({ left: 0, behavior: behavior });
-    else if (direction < 0 && track.scrollLeft <= 4) track.scrollTo({ left: track.scrollWidth, behavior: behavior });
-    else track.scrollBy({ left: direction * step(), behavior: behavior });
+  function rotates() {
+    return !reduceMotion && items.length > setSize();
   }
 
-  function start() {
-    stop();
-    if (reduceMotion || track.scrollWidth <= track.clientWidth + 4) return;
-    timer = window.setInterval(function () {
-      if (!paused && !document.hidden) advance(1);
-    }, 4500);
+  function rotate() {
+    if (hovering || busy || document.hidden || !rotates()) return;
+    busy = true;
+    grid.classList.add("fs-fade");
+    window.setTimeout(function () {
+      offset = (offset + setSize()) % items.length;
+      render();
+      grid.classList.remove("fs-fade");
+      busy = false;
+    }, FADE_MS);
   }
 
-  function stop() {
+  function schedule() {
     if (timer) window.clearInterval(timer);
-    timer = null;
+    timer = rotates() ? window.setInterval(rotate, ROTATE_MS) : null;
   }
 
-  function show(items) {
-    if (!Array.isArray(items) || !items.length) return;
-    items.slice(0, 24).forEach(function (item) { track.appendChild(card(item)); });
+  function start(feed) {
+    if (!Array.isArray(feed) || !feed.length) return;
+    items = feed;
+    render();
     section.hidden = false;
-    var canScroll = track.scrollWidth > track.clientWidth + 4;
-    previous.hidden = next.hidden = !canScroll;
-    start();
+    schedule();
   }
 
-  previous.addEventListener("click", function () { advance(-1); start(); });
-  next.addEventListener("click", function () { advance(1); start(); });
-  section.addEventListener("mouseenter", function () { paused = true; });
-  section.addEventListener("mouseleave", function () { paused = false; });
-  section.addEventListener("focusin", function () { paused = true; });
-  section.addEventListener("focusout", function () { paused = false; });
-  section.addEventListener("touchstart", function () { paused = true; }, { passive: true });
-  section.addEventListener("touchend", function () { window.setTimeout(function () { paused = false; }, 6000); }, { passive: true });
-  window.addEventListener("resize", function () {
-    var canScroll = track.scrollWidth > track.clientWidth + 4;
-    previous.hidden = next.hidden = !canScroll;
-    start();
-  });
+  // Hold still while someone is reading or has focus inside the grid.
+  grid.addEventListener("mouseenter", function () { hovering = true; });
+  grid.addEventListener("mouseleave", function () { hovering = false; });
+  grid.addEventListener("focusin", function () { hovering = true; });
+  grid.addEventListener("focusout", function () { hovering = false; });
+
+  if (phone.addEventListener) {
+    phone.addEventListener("change", function () {
+      if (!items.length) return;
+      offset = 0;
+      render();
+      schedule();
+    });
+  }
 
   fetch("shop/feed.json", { cache: "no-cache" })
     .then(function (response) { return response.ok ? response.json() : []; })
-    .then(show)
-    .catch(function () { /* the carousel simply stays hidden */ });
+    .then(start)
+    .catch(function () { /* the section simply stays hidden */ });
 })();

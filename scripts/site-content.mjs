@@ -129,7 +129,7 @@ export function normalizeContent(input) {
       product_carousel: {
         enabled: pc.enabled === undefined ? true : pc.enabled === true,
         heading: str(pc.heading, 60, "For Sale Now"),
-        view_all_link: { label: str(vl.label, 40, "View the shop"), href: href(vl.href, "shop/index.html") }
+        view_all_link: { label: str(vl.label, 40, "View All"), href: href(vl.href, "shop/index.html") }
       },
       trust_line: text(h.trust_line, 240, "")
     },

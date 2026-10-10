@@ -31,8 +31,9 @@ export function renderHome(content) {
     (c.description ? '<small class="cat-desc">' + esc(c.description) + "</small>" : "") + "<span>See the work &rarr;</span></a>").join("");
   const pc = h.product_carousel;
   const carousel = pc.enabled
-    ? '<section class="forsale" id="forsale" aria-label="' + esc(pc.heading) + '" hidden><div class="fs-head"><h2>' + esc(pc.heading) + '</h2><a href="' + esc(pc.view_all_link.href) + '">' + esc(pc.view_all_link.label) +
-      '</a></div><div class="fs-wrap"><button class="fs-btn fs-prev" type="button" aria-label="Previous items">&#8249;</button><div class="fs-track" tabindex="0"></div><button class="fs-btn fs-next" type="button" aria-label="Next items">&#8250;</button></div></section>'
+    ? '<section class="forsale" id="forsale" aria-label="' + esc(pc.heading) + '" hidden><h2 class="fs-label">' + esc(pc.heading) + "</h2>" +
+      '<div class="fs-grid" id="fs-grid"></div>' +
+      '<p class="fs-more"><a class="fs-viewall" href="' + esc(pc.view_all_link.href) + '">' + esc(pc.view_all_link.label) + "</a></p></section>"
     : "";
   const slides = h.hero.slides.map((slide, i) =>
     '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(slide.image) + '" alt="' + esc(slide.alt) + '"' +
