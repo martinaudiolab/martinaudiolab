@@ -1,3 +1,5 @@
+import { normalizeShop, renderShop, validateShop } from "../scripts/shop-render.mjs";
+
 const SESSION_TTL = 7 * 24 * 60 * 60;
 const DROP_TAGS = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "FORM", "VIDEO", "AUDIO"]);
 const ALLOWED_TAGS = new Set(["A", "BLOCKQUOTE", "BR", "CODE", "EM", "FIGURE", "H2", "H3", "H4", "HR", "IMG", "LI", "OL", "P", "PRE", "SPAN", "STRONG", "U", "UL"]);
@@ -40,9 +42,9 @@ function jsonResponse(request, env, value, status) {
   return new Response(responseStatus === 204 ? null : JSON.stringify(value), { status: responseStatus, headers: headers });
 }
 
-function redirect(url, cookie) {
+function redirect(url, cookies) {
   const headers = new Headers({ "Cache-Control": "no-store", Location: url });
-  if (cookie) headers.append("Set-Cookie", cookie);
+  [].concat(cookies || []).forEach(function (cookie) { headers.append("Set-Cookie", cookie); });
   return new Response(null, {
     status: 302,
     headers: headers
@@ -467,13 +469,145 @@ async function deletePost(request, env, session, body) {
   return { filename: slug + ".html", section: category.folder, commit: commit.sha };
 }
 
+
+// ---- Shop builder -------------------------------------------------------
+
+const SHOP_DATA_PATH = "shop-data/items.json";
+const SHOP_UPLOAD_PATH = /^images\/shop\/[a-z0-9][a-z0-9._-]{0,100}\.(jpg|png|webp)$/;
+const SHOP_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const MAX_SHOP_REQUEST = 30_000_000;
+const MAX_SHOP_IMAGE = 4_000_000;
+
+function shopBranch(env) {
+  const branch = env.GITHUB_BRANCH || "main";
+  if (env.ALLOW_NON_ADMIN_PUBLISHING === "true" && branch === "main") {
+    throw new HttpError(503, "Non-admin test mode must use a branch other than main.");
+  }
+  return branch;
+}
+
+async function getShopData(token, env) {
+  const branch = env.GITHUB_BRANCH || "main";
+  const file = await githubRequest(token,
+    "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY + "/contents/" + encodePath(SHOP_DATA_PATH) + "?ref=" + encodeURIComponent(branch));
+  let data;
+  try { data = JSON.parse(decodeBase64Utf8(file.content)); }
+  catch (error) { throw new HttpError(409, "shop-data/items.json on GitHub is not valid JSON."); }
+  return { sha: file.sha, data: data };
+}
+
+async function publishShop(request, env, session, body) {
+  if (!body || typeof body !== "object") throw new HttpError(400, "Invalid shop data.");
+  const baseSha = typeof body.baseSha === "string" ? body.baseSha : "";
+  if (!/^[0-9a-f]{40,64}$/i.test(baseSha)) throw new HttpError(400, "The shop data version is missing. Reload the page and try again.");
+
+  const shopData = normalizeShop(body.data);
+  const check = validateShop(shopData);
+  if (check.errors.length) throw new HttpError(400, check.errors.slice(0, 5).join(" "));
+
+  const uploads = Array.isArray(body.images) ? body.images : [];
+  if (uploads.length > 80) throw new HttpError(400, "Too many new images in one publish.");
+  const uploadedPaths = new Set();
+  uploads.forEach(function (upload) {
+    const path = upload && typeof upload.path === "string" ? upload.path : "";
+    const data = upload && typeof upload.data === "string" ? upload.data : "";
+    if (!SHOP_UPLOAD_PATH.test(path)) throw new HttpError(400, "Invalid image name: " + path.slice(0, 80));
+    if (!/^[A-Za-z0-9+\/]+={0,2}$/.test(data) || data.length * 0.75 > MAX_SHOP_IMAGE) {
+      throw new HttpError(400, "Image " + path + " is invalid or larger than 4 MB.");
+    }
+    if (uploadedPaths.has(path)) throw new HttpError(400, "Duplicate image upload: " + path);
+    uploadedPaths.add(path);
+  });
+
+  const branch = shopBranch(env);
+  const apiBase = "/repos/" + env.GITHUB_OWNER + "/" + env.GITHUB_REPOSITORY;
+  const token = session.accessToken;
+  const reference = await githubRequest(token, apiBase + "/git/ref/heads/" + encodeURIComponent(branch));
+  const parent = await githubRequest(token, apiBase + "/git/commits/" + reference.object.sha);
+
+  const current = await githubRequest(token, apiBase + "/contents/" + encodePath(SHOP_DATA_PATH) + "?ref=" + encodeURIComponent(reference.object.sha));
+  if (current.sha !== baseSha) {
+    throw new HttpError(409, "The shop was changed somewhere else after this page loaded. Reload the page and apply your edits again.");
+  }
+  let previous = { items: [] };
+  try { previous = JSON.parse(decodeBase64Utf8(current.content)); } catch (error) { }
+  const previousItems = Array.isArray(previous.items) ? previous.items : [];
+
+  const listing = await githubRequest(token, apiBase + "/git/trees/" + parent.tree.sha + "?recursive=1");
+  if (listing.truncated) throw new HttpError(503, "The repository is too large to publish the shop automatically.");
+  const existing = new Set(listing.tree.map(function (entry) { return entry.path; }));
+
+  // Every local image an item uses must be uploaded now or already in the repo.
+  const used = new Set();
+  shopData.items.forEach(function (item) {
+    item.images.forEach(function (path) {
+      if (/^https?:/.test(path)) return;
+      const local = path.replace(/^\//, "");
+      used.add(local);
+      if (!uploadedPaths.has(local) && !existing.has("site/" + local)) {
+        throw new HttpError(400, "\"" + item.title + "\" uses an image that is not in the repository: " + local);
+      }
+    });
+  });
+  uploadedPaths.forEach(function (path) {
+    if (!used.has(path)) throw new HttpError(400, "Uploaded image is not used by any item: " + path);
+  });
+
+  const entries = [];
+  async function addBlob(path, payload) {
+    const blob = await githubRequest(token, apiBase + "/git/blobs", { method: "POST", body: payload });
+    entries.push({ path: path, mode: "100644", type: "blob", sha: blob.sha });
+  }
+
+  for (const upload of uploads) {
+    await addBlob("site/" + upload.path, { content: upload.data, encoding: "base64" });
+  }
+  await addBlob(SHOP_DATA_PATH, { content: JSON.stringify(shopData, null, 2) + "\n", encoding: "utf-8" });
+  const pages = renderShop(shopData);
+  for (const name of Object.keys(pages)) {
+    await addBlob("site/shop/" + name, { content: pages[name], encoding: "utf-8" });
+  }
+
+  // Remove pages and uploaded photos that belonged to items that are gone now.
+  const newSlugs = new Set(shopData.items.map(function (item) { return item.slug; }));
+  let removed = 0;
+  previousItems.forEach(function (item) {
+    if (!item || typeof item.slug !== "string" || newSlugs.has(item.slug) || !SHOP_SLUG.test(item.slug)) return;
+    removed += 1;
+    const pagePath = "site/shop/" + item.slug + ".html";
+    if (existing.has(pagePath)) entries.push({ path: pagePath, mode: "100644", type: "blob", sha: null });
+  });
+  const deletedImages = new Set();
+  previousItems.forEach(function (item) {
+    ((item && Array.isArray(item.images)) ? item.images : []).forEach(function (path) {
+      if (typeof path !== "string" || used.has(path) || deletedImages.has(path)) return;
+      if (!SHOP_UPLOAD_PATH.test(path) || !existing.has("site/" + path)) return;
+      deletedImages.add(path);
+      entries.push({ path: "site/" + path, mode: "100644", type: "blob", sha: null });
+    });
+  });
+
+  const tree = await githubRequest(token, apiBase + "/git/trees", { method: "POST", body: { base_tree: parent.tree.sha, tree: entries } });
+  const note = typeof body.note === "string" ? body.note.replace(/\s+/g, " ").trim().slice(0, 80) : "";
+  const commit = await githubRequest(token, apiBase + "/git/commits", {
+    method: "POST",
+    body: { message: "Update shop listings" + (note ? ": " + note : ""), tree: tree.sha, parents: [reference.object.sha] }
+  });
+  await githubRequest(token, apiBase + "/git/refs/heads/" + encodeURIComponent(branch), {
+    method: "PATCH", body: { sha: commit.sha, force: false }
+  });
+  const updated = await githubRequest(token, apiBase + "/contents/" + encodePath(SHOP_DATA_PATH) + "?ref=" + encodeURIComponent(commit.sha));
+  return { commit: commit.sha, sha: updated.sha, items: shopData.items.length, removed: removed, uploaded: uploads.length, data: shopData };
+}
+
 async function startLogin(request, env) {
   assertConfigured(env);
   const state = crypto.randomUUID();
   const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
   const challenge = base64Url(new Uint8Array(digest));
-  await env.PUBLISHER_SESSIONS.put("oauth:" + state, JSON.stringify({ verifier: verifier }), { expirationTtl: 600 });
+  const returnTo = new URL(request.url).searchParams.get("return") === "shop" ? "shop" : "post";
+  await env.PUBLISHER_SESSIONS.put("oauth:" + state, JSON.stringify({ verifier: verifier, returnTo: returnTo }), { expirationTtl: 600 });
   const authorize = new URL("https://github.com/login/oauth/authorize");
   authorize.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
   authorize.searchParams.set("redirect_uri", new URL("/auth/callback", request.url).toString());
@@ -482,7 +616,19 @@ async function startLogin(request, env) {
   authorize.searchParams.set("allow_signup", "false");
   authorize.searchParams.set("code_challenge", challenge);
   authorize.searchParams.set("code_challenge_method", "S256");
-  return redirect(authorize.toString(), "oauth_state=" + encodeURIComponent(state) + "; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600");
+  return redirect(authorize.toString(), [
+    "oauth_state=" + encodeURIComponent(state) + "; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600",
+    "oauth_return=" + returnTo + "; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600"
+  ]);
+}
+
+const CLEAR_LOGIN_COOKIES = [
+  "oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0",
+  "oauth_return=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0"
+];
+
+function builderDestination(env, returnTo) {
+  return returnTo === "shop" ? new URL("/shop-builder", env.SITE_ORIGIN) : new URL(env.BUILDER_URL);
 }
 
 async function finishLogin(request, env) {
@@ -524,9 +670,9 @@ async function finishLogin(request, env) {
   };
   await env.PUBLISHER_SESSIONS.put("session:" + sessionId, JSON.stringify(session), { expirationTtl: SESSION_TTL });
   await env.PUBLISHER_SESSIONS.put("ticket:" + ticket, sessionId, { expirationTtl: 90 });
-  const destination = new URL(env.BUILDER_URL);
+  const destination = builderDestination(env, pending.returnTo);
   destination.hash = "ticket=" + encodeURIComponent(ticket);
-  return redirect(destination.toString(), "oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");
+  return redirect(destination.toString(), CLEAR_LOGIN_COOKIES);
 }
 
 async function handleApi(request, env, url) {
@@ -565,6 +711,22 @@ async function handleApi(request, env, url) {
     const categoryKey = url.searchParams.get("category");
     const result = await getSectionIndex(session.accessToken, env, categoryKey);
     return jsonResponse(request, env, Object.assign({ category: categoryKey }, result), 200);
+  }
+
+  if (url.pathname === "/api/shop" && request.method === "GET") {
+    const session = await requirePublisherAccess(request, env, sessionId);
+    return jsonResponse(request, env, await getShopData(session.accessToken, env), 200);
+  }
+
+  if (url.pathname === "/api/shop/publish" && request.method === "POST") {
+    const session = await requirePublisherAccess(request, env, sessionId);
+    if (Number(request.headers.get("Content-Length") || 0) > MAX_SHOP_REQUEST) throw new HttpError(413, "The shop update is too large. Publish fewer photos at once.");
+    const text = await request.text();
+    if (text.length > MAX_SHOP_REQUEST) throw new HttpError(413, "The shop update is too large. Publish fewer photos at once.");
+    let body;
+    try { body = JSON.parse(text); }
+    catch (error) { throw new HttpError(400, "Invalid shop data."); }
+    return jsonResponse(request, env, await publishShop(request, env, session, body), 201);
   }
 
   if (url.pathname === "/api/publish" && request.method === "POST") {
@@ -608,7 +770,7 @@ export default {
       const status = error.status || 500;
       const message = status >= 500 ? "The publisher service could not complete this request." : error.message;
       if (url.pathname === "/auth/callback" && env.BUILDER_URL && !env.BUILDER_URL.includes("YOUR_SITE_HOST")) {
-        const destination = new URL(env.BUILDER_URL);
+        const destination = builderDestination(env, cookieValue(request, "oauth_return"));
         const details = error.authDiagnostic || {};
         const fragment = new URLSearchParams({
           auth_error: error.authDiagnostic ? "not_admin" : "oauth_failed",
@@ -621,7 +783,7 @@ export default {
           detail: String(error.message || message).slice(0, 240)
         });
         destination.hash = fragment.toString();
-        return redirect(destination.toString(), "oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");
+        return redirect(destination.toString(), CLEAR_LOGIN_COOKIES);
       }
       if (url.pathname.startsWith("/api/")) return jsonResponse(request, env, { error: message }, status);
       return new Response(message, {
