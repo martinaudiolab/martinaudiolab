@@ -58,21 +58,21 @@
     "categories": [
       {
         "label": "Stereo Repair",
-        "description": "Receivers, amplifiers and turntables brought back to specification, with every step documented.",
+        "description": "Receivers, integrated amplifiers, and separates live here. Special focus is given not just on the functional reliability of repairs, but the sound quality of every product posted. \n\nA section dedicated to maintaining high quality audio devices.",
         "cta_label": "See the work",
         "href": "stereo/index.html",
         "image": "images/category-stereo.jpg"
       },
       {
         "label": "Radio Repair",
-        "description": "Vintage tube and solid-state radios restored for safe, reliable listening, from chassis to cabinet.",
+        "description": "The radio was the cornerstone of the home, back before television and the internet existed. It is important these beautifully engineered sets are maintained and brought back to life. \n\nHere you can find thorough restorations of the legacy of American radio manufacturing.",
         "cta_label": "See the work",
         "href": "radio/index.html",
         "image": "images/category-radio.jpg"
       },
       {
         "label": "Test Equipment",
-        "description": "Bench instruments serviced and recalibrated so your measurements can be trusted.",
+        "description": "Lab equipment shares the same level of historical meaning in the electronics world, but many do not pay much mind to them. \n\nA section dedicated to repairing and calibrating vintage test equipment.",
         "cta_label": "See the work",
         "href": "test-equipment/index.html",
         "image": "images/category-test-equipment.jpg"
