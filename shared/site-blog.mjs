@@ -19,7 +19,7 @@ const timeOf = (label) => {
 /** The banner slideshow of a blog page (key: "all" or a section key) with the page title on it, wrapped in markers so it can be replaced. */
 export function blogHeroHtml(content, key, label) {
   const hero = content.blog_hero[key] || content.blog_hero.all;
-  return "<!--hero-->" + heroHtml({ slides: hero.slides, label: label, title: label, short: true }) + "<!--/hero-->";
+  return "<!--hero-->" + heroHtml({ slides: hero.slides, label: label, title: label }) + "<!--/hero-->";
 }
 
 const HERO_BLOCK = /<!--hero-->[\s\S]*?<!--\/hero-->/;

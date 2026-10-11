@@ -27,7 +27,7 @@ export function heroHtml(o) {
     '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(assetUrl(slide.image)) + '" alt="' + esc(slide.alt) + '"' +
     (i === 0 ? ' fetchpriority="high"' : ' loading="lazy"') + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
   const text = o.bare ? "" : '<div class="hero-text"><h1>' + esc(o.title) + "</h1>" + (o.subtitle ? "<p>" + esc(o.subtitle) + "</p>" : "") + "</div>";
-  return '<section class="hero' + (o.short ? " hero-short" : "") + '" id="hero" aria-label="' + esc(o.label) + '">' + slides +
+  return '<section class="hero" id="hero" aria-label="' + esc(o.label) + '">' + slides +
     '<div class="hero-scrim"></div>' + text + "</section>";
 }
 
