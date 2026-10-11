@@ -10,6 +10,7 @@ export const SECTIONS = [
     key: "stereo",
     folder: "stereo",
     name: "Stereo Repair",
+    tag: "Stereo",
     description: "Receivers, amplifiers and turntables brought back to specification, with every step documented.",
     image: "images/category-stereo.jpg"
   },
@@ -17,6 +18,7 @@ export const SECTIONS = [
     key: "radio",
     folder: "radio",
     name: "Radio Repair",
+    tag: "Radio",
     description: "Vintage tube and solid-state radios restored for safe, reliable listening, from chassis to cabinet.",
     image: "images/category-radio.jpg"
   },
@@ -24,6 +26,7 @@ export const SECTIONS = [
     key: "test-equipment",
     folder: "test-equipment",
     name: "Test Equipment",
+    tag: "Test Equipment",
     description: "Bench instruments serviced and recalibrated so your measurements can be trusted.",
     image: "images/category-test-equipment.jpg"
   }

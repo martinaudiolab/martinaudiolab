@@ -130,10 +130,10 @@ assert.ok(index.includes('<article class="post post-card"><header class="card-he
   const card = index.slice(index.indexOf('<article class="post post-card"><header class="card-head"><h2><a href="marantz-2270-recap.html">'));
   const one = card.slice(0, card.indexOf("</article>"));
   assert.ok(one.includes('<p class="card-sub">All caps replaced</p>'), "summary is the subtitle");
-  assert.ok(one.includes('<div class="meta card-date">October 9, 2026</div>'), "date sits under the subtitle");
+  assert.ok(one.includes('<p class="card-sub">All caps replaced</p><time class="card-date">October 9th, 2026</time></header><hr class="card-rule">'), "date sits under the subtitle, then the full-width rule");
   assert.ok(!/By:|author|Comments/i.test(one), "no author line or comments button");
-  assert.ok(one.includes('<p class="card-excerpt">Body <a class="more" href="marantz-2270-recap.html">Read more</a></p>'), "excerpt from the post text: " + one);
-  assert.ok(one.includes('<a class="card-tag" href="/stereo/">Stereo Repair</a>'), "tag names the section");
+  assert.ok(one.includes('<p class="card-excerpt">Body <a class="more" href="marantz-2270-recap.html">Read More</a></p>'), "excerpt from the post text: " + one);
+  assert.ok(one.includes('<footer class="card-foot"><a class="card-tag" href="/stereo/">Stereo</a></footer>'), "tag shows the category label");
 }
 assert.ok(head.tree["site/stereo/marantz-2270-recap.html"]);
 

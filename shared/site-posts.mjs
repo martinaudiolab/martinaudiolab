@@ -44,24 +44,37 @@ export function postBodyHtml(pageHtml) {
   return m ? m[1] : "";
 }
 
+/** "October 10, 2026" -> "October 10th, 2026" (a date that already has its suffix is left alone). */
+export function ordinalDate(label) {
+  return String(label).replace(/\b(\d{1,2})(?:st|nd|rd|th)?(?=,)/, (m, day) => {
+    const n = Number(day);
+    const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : { 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th";
+    return n + suffix;
+  });
+}
+
 /**
- * A listing card for a section page or the blog page: title, one-line summary, date, picture and
- * excerpt, and a tag naming the section. o: { section, slug, titleHtml, summary, date, thumb, excerpt,
- * href (the post's address; default "<slug>.html"), tagHref (default "/<folder>/") }.
+ * A listing card for a section page or the blog page, in this order: header (title, subtitle, date),
+ * a full-width rule, picture + excerpt, and a footer band with one tag naming the section.
+ * No author line and no comments. o: { section ({ folder } of a known section), slug, titleHtml,
+ * summary (the subtitle), date, thumb, excerpt, href (the post's address; default "<slug>.html"),
+ * tagHref (default "/<folder>/") }.
  * The title link stays an <h2><a href="...html"> inside <article class="post">, which the Worker and
  * the Manage Blog Posts tab rely on.
  */
 export function cardHtml(o) {
+  const section = sectionByFolder(o.section && o.section.folder);
+  if (!section) throw new Error("Unknown blog section for a listing card: " + JSON.stringify(o.section && o.section.folder));
   const href = o.href || o.slug + ".html";
-  const tagHref = o.tagHref || "/" + o.section.folder + "/";
-  const more = '<a class="more" href="' + attr(href) + '">Read more</a>';
+  const tagHref = o.tagHref || "/" + section.folder + "/";
   return '<article class="post post-card">' +
     '<header class="card-head"><h2><a href="' + attr(href) + '">' + o.titleHtml + "</a></h2>" +
     (o.summary ? '<p class="card-sub">' + attr(o.summary) + "</p>" : "") +
-    '<div class="meta card-date">' + attr(o.date) + "</div></header>" +
+    '<time class="card-date">' + attr(ordinalDate(o.date)) + "</time></header>" +
+    '<hr class="card-rule">' +
     '<div class="card-body">' + thumbLink(o.slug, o.thumb, href) +
-    '<p class="card-excerpt">' + (o.excerpt ? attr(o.excerpt) + " " : "") + more + "</p></div>" +
-    '<footer class="card-foot"><a class="card-tag" href="' + attr(tagHref) + '">' + attr(o.section.name) + "</a></footer></article>";
+    '<p class="card-excerpt">' + (o.excerpt ? attr(o.excerpt) + " " : "") + '<a class="more" href="' + attr(href) + '">Read More</a></p></div>' +
+    '<footer class="card-foot"><a class="card-tag" href="' + attr(tagHref) + '">' + attr(section.tag) + "</a></footer></article>";
 }
 
 /**
@@ -114,7 +127,7 @@ export function listingsOf(indexHtml) {
     const link = inner.match(new RegExp('<h2><a href="(?:/[a-z0-9-]+/)?(' + SLUG + ')(?:\\.html)?">([\\s\\S]*?)</a></h2>'));
     if (!link) continue;
     // the card layout, or the earlier plain listing layout
-    const date = inner.match(/<div class="meta[^"]*">([^<&]*?)\s*(?:&nbsp;|<)/);
+    const date = inner.match(/<time class="card-date">([^<]*)<\/time>/) || inner.match(/<div class="meta[^"]*">([^<&]*?)\s*(?:&nbsp;|<)/);
     const summary = inner.match(/<p class="card-sub">([\s\S]*?)<\/p>/) || inner.match(/<div class="body"><p>([\s\S]*?)<\/p>/);
     const excerpt = inner.match(/<p class="card-excerpt">([\s\S]*?)\s*<a class="more"/);
     const thumb = inner.match(/<img src="([^"]+)"/);

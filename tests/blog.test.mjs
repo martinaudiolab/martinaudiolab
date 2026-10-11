@@ -154,16 +154,27 @@ const content = normalizeContent({});
 
   const card = cardHtml({ section, slug: "my-post", titleHtml: "My &amp; post", summary: "A short line", date: "October 9, 2026", thumb: "/images/category-radio.jpg", excerpt: "The text." });
   assert.ok(card.startsWith('<article class="post post-card"><header class="card-head"><h2><a href="my-post.html">My &amp; post</a></h2>'));
-  assert.ok(card.includes('<p class="card-sub">A short line</p><div class="meta card-date">October 9, 2026</div></header>'), "subtitle then date");
-  assert.ok(card.includes('<p class="card-excerpt">The text. <a class="more" href="my-post.html">Read more</a></p>'));
-  assert.ok(card.includes('<footer class="card-foot"><a class="card-tag" href="/radio/">Radio Repair</a></footer>'));
+  assert.ok(card.includes('<p class="card-sub">A short line</p><time class="card-date">October 9th, 2026</time></header><hr class="card-rule">'), "header is title, subtitle, date; then the rule");
+  assert.ok(card.includes('<p class="card-excerpt">The text. <a class="more" href="my-post.html">Read More</a></p>'));
+  assert.ok(card.includes('<footer class="card-foot"><a class="card-tag" href="/radio/">Radio</a></footer>'), "tag is the category label");
   assert.ok(!/By:|Comments|author/i.test(card), "no author or comments");
+  assert.ok(card.indexOf("card-head") < card.indexOf("card-rule") && card.indexOf("card-rule") < card.indexOf("card-body") && card.indexOf("card-body") < card.indexOf("card-foot"), "header, rule, body, footer in order");
+  // the footer tag is one of exactly three labels, and an unknown section is refused
+  for (const [folder, label] of [["stereo", "Stereo"], ["radio", "Radio"], ["test-equipment", "Test Equipment"]]) {
+    assert.ok(cardHtml({ section: { folder }, slug: "s", titleHtml: "T", summary: "", date: "October 1, 2026", thumb: "/x.jpg" }).includes('class="card-tag" href="/' + folder + '/">' + label + "</a>"), folder);
+  }
+  assert.throws(() => cardHtml({ section: { folder: "news" }, slug: "s", titleHtml: "T", summary: "", date: "October 1, 2026", thumb: "/x.jpg" }), /Unknown blog section/);
+  // dates get an ordinal; running it again changes nothing
+  const { ordinalDate } = await import("../shared/site-posts.mjs");
+  assert.deepEqual(["October 1, 2026", "October 2, 2026", "October 3, 2026", "October 4, 2026", "October 11, 2026", "October 12, 2026", "October 13, 2026", "October 21, 2026", "October 22, 2026", "October 23, 2026", "October 31, 2026"].map(ordinalDate),
+    ["October 1st, 2026", "October 2nd, 2026", "October 3rd, 2026", "October 4th, 2026", "October 11th, 2026", "October 12th, 2026", "October 13th, 2026", "October 21st, 2026", "October 22nd, 2026", "October 23rd, 2026", "October 31st, 2026"]);
+  assert.equal(ordinalDate("October 10th, 2026"), "October 10th, 2026");
   assert.ok(!cardHtml({ section, slug: "s", titleHtml: "T", summary: "", date: "D", thumb: "/x.jpg" }).includes("card-sub"), "no empty subtitle");
 
   // a card reads back as the same post
   const [back] = parse(card);
   assert.deepEqual([back.slug, back.title, back.date, back.summary, back.excerpt, back.thumb],
-    ["my-post", "My & post", "October 9, 2026", "A short line", "The text.", "/images/category-radio.jpg"]);
+    ["my-post", "My & post", "October 9th, 2026", "A short line", "The text.", "/images/category-radio.jpg"]);
 
   // excerpts: plain text, shortened at a word, no markup, nothing for photo-only posts
   assert.equal(excerptOf("<p>Hello <strong>world</strong> &amp; more</p>"), "Hello world & more");
@@ -178,8 +189,23 @@ const content = normalizeContent({});
   const ctx = { section, exists: () => false, excerptFor: (slug) => (slug === "old" ? "From the post body." : "") };
   const upgraded = normalizeCards(older, ctx);
   assert.ok(upgraded.includes('<article class="post post-card">') && !upgraded.includes("has-thumb"));
-  assert.ok(upgraded.includes('<p class="card-sub">Summary line</p>') && upgraded.includes('<div class="meta card-date">October 1, 2026</div>'));
+  assert.ok(upgraded.includes('<p class="card-sub">Summary line</p>') && upgraded.includes('<time class="card-date">October 1st, 2026</time>'));
   assert.ok(upgraded.includes("From the post body.") && upgraded.includes('src="/images/category-radio.jpg"'), "legacy ../ picture path made absolute");
   assert.equal(normalizeCards(upgraded, ctx), upgraded, "idempotent");
   console.log("ok 7: listing cards");
+}
+
+// 8. the blog page sorts cards whose dates carry an ordinal, newest first
+{
+  const { cardHtml } = await import("../shared/site-posts.mjs");
+  const mk = (folder, slug, date) => cardHtml({ section: { folder }, slug, titleHtml: slug, summary: "s", date, thumb: "/images/category-" + folder + ".jpg", excerpt: "e" });
+  const html = renderBlogHub(content, {
+    stereo: "<main>" + mk("stereo", "s-nine", "October 9, 2026") + mk("stereo", "s-two", "October 2, 2026") + "</main>",
+    radio: "<main>" + mk("radio", "r-ten", "October 10, 2026") + "</main>",
+    "test-equipment": "<main>" + mk("test-equipment", "t-twenty", "October 20, 2026") + "</main>"
+  });
+  const order = Array.from(html.matchAll(/<h2><a href="([^"]+)">/g)).map((m) => m[1]);
+  assert.deepEqual(order, ["/test-equipment/t-twenty", "/radio/r-ten", "/stereo/s-nine", "/stereo/s-two"]);
+  assert.ok(html.includes("October 20th, 2026") && html.includes('class="card-tag" href="/test-equipment/">Test Equipment</a>'));
+  console.log("ok 8: ordinal dates sort correctly on the blog page");
 }

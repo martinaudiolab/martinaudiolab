@@ -12,7 +12,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 
 /** Dates on listings are "October 9, 2026"; anything unparseable sorts last. */
 const timeOf = (label) => {
-  const t = Date.parse(label + " UTC");
+  const t = Date.parse(String(label).replace(/(\d)(?:st|nd|rd|th)\b/, "$1") + " UTC");
   return Number.isNaN(t) ? 0 : t;
 };
 
