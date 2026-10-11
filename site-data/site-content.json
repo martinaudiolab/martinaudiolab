@@ -98,7 +98,7 @@
   },
   "request": {
     "title": "Request a Restoration",
-    "intro": "Have a unit that needs attention? Send me the details and I will get back to you.",
+    "intro": "If you have a unit that you would like to have restored by myself, please use the form below to contact me. I am fairly busy but I will respond when I can. I restore client items to the same standard as anything posted here. \n\nNote: I do not work on cassette decks or reel to reel decks.",
     "form_action": "https://formspree.io/f/mgaoyoql",
     "subject": "New Restoration Request — Martin Audio Labs",
     "success_message": "Thanks — I'll get back to you within 1-2 business days."
