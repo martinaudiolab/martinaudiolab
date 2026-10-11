@@ -1,0 +1,107 @@
+{
+  "site_name": "Martin Audio Labs",
+  "contact_email": "thealexandersound@gmail.com",
+  "nav_items": [
+    {
+      "label": "Home",
+      "href": "index.html"
+    },
+    {
+      "label": "Shop",
+      "href": "shop/index.html"
+    },
+    {
+      "label": "Request a Restoration",
+      "href": "request.html"
+    },
+    {
+      "label": "Restoration Blog",
+      "children": [
+        {
+          "label": "Stereo Repair",
+          "href": "stereo/index.html"
+        },
+        {
+          "label": "Radio Repair",
+          "href": "radio/index.html"
+        },
+        {
+          "label": "Test Equipment",
+          "href": "test-equipment/index.html"
+        }
+      ]
+    },
+    {
+      "label": "About Me",
+      "href": "about.html"
+    }
+  ],
+  "theme": "auto",
+  "homepage": {
+    "hero": {
+      "slides": [
+        {
+          "image": "images/banner.jpg",
+          "alt": ""
+        }
+      ],
+      "title": "High end audio and radio restorations.",
+      "subtitle": "Stereo, radio and test equipment, restored with quality first"
+    },
+    "intro": {
+      "text": "I restore stereo, radio, and test equipment — one unit at a time, done right. Browse recent work or grab a part from the shop."
+    },
+    "categories": [
+      {
+        "label": "Stereo Repair",
+        "description": "",
+        "href": "stereo/index.html",
+        "image": "images/category-stereo.jpg"
+      },
+      {
+        "label": "Radio Repair",
+        "description": "",
+        "href": "radio/index.html",
+        "image": "images/category-radio.jpg"
+      },
+      {
+        "label": "Test Equipment",
+        "description": "",
+        "href": "test-equipment/index.html",
+        "image": "images/category-test-equipment.jpg"
+      }
+    ],
+    "product_carousel": {
+      "enabled": true,
+      "heading": "For Sale Now",
+      "view_all_link": {
+        "label": "View the shop",
+        "href": "shop/index.html"
+      }
+    },
+    "trust_line": ""
+  },
+  "request": {
+    "title": "Request a Restoration",
+    "intro": "Have a unit that needs attention? Send me the details and I will get back to you.",
+    "form_action": "https://formspree.io/f/YOUR_FORM_ID",
+    "subject": "New Restoration Request — Martin Audio Labs",
+    "success_message": "Thanks — I'll get back to you within 1-2 business days."
+  },
+  "about": {
+    "title": "About Me",
+    "bio": "I'm Alexander Martin, a technician who specializes in detailed, full restorations of stereo equipment, radio equipment, test equipment, and more.",
+    "sections": [
+      {
+        "heading": "My Philosophy",
+        "body": "Martin Audio Labs is a company I built from the ground up as a single person operation. Every single aspect of this company is controlled by me, and meets my personal standards. Every tool, every component, and every process has been tailored to my standards and quality. I control all aspects of Martin Audio Labs.\n\nQuality: Restorations to me are not just a functional service performed to make something more reliable. They are an art unto themselves. I take pride in my work and units do not leave my home unless I am personally satisfied with the end result. Many shops specialize in high output, quickly shuffled restorations as they are focused primarily on profit and moving things as quickly as possible. I do not focus on moving things as fast as possible, I focus on doing things right.\n\nSkillset: My desire to do things right has caused me to branch out and build on a multiplicity of skill sets commonly divided up to different people. I offer complete woodworking options, custom circuit boards, and full scale troubleshooting and restorations. Martin Audio Labs was actually founded after I began engineering products, my earliest venture being a replacement for the BA312 IC found in Sansui and Marantz products. This wide range of applied skills gives me some advantages that other shops fundamentally lack. In fact, I regularly sell my own products to my competitors.\n\nSound Quality: I do not see restorations as just a reliability improvement. I firmly believe through my long experience, that a proper high quality restoration makes a noticeable improvement in fidelity. I reject many of the assertions pushed today about the superiority of vintage parts, I believe the best parts are made now and if you use them right, you will improve the component. I wholeheartedly embrace and believe in the technology available to us today to deliver repeatable, noticeable improvements in sound quality, and I believe a unit should sound better leaving my home than when it entered my home. Every single modern high end audio products embraces new technology, so it only follows a high end restoration should do the same."
+      }
+    ],
+    "contact": {
+      "heading": "Questions or comments?",
+      "email": "thealexandersound@gmail.com"
+    },
+    "location": "",
+    "response_time": ""
+  }
+}

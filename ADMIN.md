@@ -108,3 +108,9 @@ npx wrangler deploy --config wrangler.toml --env testing
 ```
 
 Never point the test Worker at `main`, and keep `ALLOW_NON_ADMIN_PUBLISHING = "false"` in production.
+
+## Development notes
+
+- **Build:** `node scripts/build-site.mjs` regenerates the pages from `site-data/` and `shop-data/`, applies the site name and navigation to every page, and writes `site/robots.txt`. Set the `SITE_URL` environment variable (for example `https://martinaudiolabs.com`) to also write `site/sitemap.xml`. In GitHub Actions, add a repository variable called `SITE_URL`; the deploy workflow passes it to the build.
+- **Tests:** `cd tests && npm install && npm test` runs the browser-side and Worker test suites (one file per area, `*.test.mjs`; pinned data in `tests/fixtures`). The *Tests* workflow runs them on every push and pull request, separately from the deploy so that saving content in `/admin` is never blocked.
+- **404 page:** `wrangler.jsonc` serves `site/404.html` for any missing address; the page uses `<base href="/">` so its styles and links work from any depth.

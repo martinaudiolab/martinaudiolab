@@ -105,5 +105,28 @@ for (const file of walk(SITE)) {
   }
 }
 
+// 5. robots.txt and sitemap.xml (the sitemap needs the public address: set SITE_URL, e.g. https://martinaudiolabs.com)
+const siteUrl = (process.env.SITE_URL || "").trim().replace(/\/+$/, "");
+const sectionFolders = ["stereo", "radio", "test-equipment"];
+const clean = [
+  "/", "/shop/", "/about", "/request",
+  ...Object.keys(shopFiles).filter((n) => n.endsWith(".html") && n !== "index.html").map((n) => "/shop/" + n.replace(/\.html$/, ""))
+];
+for (const folder of sectionFolders) {
+  const dir = path.join(SITE, folder);
+  if (!fs.existsSync(dir)) continue;
+  clean.push("/" + folder + "/");
+  for (const name of fs.readdirSync(dir).sort()) {
+    if (name.endsWith(".html") && name !== "index.html") clean.push("/" + folder + "/" + name.replace(/\.html$/, ""));
+  }
+}
+const robots = "User-agent: *\nDisallow: /admin\nDisallow: /admin.html\n" + (siteUrl ? "\nSitemap: " + siteUrl + "/sitemap.xml\n" : "");
+writeIfChanged(path.join(SITE, "robots.txt"), robots);
+if (siteUrl) {
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    clean.map((u) => "  <url><loc>" + siteUrl + u + "</loc></url>").join("\n") + "\n</urlset>\n";
+  writeIfChanged(path.join(SITE, "sitemap.xml"), xml);
+}
+
 console.log("Site built from " + CONTENT_PATH + ": " + written + " generated page(s) updated, global fields applied to " + applied + " other page(s).");
 check.warnings.forEach((w) => console.log("Warning: " + w));

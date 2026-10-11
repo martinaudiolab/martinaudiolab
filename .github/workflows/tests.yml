@@ -1,0 +1,33 @@
+name: Tests
+
+# Runs the UI and Worker test suites in tests/. Separate from the deploy workflow on purpose:
+# editing content in /admin must never be blocked by a test failure.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "site/**"
+      - "scripts/**"
+      - "publisher/**"
+      - "tests/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install test dependencies
+        working-directory: tests
+        run: npm ci
+      - name: Run tests
+        working-directory: tests
+        run: npm test

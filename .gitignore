@@ -1,0 +1,10 @@
+# dependencies and tool caches
+node_modules/
+.wrangler/
+.dev.vars
+.env
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+*.log

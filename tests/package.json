@@ -1,0 +1,11 @@
+{
+  "name": "martinaudiolab-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node run-all.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  }
+}

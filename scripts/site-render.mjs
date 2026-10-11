@@ -129,7 +129,10 @@ export function applyGlobals(html, content, rel) {
     const cut = title.lastIndexOf(" - ");
     if (cut > 0) out = out.slice(0, t1 + 7) + title.slice(0, cut) + " - " + esc(content.site_name) + out.slice(t2);
   }
-  const script = NAV_SCRIPT(prefix);
-  if (!out.includes(script)) out = out.replace("</body>", () => script + "</body>");
+  // Match any spelling of the tag: the publisher Worker writes defer="" where the templates write defer.
+  const navScript = /<script\b[^>]*\bsrc="[^"]*nav\.js"[^>]*>\s*<\/script>/g;
+  const found = out.match(navScript) || [];
+  if (found.length === 0) out = out.replace("</body>", () => NAV_SCRIPT(prefix) + "</body>");
+  else if (found.length > 1) { let seen = false; out = out.replace(navScript, (tag) => (seen ? "" : ((seen = true), tag))); }
   return out;
 }
