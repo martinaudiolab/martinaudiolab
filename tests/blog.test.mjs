@@ -103,17 +103,46 @@ const content = normalizeContent({});
   console.log("ok 5: blog landing page");
 }
 
-// 6. the real site: every post page has the chrome, and the landing page exists
+// 6. the site as the deploy builds it: every post page has the breadcrumb and older/newer links.
+// The committed files do not have to: a post published from the admin gets its pager at build time,
+// so this builds a scratch copy (after deliberately stripping the pager from one post) and checks that.
 {
-  const hub = read("site/blog/index.html");
-  assert.ok(hub.includes("Restoration Blog"));
-  for (const s of SECTIONS) {
-    for (const name of fs.readdirSync(ROOT + "site/" + s.folder)) {
-      if (name === "index.html" || !name.endsWith(".html")) continue;
-      const page = read("site/" + s.folder + "/" + name);
-      assert.ok(page.includes("<!--crumbs-->") && page.includes("<!--pager-->"), s.folder + "/" + name + " has breadcrumb and pager");
-      assert.equal((page.match(/<!--crumbs-->/g) || []).length, 1);
+  const os = await import("node:os");
+  const path = await import("node:path");
+  const { spawnSync } = await import("node:child_process");
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "mal-blog-"));
+  try {
+    for (const dir of ["site", "build", "shared", "site-data", "shop-data"]) fs.cpSync(path.join(ROOT, dir), path.join(work, dir), { recursive: true });
+
+    // a post exactly as the Worker writes it: breadcrumb present, no pager yet
+    const target = SECTIONS.flatMap((s) => fs.readdirSync(path.join(work, "site", s.folder))
+      .filter((n) => n !== "index.html" && n.endsWith(".html")).map((n) => path.join(work, "site", s.folder, n)))[0];
+    if (target) {
+      const stripped = fs.readFileSync(target, "utf8").replace(/<!--pager-->[\s\S]*?<!--\/pager-->/, "");
+      fs.writeFileSync(target, stripped);
+      assert.ok(!stripped.includes("<!--pager-->"));
     }
+
+    const run = spawnSync(process.execPath, [path.join(work, "build", "build-site.mjs")], { cwd: work, encoding: "utf8" });
+    assert.equal(run.status, 0, run.stderr);
+
+    const hub = fs.readFileSync(path.join(work, "site", "blog", "index.html"), "utf8");
+    assert.ok(hub.includes("Restoration Blog"));
+    let checked = 0;
+    for (const section of SECTIONS) {
+      const dir = path.join(work, "site", section.folder);
+      for (const name of fs.readdirSync(dir)) {
+        if (name === "index.html" || !name.endsWith(".html")) continue;
+        const page = fs.readFileSync(path.join(dir, name), "utf8");
+        const label = section.folder + "/" + name;
+        assert.equal((page.match(/<!--crumbs-->/g) || []).length, 1, label + " has one breadcrumb");
+        assert.equal((page.match(/<!--pager-->/g) || []).length, 1, label + " has one pager block");
+        assert.ok(hub.includes("/" + section.folder + "/" + name.replace(/\.html$/, "")), label + " is listed on the blog page");
+        checked++;
+      }
+    }
+    console.log("ok 6: " + checked + " post pages carry the chrome after a build");
+  } finally {
+    fs.rmSync(work, { recursive: true, force: true });
   }
-  console.log("ok 6: published pages carry the chrome");
 }
