@@ -84,6 +84,8 @@
     if (tag === "A" && name === "href") return isSafeLink(value) ? value : null;
     if (tag === "SPAN" && name === "style") return safeSpanStyle(element) || null;
     if (tag === "FIGURE" && name === "data-gallery") return GALLERY_LAYOUTS.includes(value) ? value : null;
+    if (tag === "FIGURE" && name === "data-w") return IMAGE_WIDTHS.includes(value) ? value : null;
+    if (tag === "FIGURE" && name === "data-a") return IMAGE_ALIGNMENTS.includes(value) ? value : null;
     if (tag === "IMG") {
       if (name === "src") return IMAGE_DATA_URL.test(value) ? value : null;
       if (name === "alt") return value;
@@ -600,16 +602,20 @@
     $("image-tools").hidden = true;
   }
 
+  /** The element that carries width and alignment: the gallery for a gallery photo, else the photo itself. */
+  function sizeTarget(image) {
+    return image.closest("figure[data-gallery]") || image;
+  }
+
   function selectImage(image) {
     deselectImage();
     selectedImage = image;
     image.classList.add("sel");
-    // width and alignment apply to single photos; a gallery photo sizes itself to its grid cell
-    var inGallery = Boolean(image.closest("figure[data-gallery]"));
-    $("image-width").disabled = inGallery;
-    $("image-align").disabled = inGallery;
-    $("image-width").value = image.dataset.w || "100";
-    $("image-align").value = image.dataset.a || "c";
+    // for a gallery photo, width and alignment belong to the whole gallery
+    var target = sizeTarget(image);
+    $("image-tools-title").textContent = target === image ? "Selected image" : "Selected gallery photo (width and alignment apply to the whole gallery)";
+    $("image-width").value = target.dataset.w || "100";
+    $("image-align").value = target.dataset.a || "c";
     $("image-alt").value = image.alt || "";
     $("image-tools").hidden = false;
   }
@@ -670,10 +676,10 @@
       else deselectImage();
     });
     $("image-width").addEventListener("change", function (event) {
-      if (selectedImage) selectedImage.dataset.w = event.target.value;
+      if (selectedImage) sizeTarget(selectedImage).dataset.w = event.target.value;
     });
     $("image-align").addEventListener("change", function (event) {
-      if (selectedImage) selectedImage.dataset.a = event.target.value;
+      if (selectedImage) sizeTarget(selectedImage).dataset.a = event.target.value;
     });
     $("image-alt").addEventListener("input", function (event) {
       if (selectedImage) selectedImage.alt = event.target.value;

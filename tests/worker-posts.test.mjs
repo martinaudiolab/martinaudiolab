@@ -190,3 +190,18 @@ console.log("ok: post thumbnails (publish, fallback, validation, delete)");
   assert.ok(!page.includes('data-gallery="7"') && !/onclick|class="big"/.test(page));
   console.log("ok: gallery survives publishing");
 }
+
+// 7. a gallery's width and alignment survive the Worker's sanitiser; unknown values do not
+{
+  seed();
+  head.tree["site/stereo/index.html"] = putBlob(Buffer.from(INDEX));
+  commits[head.sha] = { tree: structuredClone(head.tree) };
+  const content = '<figure data-gallery="2" data-w="50" data-a="r"><img src="data:image/jpeg;base64,AAAA" alt=""></figure>' +
+    '<figure data-gallery="4" data-w="33" data-a="x"><img src="data:image/jpeg;base64,BBBB" alt=""></figure>';
+  const res = await call("/api/publish", "POST", post({ title: "Sized Gallery", content }));
+  assert.equal(res.status, 201, JSON.stringify(res.body));
+  const page = blobs.get(head.tree["site/stereo/sized-gallery.html"]).toString();
+  assert.ok(page.includes('<figure data-gallery="2" data-w="50" data-a="r">'), page.slice(page.indexOf("<figure")));
+  assert.ok(page.includes('<figure data-gallery="4"><img') && !/data-w="33"|data-a="x"/.test(page));
+  console.log("ok: gallery width and alignment survive publishing");
+}

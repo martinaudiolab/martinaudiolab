@@ -49,6 +49,10 @@ export async function sanitizeContent(html, siteOrigin) {
           return;
         } else if (tagName === "FIGURE" && name === "data-gallery" && ["2", "4"].includes(value)) {
           return;
+        } else if (tagName === "FIGURE" && name === "data-w" && ["25", "50", "75", "100"].includes(value)) {
+          return;
+        } else if (tagName === "FIGURE" && name === "data-a" && ["c", "l", "r"].includes(value)) {
+          return;
         } else if (tagName === "SPAN" && name === "style") {
           const style = safeSpanStyle(value);
           if (style) {

@@ -83,8 +83,18 @@ const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
   // a gallery photo disables width/alignment; removing the last photo removes the figure
   const first = figures[0].querySelector("img");
   first.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
-  assert.equal($("image-width").disabled, true);
-  assert.equal($("image-align").disabled, true);
+  assert.equal($("image-width").disabled, false, "width is live for a gallery photo");
+  assert.equal($("image-align").disabled, false, "alignment is live for a gallery photo");
+  assert.match($("image-tools-title").textContent, /whole gallery/);
+  $("image-width").value = "50"; $("image-width").dispatchEvent(new w.Event("change", { bubbles: true }));
+  $("image-align").value = "r"; $("image-align").dispatchEvent(new w.Event("change", { bubbles: true }));
+  assert.equal(figures[0].dataset.w, "50", "width is set on the gallery");
+  assert.equal(figures[0].dataset.a, "r", "alignment is set on the gallery");
+  assert.equal(first.dataset.w, undefined, "the photo itself is untouched");
+  // selecting another photo of the same gallery shows the gallery's settings
+  figures[0].querySelectorAll("img")[1].dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+  assert.equal($("image-width").value, "50");
+  assert.equal($("image-align").value, "r");
   const loneFigure = w.document.createElement("figure");
   loneFigure.setAttribute("data-gallery", "2");
   loneFigure.innerHTML = '<img src="data:image/png;base64,AAAA" alt="">';
@@ -97,6 +107,7 @@ const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
   $("post-content").appendChild(single);
   single.querySelector("img").dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
   assert.equal($("image-width").disabled, false, "single photos keep their size controls");
+  assert.match($("image-tools-title").textContent, /^Selected image$/, "no gallery wording for a single photo");
 
   // the gallery survives publishing (the page sanitiser keeps the layout, drops anything unknown)
   const calls = [];
@@ -106,6 +117,12 @@ const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
     return realFetch(url, init);
   };
   $("post-title").value = "Gallery post"; $("post-summary").value = "S";
+  $("post-content").innerHTML = '<p>Sized</p><figure data-gallery="2" data-w="50" data-a="l"><img src="data:image/png;base64,SSSS" alt=""></figure>' +
+    '<figure data-gallery="4" data-w="33" data-a="x"><img src="data:image/png;base64,TTTT" alt=""></figure>';
+  $("pb-publish").click(); await tick(150);
+  const sized = calls.at(-1).content;
+  assert.ok(sized.includes('<figure data-gallery="2" data-w="50" data-a="l">'), sized);
+  assert.ok(sized.includes('<figure data-gallery="4"><img') && !/data-w="33"|data-a="x"/.test(sized), "unknown size and alignment are dropped");
   $("post-content").innerHTML = '<p>Condition</p><figure data-gallery="2" onclick="x()" class="y"><img src="data:image/png;base64,AAAA" alt="front"><img src="data:image/png;base64,BBBB" alt=""></figure>' +
     '<figure data-gallery="9"><img src="data:image/png;base64,CCCC"></figure>';
   $("pb-publish").click(); await tick(150);
@@ -245,7 +262,7 @@ const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
 
   // select a gallery photo, then add one single photo: it goes after the gallery, with working controls
   click(galleries[0].querySelector("img"));
-  assert.equal($("image-width").disabled, true);
+  assert.equal($("image-width").disabled, false, "a gallery's width control works");
   await chooseImage(png("single.png"));
   const single = Array.from(editor.querySelectorAll("img")).find((i) => !i.closest("figure[data-gallery]"));
   assert.ok(single, "the single photo is outside every gallery");
@@ -277,5 +294,11 @@ const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
 {
   assert.match(css, /figure\[data-gallery\] > :not\(img\)\{grid-column:1\/-1;margin:0\}/);
   assert.match(css, /figure\[data-gallery\] figure\[data-gallery\]\{margin:0\}/);
-  console.log("ok 7: stray content spans the full row");
+  assert.match(css, /figure\[data-gallery\]\[data-w="50"\]\{width:50%\}/);
+  assert.match(css, /figure\[data-gallery\]\[data-a="l"\]\{float:left;/);
+  assert.match(css, /figure\[data-gallery\]\[data-a="r"\]\{float:right;/);
+  assert.match(css, /figure\[data-gallery\]\[data-a="c"\]\{margin-left:auto;margin-right:auto\}/);
+  assert.match(css, /\.bar select\{width:auto;/, "image tools: selects are compact, not full width");
+  assert.match(css, /\.bar label\{display:inline;/);
+  console.log("ok 7: stray content spans the full row; gallery size and alignment styles");
 }
