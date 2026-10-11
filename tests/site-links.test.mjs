@@ -130,3 +130,29 @@ const SITE = ROOT + "site/";
     console.log("ok 4: a deleted post leaves no dangling links after a build");
   }
 }
+
+// 5. the site icon: files exist and are real images, and every page links them (so browsers never ask for a missing /favicon.ico)
+{
+  const { FAVICON_LINKS } = await import("../shared/site-urls.mjs");
+  const png = fs.readFileSync(ROOT + "site/apple-touch-icon.png");
+  assert.deepEqual(Array.from(png.subarray(0, 8)), [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], "apple-touch-icon is a PNG");
+  assert.equal(png.readUInt32BE(16), 180);
+  const ico = fs.readFileSync(ROOT + "site/favicon.ico");
+  assert.equal(ico.readUInt16LE(2), 1, "favicon.ico is an icon file");
+  assert.equal(ico.readUInt16LE(4), 1, "with one image");
+  assert.deepEqual(Array.from(ico.subarray(22, 30)), [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], "holding a PNG");
+  assert.ok(fs.readFileSync(ROOT + "site/favicon.svg", "utf8").startsWith("<svg"));
+  assert.ok(FAVICON_LINKS.includes('href="/favicon.svg"') && FAVICON_LINKS.includes('href="/favicon.ico"') && FAVICON_LINKS.includes('apple-touch-icon'));
+
+  // every page of the built site declares an icon
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "mal-icon-"));
+  process.on("exit", () => fs.rmSync(work, { recursive: true, force: true }));
+  for (const dir of ["site", "build", "shared", "site-data", "shop-data"]) fs.cpSync(path.join(ROOT, dir), path.join(work, dir), { recursive: true });
+  const built = spawnSync(process.execPath, [path.join(work, "build", "build-site.mjs")], { cwd: work, encoding: "utf8", env: { ...process.env, SITE_URL: "" } });
+  assert.equal(built.status, 0, built.stderr);
+  const without = walk(path.join(work, "site")).filter((f) => f.endsWith(".html"))
+    .filter((f) => !/rel="icon"/.test(fs.readFileSync(f, "utf8"))).map((f) => path.relative(work, f));
+  assert.deepEqual(without, [], "pages without an icon link");
+  console.log("ok 5: site icon files and links");
+}

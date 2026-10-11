@@ -7,6 +7,11 @@
 // Pure string code shared by the build scripts and publisher/worker.js.
 
 export const CSS_URL = "/assets/css/style.css";
+
+/** The site icon, in the <head> of every page (the files are written by build/make-icons.mjs). */
+export const FAVICON_LINKS = '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' +
+  '<link rel="icon" href="/favicon.ico" sizes="32x32">' +
+  '<link rel="apple-touch-icon" href="/apple-touch-icon.png">';
 export const jsUrl = (name) => "/assets/js/" + name;
 
 const external = (h) => /^(https?:|mailto:|data:|blob:)/i.test(h);

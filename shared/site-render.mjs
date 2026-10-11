@@ -3,14 +3,14 @@
 // hand-written or published pages. Pure string code: no file-system APIs.
 
 import { NAV_SCRIPT, navHtml } from "./site-nav.mjs";
-import { CSS_URL, absolutizeAssets, assetUrl, jsUrl, pageUrl } from "./site-urls.mjs";
+import { CSS_URL, FAVICON_LINKS, absolutizeAssets, assetUrl, jsUrl, pageUrl } from "./site-urls.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const external = (h) => /^(https?:|mailto:)/i.test(h);
 
 export function shell(content, o) {
   return "<!DOCTYPE html>\n<html lang=\"en\">" + '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
-    esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + CSS_URL + '">' + (o.head || "") + '</head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
+    esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + CSS_URL + '">' + FAVICON_LINKS + (o.head || "") + '</head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
     '<header class="site"><a class="brand" href="/">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active) + "</header>" +
     (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT() + "</body></html>\n";
 }
@@ -126,6 +126,8 @@ export function applyGlobals(html, content, rel) {
   if (navStart < 0 || navEnd < 0) return html;
   let out = html.slice(0, navStart) + navHtml(content.nav_items, activeFor(rel)) + html.slice(navEnd + "</nav>".length);
   out = absolutizeAssets(out);
+  // pages written before the site icon existed get its links
+  if (!/rel="icon"/.test(out)) out = out.replace("</head>", () => FAVICON_LINKS + "</head>");
 
   out = out.replace(/(<a class="brand"[^>]*>)[^<]*(<\/a>)/, (m, a, b) => a + esc(content.site_name) + b);
   // The site is dark only: drop the old theme attribute and toggle script from pages written before it was removed.
