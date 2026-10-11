@@ -44,6 +44,8 @@ figure[data-gallery]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
 figure[data-gallery="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
 figure[data-gallery] img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:0;margin:0;float:none;cursor:zoom-in}
 figure[data-gallery="2"] img:last-child:nth-child(odd){grid-column:1/-1;aspect-ratio:16/9}
+figure[data-gallery] > :not(img){grid-column:1/-1;margin:0}
+figure[data-gallery] figure[data-gallery]{margin:0}
 @media(max-width:600px){
   figure[data-gallery="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}
   figure[data-gallery="4"] img:last-child:nth-child(odd){grid-column:1/-1;aspect-ratio:16/9}

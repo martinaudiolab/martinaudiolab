@@ -118,11 +118,40 @@
     });
   }
 
+  /** A gallery's grid holds photos only: anything else (a nested gallery, a paragraph) moves to just after it. */
+  function tidyGalleries(root) {
+    root.querySelectorAll("figure[data-gallery]").forEach(function (gallery) {
+      var outside = [];
+      Array.from(gallery.childNodes).forEach(function (child) {
+        if (child.nodeType === 1 && child.tagName === "IMG") return;
+        if (child.nodeType === 3 && !child.textContent.trim()) return;
+        outside.push(child);
+      });
+      if (!outside.length) return;
+      // keep the original order, directly after the gallery
+      var anchor = gallery;
+      outside.forEach(function (node) {
+        if (node.nodeType === 3) {
+          var paragraph = document.createElement("p");
+          paragraph.appendChild(node);
+          node = paragraph;
+        }
+        anchor.after(node);
+        anchor = node;
+      });
+    });
+    // nested galleries were hoisted out above; an outer gallery with no photos left is removed
+    root.querySelectorAll("figure[data-gallery]").forEach(function (gallery) {
+      if (!gallery.querySelector("img")) gallery.remove();
+    });
+  }
+
   function cleanHtml(html) {
     var template = document.createElement("template");
     template.innerHTML = html;
     template.content.querySelectorAll(DROPPED_TAGS).forEach(function (element) { element.remove(); });
     sanitizeChildren(template.content);
+    tidyGalleries(template.content);
     return template.innerHTML;
   }
 
@@ -497,10 +526,35 @@
     file = await fitInlinePhoto(file);
     var reader = new FileReader();
     reader.onload = function () {
+      leaveGallery();
       runCommand("insertHTML", '<img src="' + reader.result + '" alt="" data-w="100" data-a="c">');
     };
     reader.onerror = function () { say("That image could not be read."); };
     reader.readAsDataURL(file);
+  }
+
+  /**
+   * If the caret (or the selected photo) is inside a gallery, moves the insertion point to just after
+   * that gallery. Anything inserted into a gallery's grid would become one of its cells (a second
+   * gallery would shrink into a single cell, a single photo would join the grid).
+   */
+  function leaveGallery() {
+    var editor = $("post-content");
+    var anchor = selectedImage || (savedRange && savedRange.commonAncestorContainer);
+    var node = anchor && (anchor.nodeType === 1 ? anchor : anchor.parentNode);
+    var gallery = node && node.closest ? node.closest("figure[data-gallery]") : null;
+    if (!gallery || !editor.contains(gallery)) return;
+    // the outermost gallery, in case an earlier mistake nested them
+    var outer = gallery.parentElement && gallery.parentElement.closest ? gallery.parentElement.closest("figure[data-gallery]") : null;
+    while (outer && editor.contains(outer)) {
+      gallery = outer;
+      outer = gallery.parentElement.closest("figure[data-gallery]");
+    }
+    var range = document.createRange();
+    range.setStartAfter(gallery);
+    range.collapse(true);
+    savedRange = range;
+    deselectImage();
   }
 
   function readAsDataUrl(file) {
@@ -536,6 +590,7 @@
     if (!sources.length) return;
     var layout = GALLERY_LAYOUTS.includes($("gallery-layout").value) ? $("gallery-layout").value : "2";
     var html = '<figure data-gallery="' + layout + '">' + sources.map(function (src) { return '<img src="' + src + '" alt="">'; }).join("") + "</figure><p><br></p>";
+    leaveGallery();
     runCommand("insertHTML", html);
   }
 

@@ -168,3 +168,114 @@ const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
   d.dispatchEvent(new w.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));   // no error once closed
   console.log("ok 4: lightbox steps through gallery photos");
 }
+
+// ---- 5. a second gallery or a single photo never lands inside an earlier gallery --------------------------
+{
+  let html = read("site/admin/index.html");
+  const scripts = ["admin.js", "shop-builder.js", "post-builder.js"];
+  for (const s of scripts) html = html.replace('<script src="/admin/' + s + '"></script>', "");
+  const seed = JSON.parse(fs.readFileSync(FIXTURES + "/site-content.json", "utf8"));
+  const items = JSON.parse(fs.readFileSync(FIXTURES + "/items.json", "utf8"));
+  const dom = new JSDOM(html, { url: "https://site.example/admin/#ticket=T", runScripts: "outside-only", pretendToBeVisual: true });
+  const w = dom.window;
+  const published = [];
+  w.confirm = () => true;
+  w.fetch = async (url, init = {}) => {
+    const p = new URL(url).pathname;
+    const ok = (v, status = 200) => ({ ok: true, status, json: async () => v });
+    if (p === "/api/session") return ok({ session: "S" });
+    if (p === "/api/me") return ok({ role: "administrator" });
+    if (p === "/api/content") return ok({ content: structuredClone(seed), contentSha: "a".repeat(40), shop: { title: "Shop", intro: "" }, shopSha: "b".repeat(40) });
+    if (p === "/api/shop") return ok({ sha: "c".repeat(40), data: structuredClone(items) });
+    if (p === "/api/publish") { published.push(JSON.parse(init.body)); return ok({ filename: "p.html", section: "stereo" }, 201); }
+    return ok({});
+  };
+  w.URL.createObjectURL = () => "blob:x"; w.URL.revokeObjectURL = () => {};
+  w.HTMLCanvasElement.prototype.getContext = () => ({ fillRect() {}, drawImage() {}, set fillStyle(v) {} });
+  w.HTMLCanvasElement.prototype.toDataURL = () => "data:image/jpeg;base64,/9j/AAAA";
+  w.Image = function () {
+    const o = { naturalWidth: 1200, naturalHeight: 800 };
+    let src = "";
+    Object.defineProperty(o, "src", { get: () => src, set: (v) => { src = v; setTimeout(() => o.onload && o.onload(), 0); } });
+    return o;
+  };
+  for (const s of scripts) w.eval(read("site/admin/" + s));
+  await tick(80);
+  const $ = (id) => w.document.getElementById(id);
+  const editor = $("post-content");
+  // insertHTML at the real selection, like the browser does (falls back to the end)
+  w.document.execCommand = (cmd, _ui, value) => {
+    if (cmd !== "insertHTML") return true;
+    const sel = w.getSelection();
+    const range = sel.rangeCount ? sel.getRangeAt(0) : null;
+    if (range && editor.contains(range.commonAncestorContainer)) range.insertNode(range.createContextualFragment(value));
+    else editor.insertAdjacentHTML("beforeend", value);
+    return true;
+  };
+  const png = (n) => new w.File([new Uint8Array(500)], n, { type: "image/png" });
+  const chooseGallery = async (files) => {
+    const input = $("gallery-files");
+    Object.defineProperty(input, "files", { value: files, configurable: true });
+    input.dispatchEvent(new w.Event("change", { bubbles: true }));
+    await tick(150);
+  };
+  const chooseImage = async (file) => {
+    const input = $("image-file");
+    Object.defineProperty(input, "files", { value: [file], configurable: true });
+    input.dispatchEvent(new w.Event("change", { bubbles: true }));
+    await tick(150);
+  };
+  const click = (el) => el.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+
+  editor.innerHTML = "<p>Overview</p>";
+  await chooseGallery([png("a.png"), png("b.png")]);
+  let galleries = editor.querySelectorAll("figure[data-gallery]");
+  assert.equal(galleries.length, 1);
+
+  // select a photo of the first gallery, then insert a second gallery
+  click(galleries[0].querySelector("img"));
+  await chooseGallery([png("c.png"), png("d.png"), png("e.png")]);
+  galleries = editor.querySelectorAll("figure[data-gallery]");
+  assert.equal(galleries.length, 2, "two galleries");
+  assert.equal(editor.querySelectorAll("figure[data-gallery] figure").length, 0, "no gallery inside another");
+  assert.ok(Array.from(galleries).every((g) => g.parentNode === editor), "both are top-level");
+  assert.equal(galleries[0].querySelectorAll("img").length, 2, "the first gallery kept its two photos");
+  assert.equal(galleries[1].querySelectorAll("img").length, 3);
+  assert.ok(Array.from(galleries[0].children).every((c) => c.tagName === "IMG"), "only photos inside the first grid");
+
+  // select a gallery photo, then add one single photo: it goes after the gallery, with working controls
+  click(galleries[0].querySelector("img"));
+  assert.equal($("image-width").disabled, true);
+  await chooseImage(png("single.png"));
+  const single = Array.from(editor.querySelectorAll("img")).find((i) => !i.closest("figure[data-gallery]"));
+  assert.ok(single, "the single photo is outside every gallery");
+  click(single);
+  assert.equal($("image-width").disabled, false, "width control is live for a single photo");
+  assert.equal($("image-align").disabled, false, "alignment control is live for a single photo");
+  $("image-width").value = "50"; $("image-width").dispatchEvent(new w.Event("change", { bubbles: true }));
+  $("image-align").value = "l"; $("image-align").dispatchEvent(new w.Event("change", { bubbles: true }));
+  assert.equal(single.dataset.w, "50");
+  assert.equal(single.dataset.a, "l");
+  console.log("ok 5: galleries and single photos stay out of earlier galleries; width/align work");
+
+  // ---- 6. a post that already has a mis-built gallery is tidied when it is published ------------------
+  $("post-title").value = "Tidy"; $("post-summary").value = "S";
+  editor.innerHTML = '<figure data-gallery="2"><img src="data:image/png;base64,AAAA" alt=""><img src="data:image/png;base64,BBBB" alt="">' +
+    '<figure data-gallery="2"><img src="data:image/png;base64,CCCC" alt=""><img src="data:image/png;base64,DDDD" alt=""></figure><p>stray</p></figure>';
+  $("pb-publish").click(); await tick(200);
+  const out = published.at(-1).content;
+  const check = new JSDOM("<body>" + out + "</body>").window.document;
+  const figs = Array.from(check.body.querySelectorAll("figure[data-gallery]"));
+  assert.equal(figs.length, 2, out);
+  assert.ok(figs.every((f) => f.parentNode === check.body), "galleries are siblings, not nested");
+  assert.ok(figs.every((f) => Array.from(f.children).every((c) => c.tagName === "IMG")), "photos only inside the grids");
+  assert.ok(out.includes("<p>stray</p>"), "stray content is kept, outside the grid");
+  console.log("ok 6: mis-built galleries are tidied on publish");
+}
+
+// ---- 7. styles: a stray cell never shrinks into one grid cell ---------------------------------------------
+{
+  assert.match(css, /figure\[data-gallery\] > :not\(img\)\{grid-column:1\/-1;margin:0\}/);
+  assert.match(css, /figure\[data-gallery\] figure\[data-gallery\]\{margin:0\}/);
+  console.log("ok 7: stray content spans the full row");
+}
