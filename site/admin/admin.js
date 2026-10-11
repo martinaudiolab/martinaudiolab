@@ -156,7 +156,11 @@
 
   // ---- Images -------------------------------------------------------------
 
-  function imageSrc(path) { return pending[path] ? pending[path].dataUrl : path; }
+  /** A picture's address for display on this page (the admin lives one folder down, so site paths get a leading slash). */
+  function imageSrc(path) {
+    if (pending[path]) return pending[path].dataUrl;
+    return /^(https?:|data:|blob:|\/)/.test(path) ? path : "/" + path;
+  }
 
   function resizeImage(file, maxSide) {
     return new Promise(function (resolve, reject) {
@@ -488,6 +492,13 @@
   });
   document.querySelectorAll(".tab").forEach(function (tab) {
     tab.addEventListener("click", function () { showTab(tab.dataset.tab); });
+  });
+  // in-page links that jump to another tab
+  document.querySelectorAll("[data-goto-tab]").forEach(function (link) {
+    link.addEventListener("click", function (event) {
+      event.preventDefault();
+      showTab(link.dataset.gotoTab);
+    });
   });
   (function restoreTab() {
     var wanted = window.location.hash.slice(1);

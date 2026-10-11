@@ -19,7 +19,7 @@ const content = normalizeContent({});
   const blog = DEFAULT_NAV.find((i) => i.label === BLOG_HUB.name);
   assert.deepEqual(blog.children.map((c) => c.href), [BLOG_HUB.href].concat(SECTIONS.map((s) => s.folder + "/index.html")));
   assert.deepEqual(content.homepage.categories.map((c) => [c.label, c.href, c.image]), SECTIONS.map((s) => [s.name, s.folder + "/index.html", s.image]));
-  assert.equal(fallbackThumb("radio"), "../images/category-radio.jpg");
+  assert.equal(fallbackThumb("radio"), "/images/category-radio.jpg");
   console.log("ok 1: sections list drives navigation and homepage defaults");
 }
 
@@ -29,7 +29,7 @@ const content = normalizeContent({});
   assert.ok(worker.includes('from "../scripts/sections.mjs"') && /CATEGORIES = Object\.fromEntries\(SECTIONS\.map/.test(worker), "Worker reads the list");
   const build = read("scripts/build-site.mjs");
   assert.ok(/for \(const section of SECTIONS\)/.test(build) && !/\["stereo", "radio", "test-equipment"\]/.test(build), "build reads the list");
-  const admin = read("site/admin.html");
+  const admin = read("site/admin/index.html");
   for (const id of ["category", "manage-category"]) {
     const select = admin.match(new RegExp('<select id="' + id + '"[^>]*>([\\s\\S]*?)</select>'))[1];
     const values = Array.from(select.matchAll(/<option value="([^"]+)">([^<]+)</g)).map((m) => [m[1], m[2]]);
@@ -48,20 +48,20 @@ const content = normalizeContent({});
   const post = '<!DOCTYPE html><html><body><main><a class="back" href="index.html">Back to Stereo Repair</a><article class="post"><h1 class="post-title">Middle</h1><div class="body"><p>x</p></div></article></main></body></html>';
   const once = applyPostChrome(post, "stereo", "b-mid", listings);
   assert.ok(once.includes("<!--crumbs-->") && !once.includes('class="back"'), "back link replaced by the breadcrumb");
-  assert.ok(once.includes('<a href="../blog/index.html">Restoration Blog</a>') && once.includes('<a href="index.html">Stereo Repair</a>'));
+  assert.ok(once.includes('<a href="/blog/">Restoration Blog</a>') && once.includes('<a href="/stereo/">Stereo Repair</a>'));
   assert.ok(once.includes('<span aria-current="page">Middle</span>'));
-  assert.ok(once.includes('class="older" href="a-old.html"') && once.includes('class="newer" href="c-new.html"'));
+  assert.ok(once.includes('class="older" href="/stereo/a-old"') && once.includes('class="newer" href="/stereo/c-new"'));
   assert.ok(once.includes("Newest &amp; best") || once.includes("<span>Newest"), "titles keep their escaping");
   assert.equal(applyPostChrome(once, "stereo", "b-mid", listings), once, "idempotent");
 
   // the newest post has no "newer", the oldest has no "older"; a lone post has neither
   const newest = applyPostChrome(post.replace("Middle", "Newest"), "stereo", "c-new", listings);
-  assert.ok(newest.includes('class="older" href="b-mid.html"') && newest.includes('class="newer none"'));
+  assert.ok(newest.includes('class="older" href="/stereo/b-mid"') && newest.includes('class="newer none"'));
   const lone = applyPostChrome(post, "stereo", "b-mid", [listings[1]]);
   assert.ok(lone.includes("<!--pager--><!--/pager-->") && !lone.includes("post-pager"));
   // a pager is refreshed when a newer post appears
   const refreshed = applyPostChrome(newest, "stereo", "c-new", [{ slug: "d-newer", titleHtml: "Brand new" }].concat(listings));
-  assert.ok(refreshed.includes('class="newer" href="d-newer.html"') && (refreshed.match(/<!--pager-->/g) || []).length === 1);
+  assert.ok(refreshed.includes('class="newer" href="/stereo/d-newer"') && (refreshed.match(/<!--pager-->/g) || []).length === 1);
   assert.equal(pagerHtml(null, null), "<!--pager--><!--/pager-->");
   assert.ok(crumbsHtml("A & B", "T").includes("A &amp; B"));
   console.log("ok 3: breadcrumb and pager");
@@ -90,14 +90,14 @@ const content = normalizeContent({});
   const wrap = (cards) => '<main><h1>S</h1><p class="intro">i</p>' + cards + "</main>";
   const html = renderBlogHub(content, {
     stereo: wrap(card("s-old", "Old stereo", "October 1, 2026", "../images/category-stereo.jpg")),
-    radio: wrap(card("r-new", "New radio", "October 20, 2026", "../images/posts/radio-r-new.jpg") + card("r-mid", "Mid radio", "October 10, 2026", "../images/category-radio.jpg")),
+    radio: wrap(card("r-new", "New radio", "October 20, 2026", "../images/posts/radio-r-new.jpg") + card("r-mid", "Mid radio", "October 10, 2026", "/images/category-radio.jpg")),
     "test-equipment": ""
   });
   const order = Array.from(html.matchAll(/<h2><a href="([^"]+)">/g)).map((m) => m[1]);
-  assert.deepEqual(order, ["../radio/r-new.html", "../radio/r-mid.html", "../stereo/s-old.html"], "newest first across sections");
-  assert.ok(html.includes('<body class="navbar">') && html.includes('href="../style.css"') && html.includes("<h1 class=\"h2\""));
-  assert.ok(html.includes('src="../images/posts/radio-r-new.jpg"'), "uses the post's own thumbnail");
-  for (const s of SECTIONS) assert.ok(html.includes('<a href="../' + s.folder + '/index.html">' + s.name + "</a>"), "links to " + s.name);
+  assert.deepEqual(order, ["/radio/r-new", "/radio/r-mid", "/stereo/s-old"], "newest first across sections");
+  assert.ok(html.includes('<body class="navbar">') && html.includes('href="/assets/css/style.css"') && html.includes("<h1 class=\"h2\""));
+  assert.ok(html.includes('src="/images/posts/radio-r-new.jpg"'), "uses the post's own thumbnail");
+  for (const s of SECTIONS) assert.ok(html.includes('<a href="/' + s.folder + '/">' + s.name + "</a>"), "links to " + s.name);
   assert.ok(html.includes('aria-current="page">All Posts</a>'), "All Posts is the active nav entry");
   assert.ok(renderBlogHub(content, {}).includes("No posts yet"));
   console.log("ok 5: blog landing page");

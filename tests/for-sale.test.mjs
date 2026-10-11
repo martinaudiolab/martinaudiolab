@@ -5,8 +5,8 @@ import { JSDOM } from "jsdom";
 import { renderHome } from "../scripts/site-render.mjs";
 import { normalizeContent } from "../scripts/site-content.mjs";
 const R = ROOT + "";
-const script = fs.readFileSync(R + "site/forsale.js", "utf8");
-const css = fs.readFileSync(R + "site/style.css", "utf8");
+const script = fs.readFileSync(R + "site/assets/js/forsale.js", "utf8");
+const css = fs.readFileSync(R + "site/assets/css/style.css", "utf8");
 const html = renderHome(normalizeContent({})).replace(/<script src="[^"]*"[^>]*><\/script>/g, "");
 
 const feedOf = (n) => Array.from({ length: n }, (_, i) => ({
@@ -44,13 +44,13 @@ const flush = (b) => { while (b.timeouts.length) b.timeouts.shift().fn(); };
 // 1. cards: image, name, price, sale pricing, badge, link
 {
   const b = await boot(feedOf(7));
-  assert.deepEqual(b.urls, ["shop/feed.json"]);
+  assert.deepEqual(b.urls, ["/shop/feed.json"]);
   assert.equal(b.section.hidden, false);
   const cards = Array.from(b.d.querySelectorAll(".fs-card"));
   assert.equal(cards.length, 4, "four products in a row");
   assert.deepEqual(b.names(), ["Item 0", "Item 1", "Item 2", "Item 3"]);
-  assert.equal(cards[0].getAttribute("href"), "shop/item-0.html");
-  assert.equal(cards[0].querySelector(".fs-thumb img").getAttribute("src"), "images/shop/p0.jpg");
+  assert.equal(cards[0].getAttribute("href"), "/shop/item-0");
+  assert.equal(cards[0].querySelector(".fs-thumb img").getAttribute("src"), "/images/shop/p0.jpg");
   assert.equal(cards[0].querySelector(".fs-price").textContent, "$100.00");
   assert.equal(cards[1].querySelector(".fs-price s").textContent, "$250.00", "original struck through");
   assert.equal(cards[1].querySelector(".fs-sale").textContent, "$101.00", "sale price in the accent colour");
@@ -133,7 +133,7 @@ const flush = (b) => { while (b.timeouts.length) b.timeouts.shift().fn(); };
   const d = new JSDOM(html).window.document;
   assert.equal(d.querySelector(".fs-label").textContent, "For Sale Now");
   assert.equal(d.querySelector(".fs-viewall").textContent, "View All");
-  assert.equal(d.querySelector(".fs-viewall").getAttribute("href"), "shop/index.html");
+  assert.equal(d.querySelector(".fs-viewall").getAttribute("href"), "/shop/");
   assert.equal(d.querySelector(".fs-head, .fs-btn, .fs-track"), null, "old carousel markup is gone");
   const must = [
     ["four columns by default", /\.fs-grid\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:4px/],

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 const S = ROOT + "site/";
-const navjs = fs.readFileSync(S + "nav.js", "utf8");
+const navjs = fs.readFileSync(S + "assets/js/nav.js", "utf8");
 function load(file, hover) {
   const html = fs.readFileSync(S + file, "utf8").replace(/<script src="[^"]*nav.js" defer><\/script>/, "").replace(/<script src="[^"]*(forsale|lightbox).js" defer><\/script>/g, "");
   const dom = new JSDOM(html, { url: "https://site.example/" + file, runScripts: "outside-only" });
@@ -53,9 +53,9 @@ const rows = Array.from(w.document.querySelectorAll(".cats .cat-row")).map((r) =
   !!r.querySelector(".cat-media img"), r.querySelector("p") ? true : false
 ]);
 assert.deepEqual(rows, [
-  ["Stereo Repair", "stereo/index.html", "See the work", true, true],
-  ["Radio Repair", "radio/index.html", "See the work", true, true],
-  ["Test Equipment", "test-equipment/index.html", "See the work", true, true]
+  ["Stereo Repair", "/stereo/", "See the work", true, true],
+  ["Radio Repair", "/radio/", "See the work", true, true],
+  ["Test Equipment", "/test-equipment/", "See the work", true, true]
 ]);
 assert.equal(w.document.querySelector(".cats .cat-row .cat-media").nextElementSibling.className, "cat-text", "image then text in markup");
 assert.equal(w.document.querySelectorAll(".cat-row img").length, 3);
@@ -73,7 +73,7 @@ console.log("ok: nav, dropdown behavior, homepage, about");
   const { normalizeContent } = await import(ROOT_URL + "scripts/site-content.mjs");
   const html = renderHome(normalizeContent({ theme: "light" }));
   assert.ok(!html.includes('id="th"') && !html.includes("data-theme") && !html.includes('getItem("th")'), "no theme toggle or theme script");
-  const css = fs.readFileSync(ROOT + "site/style.css", "utf8");
+  const css = fs.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
   assert.ok(!/prefers-color-scheme|data-theme|button\.theme/.test(css) && /:root\{color-scheme:dark;--bg:#141a19/.test(css), "dark palette only");
   assert.equal(normalizeContent({ theme: "light" }).theme, undefined);
   console.log("ok: theme toggle removed, dark palette only");

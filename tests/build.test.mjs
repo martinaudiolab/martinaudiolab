@@ -14,10 +14,10 @@ const content = normalizeContent({});
 {
   const page = (tag) => '<!DOCTYPE html><html lang="en"><head></head><body><header class="site"><a class="brand" href="../index.html">X</a><nav></nav></header><main></main>' + tag + "</body></html>";
   const count = (html) => (html.match(/nav\.js/g) || []).length;
-  assert.equal(count(applyGlobals(page('<script src="../nav.js" defer></script>'), content, "radio/index.html")), 1, "template spelling");
+  assert.equal(count(applyGlobals(page('<script src="/assets/js/nav.js" defer></script>'), content, "radio/index.html")), 1, "template spelling");
   assert.equal(count(applyGlobals(page('<script src="../nav.js" defer=""></script>'), content, "radio/index.html")), 1, "Worker spelling (defer=\"\")");
   assert.equal(count(applyGlobals(page(""), content, "radio/index.html")), 1, "added when missing");
-  assert.equal(count(applyGlobals(page('<script src="../nav.js" defer=""></script><script src="../nav.js" defer></script>'), content, "radio/index.html")), 1, "an existing duplicate is removed");
+  assert.equal(count(applyGlobals(page('<script src="../nav.js" defer=""></script><script src="/assets/js/nav.js" defer></script>'), content, "radio/index.html")), 1, "an existing duplicate is removed");
   const once = applyGlobals(page('<script src="../nav.js" defer=""></script>'), content, "radio/index.html");
   assert.equal(applyGlobals(once, content, "radio/index.html"), once, "idempotent");
   console.log("ok 1: navigation script is never duplicated");

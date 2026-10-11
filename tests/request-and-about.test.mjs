@@ -3,8 +3,8 @@ import fs from "node:fs";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 const S = ROOT + "site/";
-const html = fs.readFileSync(S + "request.html", "utf8").replace('<script src="request.js" defer></script>', "").replace(/<script src="nav.js" defer><\/script>/, "");
-const script = fs.readFileSync(S + "request.js", "utf8");
+const html = fs.readFileSync(S + "request.html", "utf8").replace('<script src="/assets/js/request.js" defer></script>', "").replace(/<script src="[^"]*nav.js" defer><\/script>/, "");
+const script = fs.readFileSync(S + "assets/js/request.js", "utf8");
 
 function boot(action, responder) {
   const page = html.replace(/ action="[^"]*"/, ' action="' + (action || "https://formspree.io/f/YOUR_FORM_ID") + '"');
@@ -101,7 +101,7 @@ function fill(d) {
   const fsx = await import("node:fs");
   const html = renderRequest(normalizeContent({}));
   assert.ok(html.includes('<body class="navbar">') && !html.includes('class="hero"') && !html.includes("hero.js"), "bar nav, no hero");
-  const css = fsx.readFileSync(ROOT + "site/style.css", "utf8");
+  const css = fsx.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
   assert.match(css, /body\.home nav,body\.navbar nav\{gap:0;padding:0;border-radius:0;/);
   assert.match(css, /body\.navbar nav > a\.on,body\.navbar \.dd-toggle\.on\{/);
   assert.match(css, /body\.navbar nav\{background:var\(--panel\)\}/);

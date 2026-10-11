@@ -3,6 +3,7 @@
 // Pure string code: no file-system or runtime APIs.
 
 import { DEFAULT_NAV } from "./site-content.mjs";
+import { jsUrl, pageUrl } from "./site-urls.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const external = (h) => /^(https?:|mailto:)/i.test(h);
@@ -10,12 +11,11 @@ const external = (h) => /^(https?:|mailto:)/i.test(h);
 /**
  * @param {Array}  items   content.nav_items
  * @param {string} active  site-relative path of the current page's nav entry, e.g. "stereo/index.html" ("" for none)
- * @param {string} prefix  "" for pages in the site root, "../" for pages one folder down
+ * @param {string} prefix  unused: addresses are root-absolute (kept so existing callers still work)
  */
 export function navHtml(items, active, prefix) {
-  const p = prefix || "";
   const list = Array.isArray(items) && items.length ? items : DEFAULT_NAV;
-  const url = (h) => (external(h) ? h : p + h);
+  const url = pageUrl;
   const link = (item, menu) => {
     const here = !external(item.href) && item.href.split("#")[0] === active;
     return '<a href="' + esc(url(item.href)) + '"' + (here ? ' class="on" aria-current="page"' : "") + (external(item.href) && !/^mailto:/i.test(item.href) ? ' rel="noopener"' : "") + ">" + esc(item.label) + "</a>";
@@ -31,4 +31,4 @@ export function navHtml(items, active, prefix) {
   return "<nav>" + parts.join("") + "</nav>";
 }
 
-export const NAV_SCRIPT = (prefix) => '<script src="' + (prefix || "") + 'nav.js" defer></script>';
+export const NAV_SCRIPT = () => '<script src="' + jsUrl("nav.js") + '" defer></script>';

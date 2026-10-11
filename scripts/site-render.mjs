@@ -3,16 +3,16 @@
 // hand-written or published pages. Pure string code: no file-system APIs.
 
 import { NAV_SCRIPT, navHtml } from "./site-nav.mjs";
+import { CSS_URL, absolutizeAssets, assetUrl, jsUrl, pageUrl } from "./site-urls.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const external = (h) => /^(https?:|mailto:)/i.test(h);
 
 export function shell(content, o) {
-  const prefix = o.prefix || "";
   return "<!DOCTYPE html>\n<html lang=\"en\">" + '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
-    esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + prefix + 'style.css"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
-    '<header class="site"><a class="brand" href="' + prefix + 'index.html">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active, prefix) + "</header>" +
-    (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT(prefix) + "</body></html>\n";
+    esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + CSS_URL + '"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
+    '<header class="site"><a class="brand" href="/">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active) + "</header>" +
+    (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT() + "</body></html>\n";
 }
 
 /** Paragraphs separated by blank lines; single line breaks become <br>. */
@@ -24,7 +24,7 @@ const mailto = (email) => '<a href="mailto:' + esc(email) + '">' + esc(email) + 
 /** The full-width slideshow hero shared by the homepage and the shop page. */
 export function heroHtml(o) {
   const slides = o.slides.map((slide, i) =>
-    '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc((o.prefix || "") + slide.image) + '" alt="' + esc(slide.alt) + '"' +
+    '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(assetUrl(slide.image)) + '" alt="' + esc(slide.alt) + '"' +
     (i === 0 ? ' fetchpriority="high"' : ' loading="lazy"') + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
   return '<section class="hero" id="hero" aria-label="' + esc(o.label) + '">' + slides +
     '<div class="hero-scrim"></div><div class="hero-text"><h1>' + esc(o.title) + "</h1>" +
@@ -35,15 +35,15 @@ export function renderHome(content) {
   const h = content.homepage;
   const cats = h.categories.map((c) =>
     '<section class="cat-row' + (c.image ? "" : " no-image") + '" aria-label="' + esc(c.label) + '">' +
-    (c.image ? '<div class="cat-media"><img src="' + esc(c.image) + '" alt="" loading="lazy"></div>' : "") +
+    (c.image ? '<div class="cat-media"><img src="' + esc(assetUrl(c.image)) + '" alt="" loading="lazy"></div>' : "") +
     '<div class="cat-text"><div class="cat-copy"><h2>' + esc(c.label) + "</h2>" +
     (c.description ? "<p>" + esc(c.description) + "</p>" : "") +
-    '<a class="cat-cta" href="' + esc(c.href) + '">' + esc(c.cta_label) + "</a></div></div></section>").join("");
+    '<a class="cat-cta" href="' + esc(pageUrl(c.href)) + '">' + esc(c.cta_label) + "</a></div></div></section>").join("");
   const pc = h.product_carousel;
   const carousel = pc.enabled
     ? '<section class="forsale" id="forsale" aria-label="' + esc(pc.heading) + '" hidden><h2 class="fs-label">' + esc(pc.heading) + "</h2>" +
       '<div class="fs-grid" id="fs-grid"></div>' +
-      '<p class="fs-more"><a class="fs-viewall" href="' + esc(pc.view_all_link.href) + '">' + esc(pc.view_all_link.label) + "</a></p></section>"
+      '<p class="fs-more"><a class="fs-viewall" href="' + esc(pageUrl(pc.view_all_link.href)) + '">' + esc(pc.view_all_link.label) + "</a></p></section>"
     : "";
   const hero = heroHtml({ slides: h.hero.slides, title: h.hero.title, subtitle: h.hero.subtitle, label: content.site_name });
   // The homepage is full-bleed from the hero down: no centered container.
@@ -56,7 +56,7 @@ export function renderHome(content) {
     beforeMain: hero,
     afterMain: carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "") +
       '<div class="cats" aria-label="Restoration blog sections">' + cats + "</div>",
-    scripts: '<script src="hero.js" defer></script><script src="reveal.js" defer></script>' + (pc.enabled ? '<script src="forsale.js" defer></script>' : "")
+    scripts: '<script src="' + jsUrl("hero.js") + '" defer></script><script src="' + jsUrl("reveal.js") + '" defer></script>' + (pc.enabled ? '<script src="' + jsUrl("forsale.js") + '" defer></script>' : "")
   });
 }
 
@@ -80,7 +80,7 @@ export function renderRequest(content) {
     description: "Request a restoration from " + content.site_name,
     inner,
     active: "request.html",
-    scripts: '<script src="request.js" defer></script>'
+    scripts: '<script src="' + jsUrl("request.js") + '" defer></script>'
   });
 }
 
@@ -112,11 +112,11 @@ export function activeFor(rel) {
  * navigation and the nav script. Pages with no <nav> are returned as is.
  */
 export function applyGlobals(html, content, rel) {
-  const prefix = rel.includes("/") ? "../" : "";
   const navStart = html.indexOf("<nav>");
   const navEnd = html.indexOf("</nav>", navStart);
   if (navStart < 0 || navEnd < 0) return html;
-  let out = html.slice(0, navStart) + navHtml(content.nav_items, activeFor(rel), prefix) + html.slice(navEnd + "</nav>".length);
+  let out = html.slice(0, navStart) + navHtml(content.nav_items, activeFor(rel)) + html.slice(navEnd + "</nav>".length);
+  out = absolutizeAssets(out);
 
   out = out.replace(/(<a class="brand"[^>]*>)[^<]*(<\/a>)/, (m, a, b) => a + esc(content.site_name) + b);
   // The site is dark only: drop the old theme attribute and toggle script from pages written before it was removed.
@@ -132,7 +132,7 @@ export function applyGlobals(html, content, rel) {
   // Match any spelling of the tag: the publisher Worker writes defer="" where the templates write defer.
   const navScript = /<script\b[^>]*\bsrc="[^"]*nav\.js"[^>]*>\s*<\/script>/g;
   const found = out.match(navScript) || [];
-  if (found.length === 0) out = out.replace("</body>", () => NAV_SCRIPT(prefix) + "</body>");
+  if (found.length === 0) out = out.replace("</body>", () => NAV_SCRIPT() + "</body>");
   else if (found.length > 1) { let seen = false; out = out.replace(navScript, (tag) => (seen ? "" : ((seen = true), tag))); }
   return out;
 }

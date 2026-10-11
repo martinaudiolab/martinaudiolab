@@ -3,8 +3,8 @@ import fs from "node:fs";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 const R = ROOT + "";
-const heicJs = fs.readFileSync(R + "site/heic.js", "utf8");
-const html = fs.readFileSync(R + "site/admin.html", "utf8");
+const heicJs = fs.readFileSync(R + "site/admin/heic.js", "utf8");
+const html = fs.readFileSync(R + "site/admin/index.html", "utf8");
 
 // 0. every image field accepts HEIC, and the helper loads before the builders
 {
@@ -12,9 +12,9 @@ const html = fs.readFileSync(R + "site/admin.html", "utf8");
   const files = Array.from(d.querySelectorAll('input[type="file"]')).filter((i) => /image/.test(i.accept));
   assert.ok(files.length >= 3);
   files.forEach((i) => assert.ok(/\.heic/.test(i.accept) && /image\/heic/.test(i.accept), i.id + " accepts HEIC"));
-  const order = Array.from(d.querySelectorAll("script[src]")).map((s) => s.getAttribute("src"));
+  const order = Array.from(d.querySelectorAll("script[src]")).map((s) => s.getAttribute("src").split("/").pop());
   assert.ok(order.indexOf("heic.js") >= 0 && order.indexOf("heic.js") < order.indexOf("admin.js"));
-  assert.equal(fs.readFileSync(R + "site/admin.js", "utf8").split("image/heic").length, 3, "both dynamic pickers accept HEIC");
+  assert.equal(fs.readFileSync(R + "site/admin/admin.js", "utf8").split("image/heic").length, 3, "both dynamic pickers accept HEIC");
   console.log("ok 0: all image fields accept HEIC");
 }
 

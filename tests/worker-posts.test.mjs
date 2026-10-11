@@ -106,7 +106,7 @@ async function call(path, method = "GET", body) {
 
 // ---- tests ------------------------------------------------------------------
 const INDEX = '<!DOCTYPE html><html lang="en"><head><title>Stereo Repair</title></head><body class="navbar"><header class="site"></header><main><h1 class="h2">Stereo Repair</h1><p class="intro">Intro</p>' +
-  '<article class="post has-thumb"><a class="post-thumb" href="old-post.html"><img src="../images/category-stereo.jpg" alt=""></a><div class="post-main"><h2><a href="old-post.html">Old post</a></h2></div></article></main></body></html>';
+  '<article class="post has-thumb"><a class="post-thumb" href="old-post.html"><img src="/images/category-stereo.jpg" alt=""></a><div class="post-main"><h2><a href="old-post.html">Old post</a></h2></div></article></main></body></html>';
 seed();
 head.tree["site/stereo/index.html"] = putBlob(Buffer.from(INDEX));
 head.tree["site/stereo/old-post.html"] = putBlob(Buffer.from("old"));
@@ -123,7 +123,7 @@ const thumbPath = "site/images/posts/stereo-marantz-2270-recap.jpg";
 assert.ok(head.tree[thumbPath], "thumbnail committed");
 assert.equal(blobs.get(head.tree[thumbPath]).toString("base64"), JPEG);
 let index = blobs.get(head.tree["site/stereo/index.html"]).toString();
-assert.ok(index.includes('src="../images/posts/stereo-marantz-2270-recap.jpg"'), "listing uses the post thumbnail");
+assert.ok(index.includes('src="/images/posts/stereo-marantz-2270-recap.jpg"'), "listing uses the post thumbnail");
 assert.ok(index.indexOf("marantz-2270-recap.html") < index.indexOf("old-post.html"), "newest first");
 assert.ok(index.includes('<article class="post has-thumb">') && index.includes('<div class="post-main"><h2><a href="marantz-2270-recap.html">'));
 assert.ok(head.tree["site/stereo/marantz-2270-recap.html"]);
@@ -134,7 +134,7 @@ assert.equal(r.status, 201);
 assert.ok(!head.tree["site/images/posts/stereo-plain-post.jpg"]);
 index = blobs.get(head.tree["site/stereo/index.html"]).toString();
 const plain = index.slice(index.indexOf('href="plain-post.html"'), index.indexOf('href="plain-post.html"') + 200);
-assert.ok(index.match(/<a class="post-thumb" href="plain-post.html"[^>]*><img src="\.\.\/images\/category-stereo\.jpg"/), plain);
+assert.ok(index.match(/<a class="post-thumb" href="plain-post.html"[^>]*><img src="\/images\/category-stereo\.jpg"/), plain);
 
 // 3. bad thumbnails are rejected
 for (const bad of ["not base64!!", Buffer.from("GIF89a....").toString("base64"), "/9j/" + "A".repeat(1300000)]) {
@@ -166,12 +166,12 @@ console.log("ok: post thumbnails (publish, fallback, validation, delete)");
   let res = await call("/api/publish", "POST", post({ title: "Hero With Photo", thumbnail: JPEG }));
   assert.equal(res.status, 201, JSON.stringify(res.body));
   let page = blobs.get(head.tree["site/stereo/hero-with-photo.html"]).toString();
-  assert.match(page, /<div class="meta">[^]*?<\/div><figure class="post-hero"><img src="\.\.\/images\/posts\/stereo-hero-with-photo\.jpg" alt="Hero With Photo"><\/figure><div class="body">/);
+  assert.match(page, /<div class="meta">[^]*?<\/div><figure class="post-hero"><img src="\/images\/posts\/stereo-hero-with-photo\.jpg" alt="Hero With Photo"><\/figure><div class="body">/);
   res = await call("/api/publish", "POST", post({ title: "Hero Plain" }));
   assert.equal(res.status, 201);
   page = blobs.get(head.tree["site/stereo/hero-plain.html"]).toString();
-  assert.ok(page.includes('<figure class="post-hero"><img src="../images/category-stereo.jpg" alt="Hero Plain">'));
+  assert.ok(page.includes('<figure class="post-hero"><img src="/images/category-stereo.jpg" alt="Hero Plain">'));
   assert.ok(page.indexOf('<h1 class="post-title">') < page.indexOf("post-hero") && page.indexOf("post-hero") < page.indexOf('<div class="body">'));
-  assert.ok(page.includes('<script src="../lightbox.js"'), "lightbox is loaded so the picture can be enlarged");
+  assert.ok(page.includes('<script src="/assets/js/lightbox.js"'), "lightbox is loaded so the picture can be enlarged");
   console.log("ok: post pages show the thumbnail under the title");
 }

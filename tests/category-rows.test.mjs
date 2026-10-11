@@ -3,7 +3,7 @@ import fs from "node:fs";
 import assert from "node:assert/strict";
 import { renderHome } from "../scripts/site-render.mjs";
 import { normalizeContent } from "../scripts/site-content.mjs";
-const css = fs.readFileSync(ROOT + "site/style.css", "utf8");
+const css = fs.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
 
 const c = normalizeContent({ homepage: { categories: [
   { label: "Stereo Repair", image: "", description: "Custom words", cta_label: "Go", href: "stereo/index.html" },

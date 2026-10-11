@@ -3,11 +3,11 @@ import fs from "node:fs";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 const R = ROOT + "";
-let html = fs.readFileSync(R + "site/admin.html", "utf8");
-for (const s of ["admin.js", "shop-builder.js", "post-builder.js"]) html = html.replace('<script src="' + s + '"></script>', "");
+let html = fs.readFileSync(R + "site/admin/index.html", "utf8");
+for (const s of ["admin.js", "shop-builder.js", "post-builder.js"]) html = html.replace('<script src="/admin/' + s + '"></script>', "");
 const seed = JSON.parse(fs.readFileSync(FIXTURES + "/site-content.json", "utf8"));
 const items = JSON.parse(fs.readFileSync(FIXTURES + "/items.json", "utf8"));
-const SCRIPTS = ["admin.js", "shop-builder.js", "post-builder.js"].map((f) => fs.readFileSync(R + "site/" + f, "utf8"));
+const SCRIPTS = ["admin.js", "shop-builder.js", "post-builder.js"].map((f) => fs.readFileSync(R + "site/admin/" + f, "utf8"));
 
 function boot({ storage } = {}) {
   const dom = new JSDOM(html, { url: "https://site.example/admin#ticket=T", runScripts: "outside-only", pretendToBeVisual: true });

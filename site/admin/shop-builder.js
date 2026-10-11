@@ -76,7 +76,8 @@
 
   function photoSrc(path) {
     if (pending[path]) return pending[path].dataUrl;
-    return path;
+    // the admin lives at /admin/, so a site-relative picture path needs a leading slash
+    return /^(https?:|data:|blob:|\/)/.test(path) ? path : "/" + path;
   }
 
   function priceLabel(item) {

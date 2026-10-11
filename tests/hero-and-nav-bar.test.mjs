@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import { renderHome } from "../scripts/site-render.mjs";
 import { normalizeContent } from "../scripts/site-content.mjs";
-const script = fs.readFileSync(ROOT + "site/hero.js", "utf8");
-const css = fs.readFileSync(ROOT + "site/style.css", "utf8");
+const script = fs.readFileSync(ROOT + "site/assets/js/hero.js", "utf8");
+const css = fs.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
 
 const content = normalizeContent({
   homepage: { hero: { slides: [

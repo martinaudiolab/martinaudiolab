@@ -101,7 +101,7 @@ if (writeIfChanged(path.join(SITE, BLOG_HUB.href), renderBlogHub(content, sectio
 
 {
   // The Post Builder and Manage Blog Posts dropdowns list the sections from sections.mjs.
-  const adminFile = path.join(SITE, "admin.html");
+  const adminFile = path.join(SITE, "admin", "index.html");
   if (fs.existsSync(adminFile)) {
     const raw = fs.readFileSync(adminFile, "utf8");
     const crlf = raw.includes("\r\n");
@@ -145,7 +145,7 @@ for (const folder of sectionFolders) {
     if (name.endsWith(".html") && name !== "index.html") clean.push("/" + folder + "/" + name.replace(/\.html$/, ""));
   }
 }
-const robots = "User-agent: *\nDisallow: /admin\nDisallow: /admin.html\n" + (siteUrl ? "\nSitemap: " + siteUrl + "/sitemap.xml\n" : "");
+const robots = "User-agent: *\nDisallow: /admin/\nDisallow: /admin\nDisallow: /admin.html\n" + (siteUrl ? "\nSitemap: " + siteUrl + "/sitemap.xml\n" : "");
 writeIfChanged(path.join(SITE, "robots.txt"), robots);
 if (siteUrl) {
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +

@@ -2,6 +2,7 @@
 // older/newer links. Pure string code shared by publisher/worker.js and scripts/build-site.mjs.
 
 import { BLOG_HUB, sectionByFolder } from "./sections.mjs";
+import { pageUrl } from "./site-urls.mjs";
 
 /** Where a post's own thumbnail is stored, relative to site/. */
 export const thumbFile = (folder, slug) => "images/posts/" + folder + "-" + slug + ".jpg";
@@ -9,7 +10,7 @@ export const thumbFile = (folder, slug) => "images/posts/" + folder + "-" + slug
 /** The section picture used when a post has no thumbnail of its own (relative to a section page). */
 export const fallbackThumb = (folder) => {
   const section = sectionByFolder(folder);
-  return "../" + (section ? section.image : "images/category-" + folder + ".jpg");
+  return "/" + (section ? section.image : "images/category-" + folder + ".jpg");
 };
 
 const attr = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -38,7 +39,7 @@ export function addThumbnails(indexHtml, folder, exists) {
     const match = inner.match(new RegExp('<h2><a href="(' + SLUG + ')\\.html"'));
     if (!match) return whole;
     const own = thumbFile(folder, match[1]);
-    const src = typeof exists === "function" && exists(own) ? "../" + own : fallbackThumb(folder);
+    const src = typeof exists === "function" && exists(own) ? "/" + own : fallbackThumb(folder);
     return listingWithThumb(match[1], src, inner);
   });
 }
@@ -87,7 +88,7 @@ export function addPostHero(postHtml, folder, slug, exists) {
   const meta = postHtml.match(/<div class="meta">[\s\S]*?<\/div>/);
   if (!title || !meta) return postHtml;
   const own = thumbFile(folder, slug);
-  const src = typeof exists === "function" && exists(own) ? "../" + own : fallbackThumb(folder);
+  const src = typeof exists === "function" && exists(own) ? "/" + own : fallbackThumb(folder);
   const at = postHtml.indexOf(meta[0], postHtml.indexOf(title[0])) + meta[0].length;
   if (at < meta[0].length) return postHtml;
   return postHtml.slice(0, at) + heroFigure(src, decode(title[1])) + postHtml.slice(at);
@@ -97,20 +98,20 @@ const CRUMBS_RE = /<!--crumbs-->[\s\S]*?<!--\/crumbs-->/;
 const PAGER_RE = /<!--pager-->[\s\S]*?<!--\/pager-->/;
 
 /** Home > Restoration Blog > Section > Post title (a post page lives one folder down, so links go up first). */
-export function crumbsHtml(sectionName, titleHtml) {
+export function crumbsHtml(sectionName, titleHtml, folder) {
   const sep = '<span aria-hidden="true">&rsaquo;</span>';
   return "<!--crumbs--><div class=\"crumbs\" role=\"navigation\" aria-label=\"Breadcrumb\">" +
-    '<a href="../index.html">Home</a>' + sep +
-    '<a href="../' + BLOG_HUB.href + '">' + attr(BLOG_HUB.name) + "</a>" + sep +
-    '<a href="index.html">' + attr(sectionName) + "</a>" + sep +
+    '<a href="/">Home</a>' + sep +
+    '<a href="' + pageUrl(BLOG_HUB.href) + '">' + attr(BLOG_HUB.name) + "</a>" + sep +
+    '<a href="' + pageUrl(folder + "/index.html") + '">' + attr(sectionName) + "</a>" + sep +
     '<span aria-current="page">' + titleHtml + "</span></div><!--/crumbs-->";
 }
 
 /** Older / newer links within the section. Either may be missing. */
-export function pagerHtml(newer, older) {
+export function pagerHtml(newer, older, folder) {
   if (!newer && !older) return "<!--pager--><!--/pager-->";
   const link = (cls, label, post) => post
-    ? '<a class="' + cls + '" href="' + attr(post.slug) + '.html"><small>' + label + "</small><span>" + post.titleHtml + "</span></a>"
+    ? '<a class="' + cls + '" href="' + attr(pageUrl(folder + "/" + post.slug + ".html")) + '"><small>' + label + "</small><span>" + post.titleHtml + "</span></a>"
     : '<span class="' + cls + ' none"></span>';
   return '<!--pager--><div class="post-pager" role="navigation" aria-label="More posts in this section">' +
     link("older", "&larr; Older", older) + link("newer", "Newer &rarr;", newer) + "</div><!--/pager-->";
@@ -127,12 +128,12 @@ export function applyPostChrome(postHtml, folder, slug, listings) {
   if (!section || !title) return postHtml;
   let out = postHtml;
 
-  const crumbs = crumbsHtml(section.name, title[1]);
+  const crumbs = crumbsHtml(section.name, title[1], folder);
   if (CRUMBS_RE.test(out)) out = out.replace(CRUMBS_RE, () => crumbs);
   else out = out.replace(/<a class="back" href="index\.html">[\s\S]*?<\/a>/, () => crumbs);
 
   const at = listings.findIndex((p) => p.slug === slug);
-  const pager = at < 0 ? "<!--pager--><!--/pager-->" : pagerHtml(listings[at - 1] || null, listings[at + 1] || null);
+  const pager = at < 0 ? "<!--pager--><!--/pager-->" : pagerHtml(listings[at - 1] || null, listings[at + 1] || null, folder);
   if (PAGER_RE.test(out)) out = out.replace(PAGER_RE, () => pager);
   else out = out.replace("</article>", () => "</article>" + pager);
   return out;

@@ -13,10 +13,10 @@ assert.deepEqual(content.shop_hero.slides.map((s) => s.image), ["images/site/sho
 assert.ok(contentImages(content).includes("images/site/shop-b.jpg"));
 const files = renderShop(data, { content });
 const idx = files["index.html"];
-assert.ok(idx.includes('<body class="home">') && idx.includes('src="../images/site/shop-a.jpg"') && idx.includes('src="../images/site/shop-b.jpg"'));
+assert.ok(idx.includes('<body class="home">') && idx.includes('src="/images/site/shop-a.jpg"') && idx.includes('src="/images/site/shop-b.jpg"'));
 assert.ok(!idx.includes("home-a.jpg"), "separate pool from the homepage");
 assert.equal((idx.match(/<h1>/g) || []).length, 1);
-assert.ok(idx.indexOf('class="hero"') < idx.indexOf(`class="forsale shop-list"`) && idx.includes('<script src="../hero.js" defer>'));
+assert.ok(idx.indexOf('class="hero"') < idx.indexOf(`class="forsale shop-list"`) && idx.includes('<script src="/assets/js/hero.js" defer>'));
 const detail = Object.entries(files).find(([n]) => n.endsWith(".html") && n !== "index.html")[1];
 assert.ok(!detail.includes('class="hero"') && !detail.includes('<body class="home">'), "item pages keep the normal header");
 console.log("ok: shop hero pool, markup, item pages unchanged");

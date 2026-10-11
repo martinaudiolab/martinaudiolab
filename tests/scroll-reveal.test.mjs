@@ -5,10 +5,10 @@ import { JSDOM } from "jsdom";
 import { renderHome } from "../scripts/site-render.mjs";
 import { normalizeContent } from "../scripts/site-content.mjs";
 const R = ROOT + "";
-const script = fs.readFileSync(R + "site/reveal.js", "utf8");
-const css = fs.readFileSync(R + "site/style.css", "utf8");
+const script = fs.readFileSync(R + "site/assets/js/reveal.js", "utf8");
+const css = fs.readFileSync(R + "site/assets/css/style.css", "utf8");
 const full = renderHome(normalizeContent({}));
-assert.ok(full.includes('<script src="reveal.js" defer>'), "homepage loads reveal.js");
+assert.ok(full.includes('<script src="/assets/js/reveal.js" defer>'), "homepage loads reveal.js");
 const html = full.replace(/<script src="[^"]*"[^>]*><\/script>/g, "");
 
 function boot({ observer = true, reduced = false } = {}) {

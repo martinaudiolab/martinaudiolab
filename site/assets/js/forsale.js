@@ -28,12 +28,12 @@
   function card(item) {
     var link = document.createElement("a");
     link.className = "fs-card";
-    link.href = "shop/" + encodeURIComponent(item.slug) + ".html";
+    link.href = "/shop/" + encodeURIComponent(item.slug);
 
     var thumb = document.createElement("div");
     thumb.className = "fs-thumb";
     var image = document.createElement("img");
-    image.src = item.image;
+    image.src = /^(https?:|\/)/.test(item.image) ? item.image : "/" + item.image;
     image.alt = "";
     image.loading = "lazy";
     thumb.appendChild(image);
@@ -121,7 +121,7 @@
     });
   }
 
-  fetch("shop/feed.json", { cache: "no-cache" })
+  fetch("/shop/feed.json", { cache: "no-cache" })
     .then(function (response) { return response.ok ? response.json() : []; })
     .then(start)
     .catch(function () { /* the section simply stays hidden */ });

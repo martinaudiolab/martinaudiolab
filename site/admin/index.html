@@ -7,12 +7,12 @@
 <meta name="description" content="Edit the site content for Martin Audio Labs.">
 <meta name="robots" content="noindex">
 <meta name="publisher-api-url" content="https://martin-audio-labs-publisher.thealexandersound.workers.dev">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
 <header class="site">
-<a class="brand" href="index.html">Martin Audio Labs</a>
-<nav><a href="index.html">Home</a><a href="shop/index.html">Shop</a><a href="request.html">Request a Restoration</a><div class="dd"><button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">Restoration Blog</button><div class="dd-menu"><a href="blog/index.html">All Posts</a><a href="stereo/index.html">Stereo Repair</a><a href="radio/index.html">Radio Repair</a><a href="test-equipment/index.html">Test Equipment</a></div></div><a href="about.html">About Me</a></nav>
+<a class="brand" href="/">Martin Audio Labs</a>
+<nav><a href="/">Home</a><a href="/shop/">Shop</a><a href="/request">Request a Restoration</a><div class="dd"><button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">Restoration Blog</button><div class="dd-menu"><a href="/blog/">All Posts</a><a href="/stereo/">Stereo Repair</a><a href="/radio/">Radio Repair</a><a href="/test-equipment/">Test Equipment</a></div></div><a href="/about">About Me</a></nav>
 </header>
 <main class="builder admin">
 <h1 class="h2">Site Admin</h1>
@@ -140,7 +140,7 @@
 <input id="s-title" type="text" maxlength="80" data-shop="title">
 <label for="s-intro">Intro (shown under the title)</label>
 <textarea id="s-intro" rows="3" maxlength="600" data-shop="intro"></textarea>
-<p class="hint">Products, prices, photos and status are managed in the <a href="shop-builder">Shop Builder</a>.</p>
+<p class="hint">Products, prices, photos and status are managed in the <a href="#shop-builder" data-goto-tab="shop-builder">Shop Builder</a>.</p>
 </section>
 <!-- Shop Builder -->
 <section class="admin-panel builder-panel" data-panel="shop-builder" role="tabpanel" hidden>
@@ -313,10 +313,10 @@
 <option value="stereo/index.html"></option><option value="radio/index.html"></option><option value="test-equipment/index.html"></option>
 </datalist>
 </main>
-<script src="heic.js"></script>
-<script src="admin.js"></script>
-<script src="shop-builder.js"></script>
-<script src="post-builder.js"></script>
+<script src="/admin/heic.js"></script>
+<script src="/admin/admin.js"></script>
+<script src="/admin/shop-builder.js"></script>
+<script src="/admin/post-builder.js"></script>
 
-<script src="nav.js" defer></script></body>
+<script src="/assets/js/nav.js" defer></script></body>
 </html>

@@ -131,11 +131,11 @@ assert.ok(head.tree["site/shop/sample-restored-receiver.html"], "other pages kep
 assert.equal(blobs.get(head.tree["site/images/shop/photo-abc-1234.jpg"]).toString(), "fakejpegdata");
 const page = blobs.get(head.tree["site/shop/marantz-2270.html"]).toString();
 assert.ok(page.includes("Marantz 2270 &lt;Receiver&gt;"), "title escaped");
-assert.ok(page.includes("../images/shop/photo-abc-1234.jpg"));
+assert.ok(page.includes("/images/shop/photo-abc-1234.jpg"));
 const saved = JSON.parse(blobs.get(head.tree["shop-data/items.json"]).toString());
 assert.equal(saved.items[0].slug, "marantz-2270");
 assert.ok(!saved.items.some((i) => i.slug === removed.slug));
-assert.ok(blobs.get(head.tree["site/shop/index.html"]).toString().includes("marantz-2270.html"));
+assert.ok(blobs.get(head.tree["site/shop/index.html"]).toString().includes("/shop/marantz-2270"));
 assert.equal(head.tree["site/stereo/index.html"] !== undefined, true);
 assert.equal(log[0], "Update shop listings");
 console.log("ok 1: add/remove/upload publish");
@@ -212,7 +212,7 @@ assert.equal(savedContent.nav_items[1].children[0].label, "Stereo");
 const homeHtml = blobs.get(head.tree["site/index.html"]).toString();
 assert.equal(savedContent.homepage.hero.slides.length, 2, "invalid slides dropped");
 assert.equal((homeHtml.match(/class="hero-slide/g) || []).length, 2);
-assert.ok(homeHtml.includes('alt="Bench"') && homeHtml.includes('src="images/site/hero-abc-1234.jpg"'));
+assert.ok(homeHtml.includes('alt="Bench"') && homeHtml.includes('src="/images/site/hero-abc-1234.jpg"'));
 assert.ok(homeHtml.indexOf('class="hero"') < homeHtml.indexOf('class="cats"') && homeHtml.includes('<body class="home">'));
 assert.ok(homeHtml.includes("<h1>New hero</h1>") && !homeHtml.includes('data-theme') && homeHtml.includes("Tested before shipping"));
 assert.ok(!homeHtml.includes("forsale.js"), "carousel disabled");
@@ -259,12 +259,12 @@ const mk = new Function("escapeHtml", "dateLabel", "navHtml", "NAV_SCRIPT", "her
 const articleHtml = mk((v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;"), () => "October 9, 2026", navHtml, NAV_SCRIPT, heroFigure, crumbsHtml);
 const site = { site_name: "My Shop", nav_items: [{ label: "Home", href: "index.html" }, { label: "Blog", children: [{ label: "Stereo", href: "stereo/index.html" }] }] };
 const art = articleHtml({ title: "T", summary: "S", date: "2026-10-09", category: "stereo" }, { folder: "stereo", name: "Stereo Repair" }, "<p>x</p>", site);
-assert.ok(art.includes('<html lang="en">') && art.includes("<title>T - My Shop</title>") && art.includes('class="brand" href="../index.html">My Shop</a>'));
-assert.ok(art.includes('<a href="../stereo/index.html" class="on" aria-current="page">Stereo</a>') && art.includes('<script src="../nav.js" defer>'));
-assert.ok(art.includes('<!--crumbs-->') && art.includes('<a href="../blog/index.html">Restoration Blog</a>') && art.includes('<span aria-current="page">T</span>'), "new posts carry the breadcrumb");
+assert.ok(art.includes('<html lang="en">') && art.includes("<title>T - My Shop</title>") && art.includes('class="brand" href="/">My Shop</a>'));
+assert.ok(art.includes('<a href="/stereo/" class="on" aria-current="page">Stereo</a>') && art.includes('<script src="/assets/js/nav.js" defer>'));
+assert.ok(art.includes('<!--crumbs-->') && art.includes('<a href="/blog/">Restoration Blog</a>') && art.includes('<span aria-current="page">T</span>'), "new posts carry the breadcrumb");
 console.log("ok 10: article template uses site content");
 
-// ---- 11. complete sign-in flow always lands on /admin -------------------------------
+// ---- 11. complete sign-in flow always lands on /admin/ -------------------------------
 {
   const start = await worker.fetch(new Request("https://pub.example/auth/start?return=shop"), env);
   assert.equal(start.status, 302);
@@ -273,7 +273,7 @@ console.log("ok 10: article template uses site content");
   const ok = await worker.fetch(new Request("https://pub.example/auth/callback?state=" + state + "&code=abc", { headers: { Cookie: cookie } }), env);
   assert.equal(ok.status, 302);
   const dest = new URL(ok.headers.get("location"));
-  assert.equal(dest.origin + dest.pathname, ORIGIN + "/admin");
+  assert.equal(dest.origin + dest.pathname, ORIGIN + "/admin/");
   assert.ok(dest.hash.startsWith("#ticket="), dest.toString());
   assert.ok(ok.headers.getSetCookie().some((c) => c.startsWith("oauth_state=;")), "state cookie cleared");
   const ticket = decodeURIComponent(dest.hash.slice("#ticket=".length));
@@ -284,9 +284,9 @@ console.log("ok 10: article template uses site content");
   const bad = await worker.fetch(new Request("https://pub.example/auth/callback?state=nope&code=abc", { headers: { Cookie: "oauth_state=other" } }), env);
   assert.equal(bad.status, 302);
   const badDest = new URL(bad.headers.get("location"));
-  assert.equal(badDest.origin + badDest.pathname, ORIGIN + "/admin");
+  assert.equal(badDest.origin + badDest.pathname, ORIGIN + "/admin/");
   assert.ok(badDest.hash.includes("auth_error=oauth_failed"));
   const denied = await worker.fetch(new Request("https://pub.example/auth/callback?error=access_denied"), env);
-  assert.equal(new URL(denied.headers.get("location")).pathname, "/admin");
-  console.log("ok 11: sign-in success and failure land on /admin");
+  assert.equal(new URL(denied.headers.get("location")).pathname, "/admin/");
+  console.log("ok 11: sign-in success and failure land on /admin/");
 }
