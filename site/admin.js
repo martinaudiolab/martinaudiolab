@@ -8,7 +8,7 @@
   var shop = { title: "", intro: "" };
   var contentSha = "";
   var shopSha = "";
-  var pending = {};             // new image path -> { base64, dataUrl, uploaded }
+  var pending = {};             // new image path -> { dataUrl, uploaded }
   var dirty = false;
   var sessionListeners = [];
   // The Shop Builder and Post Builder tabs share this sign-in instead of having their own.
@@ -109,6 +109,7 @@
   }
 
   function markDirty() {
+    if (dirty) return;
     dirty = true;
     $("save").disabled = false;
     $("dirty-note").textContent = "You have unsaved changes.";
@@ -171,27 +172,48 @@
         context.fillStyle = "#ffffff";
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        var dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-        resolve({ dataUrl: dataUrl, base64: dataUrl.slice(dataUrl.indexOf(",") + 1) });
+        resolve({ dataUrl: canvas.toDataURL("image/jpeg", 0.85) });
       };
       image.onerror = function () { URL.revokeObjectURL(url); reject(new Error(file.name + " could not be read as an image.")); };
       image.src = url;
     });
   }
 
+  function base64Of(photo) { return photo.dataUrl.slice(photo.dataUrl.indexOf(",") + 1); }
+
   async function pickImage(file, kind, maxSide) {
-    if (window.HeicSupport) file = await window.HeicSupport.prepare(file);
+    // HEIC photos are converted straight to the final size, so a huge photo is only decoded once
+    if (window.HeicSupport) file = await window.HeicSupport.prepare(file, { maxSide: maxSide });
     var photo = await resizeImage(file, maxSide);
-    if (photo.base64.length * 0.75 > 3000000) throw new Error("That image is too large even after resizing. Try a smaller one.");
+    if (base64Of(photo).length * 0.75 > 3000000) throw new Error("That image is too large even after resizing. Try a smaller one.");
     var path = "images/site/" + kind + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6) + ".jpg";
     pending[path] = photo;
     return path;
   }
 
+  /** Every object in the content that holds one of the editable image paths. */
+  function imageEntries() {
+    return [].concat(content.homepage.hero.slides, content.shop_hero.slides, content.homepage.categories);
+  }
+
+  function referencedImages() {
+    var used = {};
+    imageEntries().forEach(function (entry) { if (entry.image) used[entry.image] = true; });
+    return used;
+  }
+
+  /** Drops unsaved pictures that nothing refers to any more (replaced or removed), freeing their memory. */
+  function releaseUnusedImages() {
+    var used = referencedImages();
+    Object.keys(pending).forEach(function (path) { if (!used[path]) delete pending[path]; });
+  }
+
   var HERO_SLOTS = 4;
 
-  function renderHeroSlots() {
+  /** Redraws the slideshow slots; pass "hero" or "shop" to redraw just that slideshow. */
+  function renderHeroSlots(only) {
     [["hero-slots", content.homepage.hero.slides, "hero"], ["shop-hero-slots", content.shop_hero.slides, "shop"]].forEach(function (pool) {
+      if (only && only !== pool[2]) return;
       var holder = $(pool[0]);
       holder.replaceChildren();
       for (var index = 0; index < HERO_SLOTS; index++) holder.appendChild(heroSlot(pool[1], index, pool[2]));
@@ -216,8 +238,9 @@
         var path = await pickImage(chosen, kind === "shop" ? "shophero" : "hero", 2000);
         if (slide) slide.image = path;
         else slides.push({ image: path, alt: "" });
+        releaseUnusedImages();
         markDirty();
-        renderHeroSlots();
+        renderHeroSlots(kind);
       } catch (error) { say(error.message); }
     });
 
@@ -228,8 +251,9 @@
 
     var remove = smallButton("Remove image", "Remove slideshow image " + number, function () {
       slides.splice(index, 1);
+      releaseUnusedImages();
       markDirty();
-      renderHeroSlots();
+      renderHeroSlots(kind);
     }, !slide || slides.length < 2);
     if (slide && slides.length < 2) remove.title = "The slideshow needs at least one image.";
 
@@ -324,12 +348,14 @@
         if (!chosen) return;
         try {
           category.image = await pickImage(chosen, "category", 1800);
+          releaseUnusedImages();
           markDirty();
           renderCategories();
         } catch (error) { say(error.message); }
       });
       var remove = smallButton("Remove image", "Remove image for " + (category.label || "category"), function () {
         category.image = "";
+        releaseUnusedImages();
         markDirty();
         renderCategories();
       }, !category.image);
@@ -394,20 +420,14 @@
     say("");
   }
 
-  function referencedImages() {
-    var used = {};
-    content.homepage.hero.slides.forEach(function (slide) { used[slide.image] = true; });
-    content.shop_hero.slides.forEach(function (slide) { used[slide.image] = true; });
-    content.homepage.categories.forEach(function (c) { used[c.image] = true; });
-    return used;
-  }
-
   async function save() {
     var used = referencedImages();
     var images = Object.keys(pending).filter(function (path) { return used[path] && !pending[path].uploaded; })
-      .map(function (path) { return { path: path, data: pending[path].base64 }; });
+      .map(function (path) { return { path: path, data: base64Of(pending[path]) }; });
     var button = $("save");
+    var app = $("admin-app");
     button.disabled = true;
+    app.inert = true;          // no edits while saving: the response replaces the form's contents
     say("Saving" + (images.length ? " (uploading " + images.length + " image" + (images.length === 1 ? "" : "s") + ")" : "") + "...");
     try {
       var result = await api("/api/content/publish", {
@@ -418,6 +438,7 @@
       shopSha = result.shopSha;
       content = result.content;
       shop = result.shop;
+      releaseUnusedImages();
       Object.keys(pending).forEach(function (path) { pending[path].uploaded = true; });
       render();
       markClean();
@@ -425,6 +446,8 @@
     } catch (error) {
       if (error.status === 401 || error.status === 403) signedOut(error.message);
       else { say(error.message || "Could not save."); button.disabled = false; }
+    } finally {
+      app.inert = false;
     }
   }
 
