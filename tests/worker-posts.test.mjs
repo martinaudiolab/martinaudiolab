@@ -175,3 +175,18 @@ console.log("ok: post thumbnails (publish, fallback, validation, delete)");
   assert.ok(page.includes('<script src="/assets/js/lightbox.js"'), "lightbox is loaded so the picture can be enlarged");
   console.log("ok: post pages show the thumbnail under the title");
 }
+
+// 6. a photo gallery survives the Worker's own sanitiser (layout kept, anything else on the figure dropped)
+{
+  seed();
+  head.tree["site/stereo/index.html"] = putBlob(Buffer.from(INDEX));
+  commits[head.sha] = { tree: structuredClone(head.tree) };
+  const gallery = '<p>Condition overview</p><figure data-gallery="2" onclick="x()" class="big"><img src="data:image/jpeg;base64,AAAA" alt="front" data-w="50"><img src="data:image/jpeg;base64,BBBB" alt=""></figure>' +
+    '<figure data-gallery="7"><img src="data:image/jpeg;base64,CCCC" alt=""></figure>';
+  const res = await call("/api/publish", "POST", post({ title: "Gallery Post", content: gallery }));
+  assert.equal(res.status, 201, JSON.stringify(res.body));
+  const page = blobs.get(head.tree["site/stereo/gallery-post.html"]).toString();
+  assert.ok(page.includes('<figure data-gallery="2"><img src="data:image/jpeg;base64,AAAA" alt="front" data-w="50"><img src="data:image/jpeg;base64,BBBB" alt=""></figure>'), page.slice(page.indexOf("<figure data-gallery")));
+  assert.ok(!page.includes('data-gallery="7"') && !/onclick|class="big"/.test(page));
+  console.log("ok: gallery survives publishing");
+}

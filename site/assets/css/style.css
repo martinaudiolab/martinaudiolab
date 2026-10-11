@@ -39,6 +39,15 @@ article.post.has-thumb{display:grid;grid-template-columns:minmax(0,15rem) minmax
 .body h3{font-family:var(--sans);font-size:1.1rem;margin:1.8rem 0 .5rem}
 .body pre{background:var(--panel);padding:1rem;overflow-x:auto;font-size:.9rem;line-height:1.5;border-radius:4px}
 figure{margin:1.2rem 0}figure img{max-width:100%;height:auto;border-radius:4px;display:block}
+/* Photo galleries inside a post: a grid of equal cells, each photo opens in the lightbox */
+figure[data-gallery]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin:1.4rem 0}
+figure[data-gallery="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
+figure[data-gallery] img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:0;margin:0;float:none;cursor:zoom-in}
+figure[data-gallery="2"] img:last-child:nth-child(odd){grid-column:1/-1;aspect-ratio:16/9}
+@media(max-width:600px){
+  figure[data-gallery="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+  figure[data-gallery="4"] img:last-child:nth-child(odd){grid-column:1/-1;aspect-ratio:16/9}
+}
 .crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .55rem;margin:0 0 1.25rem;font-family:var(--sans);font-size:.85rem;color:var(--muted)}
 .crumbs a{color:var(--muted);text-decoration:none}
 .crumbs a:hover,.crumbs a:focus-visible{color:var(--ink);text-decoration:underline}
@@ -139,6 +148,10 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .lightbox{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:1.5rem;cursor:zoom-out}
 .lightbox img{max-width:100%;max-height:100%;width:auto!important;height:auto;float:none!important;margin:0!important;border-radius:4px;cursor:zoom-out;object-fit:contain}
 .lightbox button{position:absolute;top:.75rem;right:1rem;background:none;border:0;color:#fff;font-size:2rem;line-height:1;cursor:pointer}
+.lightbox .lb-nav{top:50%;transform:translateY(-50%);width:3rem;height:4rem;font-size:3rem;background:rgba(0,0,0,.35)}
+.lightbox .lb-nav:hover,.lightbox .lb-nav:focus-visible{background:rgba(0,0,0,.6)}
+.lightbox .lb-prev{left:.75rem;right:auto}
+.lightbox .lb-next{right:.75rem}
 
 /* Shop builder */
 .sb-toolbar{align-items:center}

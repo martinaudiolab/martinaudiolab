@@ -19,6 +19,10 @@
   var INLINE_MAX_BYTES = 1500000;
   var POST_MAX_CHARS = 4500000;        // the publisher rejects posts over 5 MB
   var IMAGE_ALIGNMENTS = ["c", "l", "r"];
+  var GALLERY_LAYOUTS = ["2", "4"];    // photos per row
+  var GALLERY_MAX = 4;
+  var GALLERY_MAX_SIDE = 1600;         // gallery photos are shown small, so they are kept smaller than a single photo
+  var GALLERY_MAX_BYTES = 500000;
 
   var connected = false;
   var savedRange = null;        // last selection inside the editor, restored before toolbar commands
@@ -79,6 +83,7 @@
     var tag = element.tagName;
     if (tag === "A" && name === "href") return isSafeLink(value) ? value : null;
     if (tag === "SPAN" && name === "style") return safeSpanStyle(element) || null;
+    if (tag === "FIGURE" && name === "data-gallery") return GALLERY_LAYOUTS.includes(value) ? value : null;
     if (tag === "IMG") {
       if (name === "src") return IMAGE_DATA_URL.test(value) ? value : null;
       if (name === "alt") return value;
@@ -443,7 +448,9 @@
   // ---- Images -------------------------------------------------------------------------
 
   /** Photos inside a post are stored in the post itself, so large ones are scaled down (GIFs are left alone). */
-  function fitInlinePhoto(file) {
+  function fitInlinePhoto(file, limits) {
+    var maxSide = (limits && limits.maxSide) || INLINE_MAX_SIDE;
+    var maxBytes = (limits && limits.maxBytes) || INLINE_MAX_BYTES;
     if (!file || file.type === "image/gif" || !file.size) return Promise.resolve(file);
     return new Promise(function (resolve) {
       var url = URL.createObjectURL(file);
@@ -453,8 +460,8 @@
         window.clearTimeout(timer);
         URL.revokeObjectURL(url);
         var longest = Math.max(image.naturalWidth, image.naturalHeight);
-        if (!longest || (longest <= INLINE_MAX_SIDE && file.size <= INLINE_MAX_BYTES)) { resolve(file); return; }
-        var scale = Math.min(1, INLINE_MAX_SIDE / longest);
+        if (!longest || (longest <= maxSide && file.size <= maxBytes)) { resolve(file); return; }
+        var scale = Math.min(1, maxSide / longest);
         var canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
         canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -496,6 +503,42 @@
     reader.readAsDataURL(file);
   }
 
+  function readAsDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = function () { reject(new Error("That image could not be read.")); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /** Puts 2-4 chosen photos into the post as one grid (a <figure data-gallery="2|4"> of images). */
+  async function insertGallery(fileList) {
+    var files = Array.from(fileList);
+    if (!files.length) return;
+    var note = files.length > GALLERY_MAX ? "A gallery holds up to " + GALLERY_MAX + " photos; the first " + GALLERY_MAX + " were used." : "";
+    var sources = [];
+    for (var i = 0; i < Math.min(files.length, GALLERY_MAX); i++) {
+      var file = files[i];
+      try {
+        if (window.HeicSupport) {
+          if (await window.HeicSupport.detect(file)) say("Converting HEIC photo " + (i + 1) + "...");
+          file = await window.HeicSupport.prepare(file, { maxSide: GALLERY_MAX_SIDE });
+        }
+        if (!IMAGE_FILE_TYPE.test(file.type)) { note = "Some files were skipped: choose PNG, JPEG, GIF, WebP or HEIC photos."; continue; }
+        file = await fitInlinePhoto(file, { maxSide: GALLERY_MAX_SIDE, maxBytes: GALLERY_MAX_BYTES });
+        sources.push(await readAsDataUrl(file));
+      } catch (error) {
+        note = error.message || "One photo could not be used.";
+      }
+    }
+    say(note);
+    if (!sources.length) return;
+    var layout = GALLERY_LAYOUTS.includes($("gallery-layout").value) ? $("gallery-layout").value : "2";
+    var html = '<figure data-gallery="' + layout + '">' + sources.map(function (src) { return '<img src="' + src + '" alt="">'; }).join("") + "</figure><p><br></p>";
+    runCommand("insertHTML", html);
+  }
+
   function deselectImage() {
     if (selectedImage) selectedImage.classList.remove("sel");
     selectedImage = null;
@@ -506,6 +549,10 @@
     deselectImage();
     selectedImage = image;
     image.classList.add("sel");
+    // width and alignment apply to single photos; a gallery photo sizes itself to its grid cell
+    var inGallery = Boolean(image.closest("figure[data-gallery]"));
+    $("image-width").disabled = inGallery;
+    $("image-align").disabled = inGallery;
     $("image-width").value = image.dataset.w || "100";
     $("image-align").value = image.dataset.a || "c";
     $("image-alt").value = image.alt || "";
@@ -577,8 +624,18 @@
       if (selectedImage) selectedImage.alt = event.target.value;
     });
     $("remove-image").addEventListener("click", function () {
-      if (selectedImage) selectedImage.remove();
+      if (selectedImage) {
+        var gallery = selectedImage.closest("figure[data-gallery]");
+        selectedImage.remove();
+        if (gallery && !gallery.querySelector("img")) gallery.remove();   // an emptied gallery goes away
+      }
       deselectImage();
+    });
+    $("add-gallery").addEventListener("click", function () { $("gallery-files").click(); });
+    $("gallery-files").addEventListener("change", function (event) {
+      var files = Array.from(event.target.files || []);
+      event.target.value = "";
+      insertGallery(files);
     });
   }
 

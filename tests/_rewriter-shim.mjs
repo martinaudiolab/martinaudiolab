@@ -21,6 +21,7 @@ class Rewriter {
                 removeAttribute: (n) => node.removeAttribute(n),
                 setAttribute: (n, v) => node.setAttribute(n, v),
                 getAttribute: (n) => node.getAttribute(n),
+                hasAttribute: (n) => node.hasAttribute(n),
                 remove: () => node.remove(),
                 removeAndKeepContent: () => { while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node); node.remove(); },
                 after: (html) => node.insertAdjacentHTML("afterend", html),
