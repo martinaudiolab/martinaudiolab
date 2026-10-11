@@ -2,7 +2,7 @@ import { normalizeShop, renderShop, validateShop } from "../scripts/shop-render.
 import { NAV_SCRIPT, navHtml } from "../scripts/site-nav.mjs";
 import { CONTENT_PATH, contentImages, normalizeContent } from "../scripts/site-content.mjs";
 import { renderAbout, renderHome, renderRequest } from "../scripts/site-render.mjs";
-import { fallbackThumb, listingWithThumb, thumbFile } from "../scripts/site-posts.mjs";
+import { fallbackThumb, heroFigure, listingWithThumb, thumbFile } from "../scripts/site-posts.mjs";
 
 const SESSION_TTL = 7 * 24 * 60 * 60;
 const DROP_TAGS = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "FORM", "VIDEO", "AUDIO"]);
@@ -269,11 +269,11 @@ function dateLabel(value) {
   }).format(date);
 }
 
-function articleHtml(data, category, content, site) {
+function articleHtml(data, category, content, site, heroSrc) {
   const title = escapeHtml(data.title);
   const summary = escapeHtml(data.summary);
   const label = escapeHtml(dateLabel(data.date));
-  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html", "../") + '</header><main><a class="back" href="index.html">Back to ' + escapeHtml(category.name) + '</a><article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + NAV_SCRIPT("../") + '</body></html>\n';
+  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html", "../") + '</header><main><a class="back" href="index.html">Back to ' + escapeHtml(category.name) + '</a><article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div>' + (heroSrc ? heroFigure(heroSrc, data.title) : "") + '<div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + NAV_SCRIPT("../") + '</body></html>\n';
 }
 
 function listingHtml(data, category, folder, hasThumbnail) {
@@ -318,8 +318,8 @@ async function publishPost(request, env, session, body) {
   if (!slug) throw new HttpError(400, "Add a title with at least one letter or number.");
   // Optional thumbnail: a small JPEG, base64 encoded, made in the browser.
   const thumbnail = typeof body.thumbnail === "string" ? body.thumbnail : "";
-  if (thumbnail && (!/^[A-Za-z0-9+\/]+={0,2}$/.test(thumbnail) || !thumbnail.startsWith("/9j/") || thumbnail.length * 0.75 > 400000)) {
-    throw new HttpError(400, "The thumbnail must be a JPEG under 400 KB.");
+  if (thumbnail && (!/^[A-Za-z0-9+\/]+={0,2}$/.test(thumbnail) || !thumbnail.startsWith("/9j/") || thumbnail.length * 0.75 > 900000)) {
+    throw new HttpError(400, "The thumbnail must be a JPEG under 900 KB.");
   }
 
   const owner = env.GITHUB_OWNER;
@@ -350,7 +350,7 @@ async function publishPost(request, env, session, body) {
   const safeContent = await sanitizeContent(rawContent, env.SITE_ORIGIN);
   const data = { title: title, summary: summary, date: date, slug: slug, category: body.category };
   const site = (await loadSiteContent(session.accessToken, apiBase, reference.object.sha)).content;
-  const article = articleHtml(data, category, safeContent, site);
+  const article = articleHtml(data, category, safeContent, site, thumbnail ? "../" + thumbFile(category.folder, slug) : fallbackThumb(category.folder));
 
   const articleBlob = await githubRequest(session.accessToken, apiBase + "/git/blobs", {
     method: "POST", body: { content: article, encoding: "utf-8" }

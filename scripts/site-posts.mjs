@@ -19,6 +19,28 @@ export function listingWithThumb(slug, src, inner) {
   return '<article class="post has-thumb">' + thumbLink(slug, src) + '<div class="post-main">' + inner + "</div></article>";
 }
 
+/** The image under a post's title (same picture as its listing thumbnail); clicking it opens the lightbox. */
+export function heroFigure(src, title) {
+  return '<figure class="post-hero"><img src="' + attr(src) + '" alt="' + attr(title) + '"></figure>';
+}
+
+/**
+ * Puts the hero image under the title block of an existing post page. Safe to run repeatedly.
+ * `exists(path)` says whether the post's own thumbnail file is present (path relative to site/).
+ */
+export function addPostHero(postHtml, folder, slug, exists) {
+  if (postHtml.includes('class="post-hero"')) return postHtml;
+  const title = postHtml.match(/<h1 class="post-title">([\s\S]*?)<\/h1>/);
+  const meta = postHtml.match(/<div class="meta">[\s\S]*?<\/div>/);
+  if (!title || !meta) return postHtml;
+  const own = thumbFile(folder, slug);
+  const src = typeof exists === "function" && exists(own) ? "../" + own : fallbackThumb(folder);
+  const at = postHtml.indexOf(meta[0], postHtml.indexOf(title[0])) + meta[0].length;
+  if (at < meta[0].length) return postHtml;
+  const plain = title[1].replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  return postHtml.slice(0, at) + heroFigure(src, plain) + postHtml.slice(at);
+}
+
 /**
  * Adds a thumbnail to every listing that does not have one yet. `exists(path)` says whether a
  * post's own thumbnail file is present (path relative to site/); otherwise the section picture is used.

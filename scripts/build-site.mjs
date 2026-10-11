@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { CONTENT_PATH, normalizeContent } from "./site-content.mjs";
 import { renderAbout, renderHome, renderRequest, applyGlobals } from "./site-render.mjs";
 import { SHOP_MARK, renderShop, validateShop } from "./shop-render.mjs";
-import { addThumbnails } from "./site-posts.mjs";
+import { addPostHero, addThumbnails } from "./site-posts.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
@@ -75,6 +75,18 @@ for (const folder of ["stereo", "radio", "test-equipment"]) {
   let after = addThumbnails(before, folder, (p) => fs.existsSync(path.join(SITE, p)));
   after = after.replace("<body>", () => '<body class="navbar">');
   if (after !== before) fs.writeFileSync(file, crlf ? after.split("\n").join("\r\n") : after);
+
+  // ...and every post page shows the same picture under its title
+  for (const name of fs.readdirSync(path.join(SITE, folder))) {
+    const m = name.match(/^([a-z0-9]+(?:-[a-z0-9]+)*)\.html$/);
+    if (!m) continue;
+    const post = path.join(SITE, folder, name);
+    const rawPost = fs.readFileSync(post, "utf8");
+    const postCrlf = rawPost.includes("\r\n");
+    const postBefore = postCrlf ? rawPost.split("\r\n").join("\n") : rawPost;
+    const postAfter = addPostHero(postBefore, folder, m[1], (p) => fs.existsSync(path.join(SITE, p)));
+    if (postAfter !== postBefore) fs.writeFileSync(post, postCrlf ? postAfter.split("\n").join("\r\n") : postAfter);
+  }
 }
 
 // 4. Everything else: apply the global fields

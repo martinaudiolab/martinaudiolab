@@ -217,7 +217,7 @@
   async function thumbnailBase64() {
     var chosen = $("post-thumb").files && $("post-thumb").files[0];
     if (chosen && window.HeicSupport) {
-      try { chosen = await window.HeicSupport.prepare(chosen, { maxSide: 1000 }); } catch (error) { chosen = null; }
+      try { chosen = await window.HeicSupport.prepare(chosen, { maxSide: 1600 }); } catch (error) { chosen = null; }
     }
     var firstPhoto = $("post-content").querySelector('img[src^="data:image"]');
     var source = chosen ? URL.createObjectURL(chosen) : firstPhoto ? firstPhoto.getAttribute("src") : "";
@@ -228,7 +228,7 @@
       image.onload = function () {
         window.clearTimeout(timer);
         if (chosen) URL.revokeObjectURL(source);
-        var scale = Math.min(1, 720 / Math.max(image.naturalWidth, image.naturalHeight));
+        var scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
         var canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
         canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -236,7 +236,12 @@
         context.fillStyle = "#ffffff";
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        var url = canvas.toDataURL("image/jpeg", 0.82);
+        // keep it comfortably under the 900 KB limit: lower the quality until it fits
+        var url = "";
+        [0.85, 0.75, 0.65, 0.55].some(function (quality) {
+          url = canvas.toDataURL("image/jpeg", quality);
+          return (url.length - url.indexOf(",") - 1) * 0.75 <= 800000;
+        });
         resolve(url.slice(url.indexOf(",") + 1));
       };
       image.onerror = function () { window.clearTimeout(timer); if (chosen) URL.revokeObjectURL(source); resolve(""); };
