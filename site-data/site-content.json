@@ -112,10 +112,6 @@
     "stereo": {
       "slides": [
         {
-          "image": "images/site/bloghero-mv3gqyye-evmj.jpg",
-          "alt": ""
-        },
-        {
           "image": "images/site/bloghero-mv3gqo6t-cdoj.jpg",
           "alt": ""
         },
@@ -125,6 +121,10 @@
         },
         {
           "image": "images/site/bloghero-mv3gvdk3-yeaq.jpg",
+          "alt": ""
+        },
+        {
+          "image": "images/site/bloghero-mv3gx9p4-5mwy.jpg",
           "alt": ""
         }
       ]
