@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
+import os from "node:os";
+import { spawnSync } from "node:child_process";
 import { ROOT } from "./_root.mjs";
 import { absolutizeAssets, assetUrl, pageUrl } from "../shared/site-urls.mjs";
 
@@ -37,8 +39,16 @@ const SITE = ROOT + "site/";
   console.log("ok 2: legacy relative references rewritten, idempotent");
 }
 
-// 3. the real site
+// 3. the site as the deploy builds it. The committed files are not the whole story: pages such as the
+// Restoration Blog listing and each post's older/newer links are generated at build time, so after a
+// post is deleted in the admin the committed copies can lag until the next build.
 {
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "mal-links-"));
+  process.on("exit", () => fs.rmSync(work, { recursive: true, force: true }));
+  for (const dir of ["site", "build", "shared", "site-data", "shop-data"]) fs.cpSync(path.join(ROOT, dir), path.join(work, dir), { recursive: true });
+  const built = spawnSync(process.execPath, [path.join(work, "build", "build-site.mjs")], { cwd: work, encoding: "utf8", env: { ...process.env, SITE_URL: "" } });
+  assert.equal(built.status, 0, built.stderr);
+  const SITE = path.join(work, "site") + "/";
   const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
   const pages = walk(SITE).filter((f) => f.endsWith(".html"));
   assert.ok(pages.length > 10);
@@ -78,4 +88,45 @@ const SITE = ROOT + "site/";
   for (const f of ["style.css", "nav.js", "admin.html", "admin.js"]) assert.ok(!exists(f), f + " no longer at the site root");
   assert.ok(fs.readFileSync(SITE + "_redirects", "utf8").includes("/admin.html /admin/ 301"), "old admin address redirects");
   console.log("ok 3: " + pages.length + " pages, every reference resolves");
+}
+
+// 4. deleting a post (page and listing removed, as the admin does) leaves no dangling link once built,
+// even though the committed Restoration Blog page and the neighbours' older/newer links still name it
+{
+  const { SECTIONS } = await import("../shared/sections.mjs");
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "mal-delete-"));
+  process.on("exit", () => fs.rmSync(work, { recursive: true, force: true }));
+  for (const dir of ["site", "build", "shared", "site-data", "shop-data"]) fs.cpSync(path.join(ROOT, dir), path.join(work, dir), { recursive: true });
+  const run = () => spawnSync(process.execPath, [path.join(work, "build", "build-site.mjs")], { cwd: work, encoding: "utf8", env: { ...process.env, SITE_URL: "" } });
+  assert.equal(run().status, 0);   // a fully built baseline, as it would be after a normal deploy
+
+  // a section with at least two posts; remove one of them the way deletePost does
+  const posts = (s) => fs.readdirSync(path.join(work, "site", s.folder)).filter((n) => n !== "index.html" && n.endsWith(".html"));
+  const section = SECTIONS.find((s) => posts(s).length >= 2);
+  if (!section) {
+    console.log("skipped 4: no section has two posts to delete from");
+  } else {
+    const dir = path.join(work, "site", section.folder);
+    const slug = posts(section)[0].replace(/\.html$/, "");
+    fs.rmSync(path.join(dir, slug + ".html"));
+    const indexFile = path.join(dir, "index.html");
+    const article = new RegExp('<article class="post[^"]*">(?:(?!</article>)[\\s\\S])*?href="[^"]*' + slug + '(?:\\.html)?"[\\s\\S]*?</article>');
+    const index = fs.readFileSync(indexFile, "utf8").replace(article, "");
+    fs.writeFileSync(indexFile, index);
+    assert.ok(!index.includes(slug + ".html"), "the listing is gone");
+    assert.ok(fs.readFileSync(path.join(work, "site", "blog", "index.html"), "utf8").includes("/" + section.folder + "/" + slug), "the committed blog page still lists it (stale)");
+
+    assert.equal(run().status, 0);
+    const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+    // inside the section a post is linked by file name or by address; elsewhere only by its address
+    // (another section can have a post with the same file name)
+    const sameSection = new RegExp('href="(?:/' + section.folder + '/)?' + slug + '(?:\.html)?"');
+    const elsewhere = new RegExp('href="/' + section.folder + '/' + slug + '(?:\.html)?"');
+    const stale = walk(path.join(work, "site")).filter((f) => f.endsWith(".html")).filter((f) => {
+      const inSection = path.dirname(f) === dir;
+      return (inSection ? sameSection : elsewhere).test(fs.readFileSync(f, "utf8"));
+    });
+    assert.deepEqual(stale.map((f) => path.relative(work, f)), [], "no page still links to the deleted post");
+    console.log("ok 4: a deleted post leaves no dangling links after a build");
+  }
 }
