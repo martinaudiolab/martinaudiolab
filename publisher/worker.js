@@ -2,16 +2,14 @@ import { normalizeShop, renderShop, validateShop } from "../scripts/shop-render.
 import { NAV_SCRIPT, navHtml } from "../scripts/site-nav.mjs";
 import { CONTENT_PATH, contentImages, normalizeContent } from "../scripts/site-content.mjs";
 import { renderAbout, renderHome, renderRequest } from "../scripts/site-render.mjs";
-import { fallbackThumb, heroFigure, listingWithThumb, thumbFile } from "../scripts/site-posts.mjs";
+import { crumbsHtml, fallbackThumb, heroFigure, listingWithThumb, thumbFile } from "../scripts/site-posts.mjs";
+import { SECTIONS } from "../scripts/sections.mjs";
 
 const SESSION_TTL = 7 * 24 * 60 * 60;
 const DROP_TAGS = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "FORM", "VIDEO", "AUDIO"]);
 const ALLOWED_TAGS = new Set(["A", "BLOCKQUOTE", "BR", "CODE", "EM", "FIGURE", "H2", "H3", "H4", "HR", "IMG", "LI", "OL", "P", "PRE", "SPAN", "STRONG", "U", "UL"]);
-const CATEGORIES = {
-  stereo: { folder: "stereo", name: "Stereo Repair" },
-  radio: { folder: "radio", name: "Radio Repair" },
-  "test-equipment": { folder: "test-equipment", name: "Test Equipment" }
-};
+// The blog sections come from scripts/sections.mjs (key -> { folder, name }).
+const CATEGORIES = Object.fromEntries(SECTIONS.map((s) => [s.key, { folder: s.folder, name: s.name }]));
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -273,7 +271,7 @@ function articleHtml(data, category, content, site, heroSrc) {
   const title = escapeHtml(data.title);
   const summary = escapeHtml(data.summary);
   const label = escapeHtml(dateLabel(data.date));
-  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html", "../") + '</header><main><a class="back" href="index.html">Back to ' + escapeHtml(category.name) + '</a><article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div>' + (heroSrc ? heroFigure(heroSrc, data.title) : "") + '<div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + NAV_SCRIPT("../") + '</body></html>\n';
+  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="../style.css"></head><body><header class="site"><a class="brand" href="../index.html">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html", "../") + '</header><main>' + crumbsHtml(category.name, title) + '<article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div>' + (heroSrc ? heroFigure(heroSrc, data.title) : "") + '<div class="body">' + content + '</div></article></main><script src="../lightbox.js" defer><\/script>' + NAV_SCRIPT("../") + '</body></html>\n';
 }
 
 function listingHtml(data, category, folder, hasThumbnail) {

@@ -18,6 +18,10 @@
       "label": "Restoration Blog",
       "children": [
         {
+          "label": "All Posts",
+          "href": "blog/index.html"
+        },
+        {
           "label": "Stereo Repair",
           "href": "stereo/index.html"
         },

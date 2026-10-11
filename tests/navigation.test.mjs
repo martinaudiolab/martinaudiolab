@@ -36,7 +36,7 @@ for (const f of ["index.html", "about.html", "request.html", "shop/index.html", 
   const win = load(f, true);
   const labels = Array.from(win.document.querySelectorAll("nav > a, nav > .dd > .dd-toggle")).map((n) => n.textContent);
   assert.deepEqual(labels, ["Home", "Shop", "Request a Restoration", "Restoration Blog", "About Me"], f);
-  assert.deepEqual(Array.from(win.document.querySelectorAll(".dd-menu a")).map((n) => n.textContent), ["Stereo Repair", "Radio Repair", "Test Equipment"]);
+  assert.deepEqual(Array.from(win.document.querySelectorAll(".dd-menu a")).map((n) => n.textContent), ["All Posts", "Stereo Repair", "Radio Repair", "Test Equipment"]);
 }
 // homepage
 w = load("index.html", true);

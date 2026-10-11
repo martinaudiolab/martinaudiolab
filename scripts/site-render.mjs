@@ -7,7 +7,7 @@ import { NAV_SCRIPT, navHtml } from "./site-nav.mjs";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const external = (h) => /^(https?:|mailto:)/i.test(h);
 
-function shell(content, o) {
+export function shell(content, o) {
   const prefix = o.prefix || "";
   return "<!DOCTYPE html>\n<html lang=\"en\">" + '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
     esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + prefix + 'style.css"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +

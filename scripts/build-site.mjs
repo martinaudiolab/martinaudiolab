@@ -12,11 +12,13 @@ import { fileURLToPath } from "node:url";
 import { CONTENT_PATH, normalizeContent } from "./site-content.mjs";
 import { renderAbout, renderHome, renderRequest, applyGlobals } from "./site-render.mjs";
 import { SHOP_MARK, renderShop, validateShop } from "./shop-render.mjs";
-import { addPostHero, addThumbnails } from "./site-posts.mjs";
+import { addPostHero, addThumbnails, applyPostChrome, listingsOf } from "./site-posts.mjs";
+import { BLOG_HUB, SECTIONS } from "./sections.mjs";
+import { renderBlogHub } from "./site-blog.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
-const GENERATED = new Set(["index.html", "request.html", "about.html"]);
+const GENERATED = new Set(["index.html", "request.html", "about.html", BLOG_HUB.href]);
 
 function readJson(rel, fallback) {
   try { return JSON.parse(fs.readFileSync(path.join(ROOT, rel), "utf8")); }
@@ -65,9 +67,12 @@ for (const [name, html] of Object.entries(shopFiles)) if (writeIfChanged(path.jo
 const generated = { "index.html": renderHome(content), "request.html": renderRequest(content), "about.html": renderAbout(content) };
 for (const [name, html] of Object.entries(generated)) if (writeIfChanged(path.join(SITE, name), html)) written++;
 
-// 3. Blog section pages: every listing gets a thumbnail (its own, else the section picture) and the nav bar
-for (const folder of ["stereo", "radio", "test-equipment"]) {
-  const file = path.join(SITE, folder, "index.html");
+// 3. Blog: section pages, post pages, the Restoration Blog landing page, and the admin's section dropdowns
+const sectionIndexes = {};
+for (const section of SECTIONS) {
+  const folder = section.folder;
+  const dir = path.join(SITE, folder);
+  const file = path.join(dir, "index.html");
   if (!fs.existsSync(file)) continue;
   const raw = fs.readFileSync(file, "utf8");
   const crlf = raw.includes("\r\n");
@@ -75,17 +80,37 @@ for (const folder of ["stereo", "radio", "test-equipment"]) {
   let after = addThumbnails(before, folder, (p) => fs.existsSync(path.join(SITE, p)));
   after = after.replace("<body>", () => '<body class="navbar">');
   if (after !== before) fs.writeFileSync(file, crlf ? after.split("\n").join("\r\n") : after);
+  sectionIndexes[folder] = after;
+  const listings = listingsOf(after);
 
-  // ...and every post page shows the same picture under its title
-  for (const name of fs.readdirSync(path.join(SITE, folder))) {
+  // every post page: the picture under its title, the breadcrumb, and older/newer links
+  for (const name of fs.readdirSync(dir)) {
     const m = name.match(/^([a-z0-9]+(?:-[a-z0-9]+)*)\.html$/);
     if (!m) continue;
-    const post = path.join(SITE, folder, name);
+    const post = path.join(dir, name);
     const rawPost = fs.readFileSync(post, "utf8");
     const postCrlf = rawPost.includes("\r\n");
     const postBefore = postCrlf ? rawPost.split("\r\n").join("\n") : rawPost;
-    const postAfter = addPostHero(postBefore, folder, m[1], (p) => fs.existsSync(path.join(SITE, p)));
+    let postAfter = addPostHero(postBefore, folder, m[1], (p) => fs.existsSync(path.join(SITE, p)));
+    postAfter = applyPostChrome(postAfter, folder, m[1], listings);
     if (postAfter !== postBefore) fs.writeFileSync(post, postCrlf ? postAfter.split("\n").join("\r\n") : postAfter);
+  }
+}
+fs.mkdirSync(path.join(SITE, BLOG_HUB.folder), { recursive: true });
+if (writeIfChanged(path.join(SITE, BLOG_HUB.href), renderBlogHub(content, sectionIndexes))) written++;
+
+{
+  // The Post Builder and Manage Blog Posts dropdowns list the sections from sections.mjs.
+  const adminFile = path.join(SITE, "admin.html");
+  if (fs.existsSync(adminFile)) {
+    const raw = fs.readFileSync(adminFile, "utf8");
+    const crlf = raw.includes("\r\n");
+    const before = crlf ? raw.split("\r\n").join("\n") : raw;
+    const options = SECTIONS.map((s) => '<option value="' + s.key + '">' + s.name.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</option>").join("\n");
+    const after = before
+      .replace(/(<select id="category" required>)[\s\S]*?(<\/select>)/, (m, a, b) => a + "\n" + options + "\n" + b)
+      .replace(/(<select id="manage-category">)[\s\S]*?(<\/select>)/, (m, a, b) => a + "\n" + options + "\n" + b);
+    if (after !== before) fs.writeFileSync(adminFile, crlf ? after.split("\n").join("\r\n") : after);
   }
 }
 
@@ -107,9 +132,9 @@ for (const file of walk(SITE)) {
 
 // 5. robots.txt and sitemap.xml (the sitemap needs the public address: set SITE_URL, e.g. https://martinaudiolabs.com)
 const siteUrl = (process.env.SITE_URL || "").trim().replace(/\/+$/, "");
-const sectionFolders = ["stereo", "radio", "test-equipment"];
+const sectionFolders = SECTIONS.map((s) => s.folder);
 const clean = [
-  "/", "/shop/", "/about", "/request",
+  "/", "/shop/", "/blog/", "/about", "/request",
   ...Object.keys(shopFiles).filter((n) => n.endsWith(".html") && n !== "index.html").map((n) => "/shop/" + n.replace(/\.html$/, ""))
 ];
 for (const folder of sectionFolders) {

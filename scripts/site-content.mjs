@@ -2,6 +2,8 @@
 // normalizer that reduces untrusted input to known, size-limited fields.
 // Pure code, shared by the admin API (publisher/worker.js) and the build scripts.
 
+import { BLOG_HUB, SECTIONS } from "./sections.mjs";
+
 export const CONTENT_PATH = "site-data/site-content.json";
 
 const text = (v, max, fallback) => (typeof v === "string" ? v.replace(/\r\n/g, "\n").trim().slice(0, max) : fallback === undefined ? "" : fallback);
@@ -36,22 +38,16 @@ export const DEFAULT_NAV = [
   { label: "Shop", href: "shop/index.html" },
   { label: "Request a Restoration", href: "request.html" },
   {
-    label: "Restoration Blog",
-    children: [
-      { label: "Stereo Repair", href: "stereo/index.html" },
-      { label: "Radio Repair", href: "radio/index.html" },
-      { label: "Test Equipment", href: "test-equipment/index.html" }
-    ]
+    label: BLOG_HUB.name,
+    children: [{ label: "All Posts", href: BLOG_HUB.href }].concat(SECTIONS.map((s) => ({ label: s.name, href: s.folder + "/index.html" })))
   },
   { label: "About Me", href: "about.html" }
 ];
 
 const CTA_DEFAULT = "See the work";
-const DEFAULT_CATEGORIES = [
-  { label: "Stereo Repair", description: "Receivers, amplifiers and turntables brought back to specification, with every step documented.", cta_label: CTA_DEFAULT, href: "stereo/index.html", image: "images/category-stereo.jpg" },
-  { label: "Radio Repair", description: "Vintage tube and solid-state radios restored for safe, reliable listening, from chassis to cabinet.", cta_label: CTA_DEFAULT, href: "radio/index.html", image: "images/category-radio.jpg" },
-  { label: "Test Equipment", description: "Bench instruments serviced and recalibrated so your measurements can be trusted.", cta_label: CTA_DEFAULT, href: "test-equipment/index.html", image: "images/category-test-equipment.jpg" }
-];
+const DEFAULT_CATEGORIES = SECTIONS.map((s) => ({
+  label: s.name, description: s.description, cta_label: CTA_DEFAULT, href: s.folder + "/index.html", image: s.image
+}));
 
 export const MAX = { nav: 8, navChildren: 8, categories: 6, sections: 12, heroSlides: 4 };
 
