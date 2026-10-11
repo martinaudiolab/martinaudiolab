@@ -2,8 +2,8 @@ import { ROOT, ROOT_URL, FIXTURES } from "./_root.mjs";
 import fs from "node:fs";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { renderHome } from "../scripts/site-render.mjs";
-import { normalizeContent } from "../scripts/site-content.mjs";
+import { renderHome } from "../shared/site-render.mjs";
+import { normalizeContent } from "../shared/site-content.mjs";
 const script = fs.readFileSync(ROOT + "site/assets/js/hero.js", "utf8");
 const css = fs.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
 

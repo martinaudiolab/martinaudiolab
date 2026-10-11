@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { ROOT } from "./_root.mjs";
-import { absolutizeAssets, assetUrl, pageUrl } from "../scripts/site-urls.mjs";
+import { absolutizeAssets, assetUrl, pageUrl } from "../shared/site-urls.mjs";
 
 const SITE = ROOT + "site/";
 

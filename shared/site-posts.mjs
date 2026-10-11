@@ -1,5 +1,5 @@
 // Blog post pages and section listings: thumbnails, hero image, breadcrumbs and the
-// older/newer links. Pure string code shared by publisher/worker.js and scripts/build-site.mjs.
+// older/newer links. Pure string code shared by the publisher Worker and build/build-site.mjs.
 
 import { BLOG_HUB, sectionByFolder } from "./sections.mjs";
 import { pageUrl } from "./site-urls.mjs";

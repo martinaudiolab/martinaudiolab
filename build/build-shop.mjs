@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // Builds the Shop pages (site/shop/*.html) from shop-data/items.json.
-// Usage, from the repository root:  node scripts/build-shop.mjs
-// Use scripts/build-site.mjs to rebuild the whole site (shop, home, request, about and navigation).
+// Usage, from the repository root:  node build/build-shop.mjs
+// Use build/build-site.mjs to rebuild the whole site (shop, home, request, about and navigation).
 // The Shop Builder tab of the admin panel (site/admin/index.html) does the same thing in the
-// browser through the publisher Worker; both share scripts/shop-render.mjs.
+// browser through the publisher Worker; both share shared/shop-render.mjs.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { SHOP_MARK, renderShop, validateShop } from "./shop-render.mjs";
-import { CONTENT_PATH } from "./site-content.mjs";
+import { isShopPage, renderShop, validateShop } from "../shared/shop-render.mjs";
+import { CONTENT_PATH } from "../shared/site-content.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
@@ -34,7 +34,7 @@ const files = renderShop(data, { content });
 fs.mkdirSync(OUT, { recursive: true });
 for (const f of fs.readdirSync(OUT)) {
   const p = path.join(OUT, f);
-  if (f.endsWith(".html") && fs.readFileSync(p, "utf8").includes(SHOP_MARK)) fs.unlinkSync(p);
+  if (f.endsWith(".html") && isShopPage(fs.readFileSync(p, "utf8"))) fs.unlinkSync(p);
 }
 for (const [name, html] of Object.entries(files)) fs.writeFileSync(path.join(OUT, name), html);
 

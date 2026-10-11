@@ -4,17 +4,17 @@
 //   - site/shop/*.html                                       (generated from shop-data/items.json)
 //   - every other page under site/                           (site name and navigation applied)
 // Sources: site-data/site-content.json and shop-data/items.json.
-// Usage, from the repository root:  node scripts/build-site.mjs
+// Usage, from the repository root:  node build/build-site.mjs
 // The deploy workflow runs this before publishing, so edits saved in /admin go live.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CONTENT_PATH, normalizeContent } from "./site-content.mjs";
-import { renderAbout, renderHome, renderRequest, applyGlobals } from "./site-render.mjs";
-import { SHOP_MARK, renderShop, validateShop } from "./shop-render.mjs";
-import { addPostHero, addThumbnails, applyPostChrome, listingsOf } from "./site-posts.mjs";
-import { BLOG_HUB, SECTIONS } from "./sections.mjs";
-import { renderBlogHub } from "./site-blog.mjs";
+import { CONTENT_PATH, normalizeContent } from "../shared/site-content.mjs";
+import { renderAbout, renderHome, renderRequest, applyGlobals } from "../shared/site-render.mjs";
+import { isShopPage, renderShop, validateShop } from "../shared/shop-render.mjs";
+import { addPostHero, addThumbnails, applyPostChrome, listingsOf } from "../shared/site-posts.mjs";
+import { BLOG_HUB, SECTIONS } from "../shared/sections.mjs";
+import { renderBlogHub } from "../shared/site-blog.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
@@ -59,7 +59,7 @@ fs.mkdirSync(shopDir, { recursive: true });
 const shopFiles = renderShop(shopData, { content });
 for (const f of fs.readdirSync(shopDir)) {
   const p = path.join(shopDir, f);
-  if (f.endsWith(".html") && !(f in shopFiles) && fs.readFileSync(p, "utf8").includes(SHOP_MARK)) fs.unlinkSync(p);
+  if (f.endsWith(".html") && !(f in shopFiles) && isShopPage(fs.readFileSync(p, "utf8"))) fs.unlinkSync(p);
 }
 for (const [name, html] of Object.entries(shopFiles)) if (writeIfChanged(path.join(shopDir, name), html)) written++;
 
@@ -120,7 +120,7 @@ for (const file of walk(SITE)) {
   const rel = path.relative(SITE, file).split(path.sep).join("/");
   if (GENERATED.has(rel)) continue;
   const raw = fs.readFileSync(file, "utf8");
-  if (raw.includes(SHOP_MARK)) continue;
+  if (isShopPage(raw)) continue;
   const crlf = raw.includes("\r\n");
   const before = crlf ? raw.split("\r\n").join("\n") : raw;
   const after = applyGlobals(before, content, rel);

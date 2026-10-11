@@ -2,10 +2,10 @@
 import fs from "node:fs";
 import assert from "node:assert/strict";
 import { ROOT } from "./_root.mjs";
-import { BLOG_HUB, SECTIONS, sectionByFolder, sectionByKey } from "../scripts/sections.mjs";
-import { DEFAULT_NAV, normalizeContent } from "../scripts/site-content.mjs";
-import { applyPostChrome, crumbsHtml, fallbackThumb, listingsOf, pagerHtml } from "../scripts/site-posts.mjs";
-import { renderBlogHub } from "../scripts/site-blog.mjs";
+import { BLOG_HUB, SECTIONS, sectionByFolder, sectionByKey } from "../shared/sections.mjs";
+import { DEFAULT_NAV, normalizeContent } from "../shared/site-content.mjs";
+import { applyPostChrome, crumbsHtml, fallbackThumb, listingsOf, pagerHtml } from "../shared/site-posts.mjs";
+import { renderBlogHub } from "../shared/site-blog.mjs";
 
 const read = (p) => fs.readFileSync(ROOT + p, "utf8");
 const content = normalizeContent({});
@@ -25,9 +25,9 @@ const content = normalizeContent({});
 
 // 2. the Worker, build and admin all use the same list
 {
-  const worker = read("publisher/worker.js");
-  assert.ok(worker.includes('from "../scripts/sections.mjs"') && /CATEGORIES = Object\.fromEntries\(SECTIONS\.map/.test(worker), "Worker reads the list");
-  const build = read("scripts/build-site.mjs");
+  const worker = read("publisher/src/posts.js");
+  assert.ok(worker.includes('from "../../shared/sections.mjs"') && /CATEGORIES = Object\.fromEntries\(SECTIONS\.map/.test(worker), "Worker reads the list");
+  const build = read("build/build-site.mjs");
   assert.ok(/for \(const section of SECTIONS\)/.test(build) && !/\["stereo", "radio", "test-equipment"\]/.test(build), "build reads the list");
   const admin = read("site/admin/index.html");
   for (const id of ["category", "manage-category"]) {

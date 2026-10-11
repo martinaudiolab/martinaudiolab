@@ -1,5 +1,5 @@
 // The site's top navigation, built from content.nav_items. Shared by
-// scripts/build-site.mjs, scripts/shop-render.mjs and publisher/worker.js.
+// build/build-site.mjs, shared/shop-render.mjs and the publisher Worker.
 // Pure string code: no file-system or runtime APIs.
 
 import { DEFAULT_NAV } from "./site-content.mjs";

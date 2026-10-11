@@ -2,8 +2,8 @@ import { ROOT, ROOT_URL, FIXTURES } from "./_root.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 const R = ROOT_URL + "";
-const { normalizeContent, contentImages } = await import(R + "scripts/site-content.mjs");
-const { renderShop } = await import(R + "scripts/shop-render.mjs");
+const { normalizeContent, contentImages } = await import(R + "shared/site-content.mjs");
+const { renderShop } = await import(R + "shared/shop-render.mjs");
 const data = JSON.parse(fs.readFileSync(ROOT + "shop-data/items.json", "utf8"));
 const content = normalizeContent({
   homepage: { hero: { slides: [{ image: "images/site/home-a.jpg" }] } },

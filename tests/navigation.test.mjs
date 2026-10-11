@@ -69,8 +69,8 @@ assert.equal(phil.querySelectorAll("p").length, 4); assert.equal(phil.querySelec
 assert.ok(phil.textContent.includes("Every single modern high end audio products embraces new technology"));
 console.log("ok: nav, dropdown behavior, homepage, about");
 {
-  const { renderHome } = await import(ROOT_URL + "scripts/site-render.mjs");
-  const { normalizeContent } = await import(ROOT_URL + "scripts/site-content.mjs");
+  const { renderHome } = await import(ROOT_URL + "shared/site-render.mjs");
+  const { normalizeContent } = await import(ROOT_URL + "shared/site-content.mjs");
   const html = renderHome(normalizeContent({ theme: "light" }));
   assert.ok(!html.includes('id="th"') && !html.includes("data-theme") && !html.includes('getItem("th")'), "no theme toggle or theme script");
   const css = fs.readFileSync(ROOT + "site/assets/css/style.css", "utf8");

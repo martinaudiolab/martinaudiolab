@@ -251,12 +251,7 @@ assert.ok(st.headers.getSetCookie().every((c) => !c.startsWith("oauth_return")))
 console.log("ok 9: legacy return parameter is ignored");
 
 // 10. published article template uses current site name, nav, theme
-const src = fs.readFileSync(ROOT + "/publisher/worker.js", "utf8").split(String.fromCharCode(13)).join("");
-const a = src.indexOf("function articleHtml("); const b = src.indexOf("\n}\n", a) + 2;
-const { navHtml, NAV_SCRIPT } = await import(ROOT_URL + "scripts/site-nav.mjs");
-const { crumbsHtml, heroFigure } = await import(ROOT_URL + "scripts/site-posts.mjs");
-const mk = new Function("escapeHtml", "dateLabel", "navHtml", "NAV_SCRIPT", "heroFigure", "crumbsHtml", src.slice(a, b) + "\nreturn articleHtml;");
-const articleHtml = mk((v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;"), () => "October 9, 2026", navHtml, NAV_SCRIPT, heroFigure, crumbsHtml);
+const { articleHtml } = await import(ROOT_URL + "publisher/src/posts.js");
 const site = { site_name: "My Shop", nav_items: [{ label: "Home", href: "index.html" }, { label: "Blog", children: [{ label: "Stereo", href: "stereo/index.html" }] }] };
 const art = articleHtml({ title: "T", summary: "S", date: "2026-10-09", category: "stereo" }, { folder: "stereo", name: "Stereo Repair" }, "<p>x</p>", site);
 assert.ok(art.includes('<html lang="en">') && art.includes("<title>T - My Shop</title>") && art.includes('class="brand" href="/">My Shop</a>'));

@@ -8,7 +8,8 @@ on:
       - "site/**"
       - "site-data/**"
       - "shop-data/**"
-      - "scripts/**"
+      - "build/**"
+      - "shared/**"
       - "wrangler.jsonc"
       - ".github/workflows/deploy-site.yml"
   workflow_dispatch:
@@ -25,7 +26,7 @@ jobs:
         with:
           node-version: 22
       - name: Build pages from site content
-        run: node scripts/build-site.mjs
+        run: node build/build-site.mjs
         env:
           # Repository variable (Settings > Secrets and variables > Actions > Variables), e.g. https://martinaudiolabs.com
           SITE_URL: ${{ vars.SITE_URL }}

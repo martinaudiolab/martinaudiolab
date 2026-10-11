@@ -15,7 +15,7 @@ Open `/admin` on the website, select **Connect GitHub**, sign in with the admini
 The builder reuses the publisher Worker in `publisher/`, so after pulling this change run `npx wrangler deploy` from that folder once. No new secrets, GitHub App settings or KV namespaces are needed.
 
 ## Editing by hand instead
-Everything below still works and produces identical pages. Both paths share `scripts/shop-render.mjs`.
+Everything below still works and produces identical pages. Both paths share `shared/shop-render.mjs`.
 
 ### Add, change or remove an item
 1. Add photos to `site/images/shop/` (JPEG, about 1600 px wide is plenty).
@@ -27,7 +27,7 @@ Everything below still works and produces identical pages. Both paths share `scr
    - `images`: a list; the first is the gallery photo. Example: `["images/shop/marantz-front.jpg", "images/shop/marantz-back.jpg"]`
    - `description`: a list of paragraphs. `details`: optional list of `["Label", "Value"]` pairs.
    - `sample`: delete this line (and the sample items) for real listings.
-3. Run `node scripts/build-shop.mjs` from the repository root. It reports mistakes and rebuilds `site/shop/`.
+3. Run `node build/build-shop.mjs` from the repository root. It reports mistakes and rebuilds `site/shop/`.
 4. Commit and push. The existing deploy workflow publishes anything under `site/`.
 
 ## How buying works

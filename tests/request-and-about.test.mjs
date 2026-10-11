@@ -96,8 +96,8 @@ function fill(d) {
   console.log("ok 4: unconfigured form does not submit");
 }
 {
-  const { renderRequest } = await import(ROOT_URL + "scripts/site-render.mjs");
-  const { normalizeContent } = await import(ROOT_URL + "scripts/site-content.mjs");
+  const { renderRequest } = await import(ROOT_URL + "shared/site-render.mjs");
+  const { normalizeContent } = await import(ROOT_URL + "shared/site-content.mjs");
   const fsx = await import("node:fs");
   const html = renderRequest(normalizeContent({}));
   assert.ok(html.includes('<body class="navbar">') && !html.includes('class="hero"') && !html.includes("hero.js"), "bar nav, no hero");
@@ -109,8 +109,8 @@ function fill(d) {
   console.log("ok 5: request page uses the continuous nav bar without a hero");
 }
 {
-  const { renderAbout } = await import(ROOT_URL + "scripts/site-render.mjs");
-  const { normalizeContent } = await import(ROOT_URL + "scripts/site-content.mjs");
+  const { renderAbout } = await import(ROOT_URL + "shared/site-render.mjs");
+  const { normalizeContent } = await import(ROOT_URL + "shared/site-content.mjs");
   const html = renderAbout(normalizeContent({}));
   assert.ok(html.includes('<body class="navbar">') && !html.includes('class="hero"'), "About uses the nav bar, no hero");
   console.log("ok 6: about page uses the continuous nav bar");

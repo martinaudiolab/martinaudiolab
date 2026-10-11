@@ -5,8 +5,8 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { ROOT } from "./_root.mjs";
-import { applyGlobals } from "../scripts/site-render.mjs";
-import { normalizeContent } from "../scripts/site-content.mjs";
+import { applyGlobals } from "../shared/site-render.mjs";
+import { normalizeContent } from "../shared/site-content.mjs";
 
 const content = normalizeContent({});
 
@@ -27,8 +27,8 @@ const content = normalizeContent({});
 {
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "mal-build-"));
   try {
-    for (const dir of ["site", "scripts", "site-data", "shop-data"]) fs.cpSync(path.join(ROOT, dir), path.join(work, dir), { recursive: true });
-    const run = (env) => spawnSync(process.execPath, [path.join(work, "scripts", "build-site.mjs")], { cwd: work, encoding: "utf8", env: { ...process.env, ...env } });
+    for (const dir of ["site", "build", "shared", "site-data", "shop-data"]) fs.cpSync(path.join(ROOT, dir), path.join(work, dir), { recursive: true });
+    const run = (env) => spawnSync(process.execPath, [path.join(work, "build", "build-site.mjs")], { cwd: work, encoding: "utf8", env: { ...process.env, ...env } });
 
     let r = run({ SITE_URL: "" });
     assert.equal(r.status, 0, r.stderr);
