@@ -1,20 +1,12 @@
-# Cache rules for Cloudflare (not served to visitors). Pages (.html) keep Cloudflare's default:
-# the browser re-checks them every time, so a saved change appears straight away.
+# Cache rules for Cloudflare (not served to visitors).
+#
+# Pages (.html), data files and pictures are re-checked with the server every time. The browser still keeps a
+# copy and the server answers "unchanged" (304) with no download, so this costs almost nothing, but a picture
+# can never be stuck in a visitor's cache: not a stale one, and not a failed request made just before a new
+# picture finished deploying. (Long "immutable" caching of pictures was removed for exactly that reason.)
+/images/*
+  Cache-Control: no-cache
 
-# Pictures uploaded from the admin get a unique random name, so a given address never changes.
-/images/site/*
-  Cache-Control: public, max-age=31536000, immutable
-/images/shop/*
-  Cache-Control: public, max-age=31536000, immutable
-
-# Pictures with fixed names can be replaced, so they are kept for a day.
-/images/posts/*
-  Cache-Control: public, max-age=86400
-/images/banner.jpg
-  Cache-Control: public, max-age=86400
-/images/category-*
-  Cache-Control: public, max-age=86400
-
-# Stylesheet and scripts are not renamed when they change, so keep them briefly.
+# The stylesheet and scripts keep their names when they change, so they are kept only briefly.
 /assets/*
   Cache-Control: public, max-age=600
