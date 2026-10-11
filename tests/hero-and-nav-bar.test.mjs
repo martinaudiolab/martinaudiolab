@@ -186,3 +186,25 @@ function boot({ reduced = false, observer = true, loaded = "all" } = {}) {
   }
   console.log("ok 9: slideshow skips unloaded pictures and retries failed ones");
 }
+
+// screen-height-based sizes use the fixed small viewport (svh) after a vh fallback, so the banner does not
+// grow and shrink while the phone's address bar slides away during a scroll
+{
+  const heights = css.match(/[a-z-]*height:[^;}]*v?h[^;}]*/g) || [];
+  const dynamic = heights.filter((h) => /\b[\d.]+d?vh\b/.test(h) && !/svh/.test(h));
+  // every vh declaration is directly followed (in the same rule) by its svh version
+  const rules = css.match(/[^{}]+\{[^{}]*\}/g) || [];
+  const missing = [];
+  for (const rule of rules) {
+    const vh = rule.match(/(min-height|height):[^;}]*\b\d+(?:\.\d+)?vh\b[^;}]*/g) || [];
+    for (const decl of vh) {
+      const prop = decl.split(":")[0];
+      const hasSvh = new RegExp(prop + ":[^;}]*[0-9]+(?:[.][0-9]+)?svh").test(rule);
+      if (!hasSvh) missing.push(decl);
+    }
+  }
+  assert.deepEqual(missing, [], "vh sizes without an svh version: " + missing.join(" | "));
+  assert.ok(!/dvh/.test(css), "no dynamic viewport units");
+  assert.match(css, /\.hero\{[^}]*min-height:clamp\(26rem,72vh,46rem\);min-height:clamp\(26rem,72svh,46rem\)/, "banner height");
+  console.log("ok 10: screen-height sizes use svh");
+}

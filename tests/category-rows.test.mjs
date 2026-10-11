@@ -36,7 +36,7 @@ const must = [
   ["cta", /\.cat-cta\{[^}]*margin-top:28px;padding:12px 28px;border-radius:3px;background:#333/],
   ["square images", /\.cat-media img\{[^}]*object-fit:cover;border-radius:0/],
   ["tablet stacked image 50vh", /@media\(max-width:1024px\)\{[^]*flex-direction:column[^]*height:50vh/],
-  ["mobile image 40vh and 24px", /@media\(max-width:599px\)\{\s*\.cat-media\{height:40vh\}\s*\.cat-text\{padding:24px\}/],
+  ["mobile image 40vh and 24px", /@media\(max-width:599px\)\{\s*\.cat-media\{height:40vh;height:40svh\}\s*\.cat-text\{padding:24px\}/],
   ["alternation", /\.cat-row\{[^}]*flex-direction:row-reverse[^}]*\}\s*\.cat-row:nth-child\(even\)\{flex-direction:row\}/]
 ];
 must.forEach(([n, re]) => assert.match(css, re, n));
