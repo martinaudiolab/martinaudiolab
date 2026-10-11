@@ -54,7 +54,12 @@ figure[data-gallery][data-w="100"]{width:100%}
 figure[data-gallery][data-a="c"]{margin-left:auto;margin-right:auto}
 figure[data-gallery][data-a="l"]{float:left;margin:.3rem 1.2rem .6rem 0}
 figure[data-gallery][data-a="r"]{float:right;margin:.3rem 0 .6rem 1.2rem}
-@media(max-width:600px){figure[data-gallery][data-w]{width:100%;float:none;margin:1.4rem 0}}
+/* narrow screens: the chosen width still applies; left/right stop wrapping text and become block alignment */
+@media(max-width:600px){
+  figure[data-gallery][data-a="l"],figure[data-gallery][data-a="r"]{float:none;margin-top:1.4rem;margin-bottom:1.4rem}
+  figure[data-gallery][data-a="l"]{margin-left:0;margin-right:auto}
+  figure[data-gallery][data-a="r"]{margin-left:auto;margin-right:0}
+}
 @media(max-width:600px){
   figure[data-gallery="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}
   figure[data-gallery="4"] img:last-child:nth-child(odd){grid-column:1/-1;aspect-ratio:16/9}
