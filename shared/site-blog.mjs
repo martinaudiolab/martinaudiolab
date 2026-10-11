@@ -5,7 +5,7 @@
 
 import { BLOG_HUB, SECTIONS } from "./sections.mjs";
 import { cardHtml, listingsOf } from "./site-posts.mjs";
-import { heroHtml, shell } from "./site-render.mjs";
+import { heroHtml, heroPreloadHtml, shell } from "./site-render.mjs";
 import { assetUrl, jsUrl, pageUrl } from "./site-urls.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -23,6 +23,13 @@ export function blogHeroHtml(content, key, label) {
 }
 
 const HERO_BLOCK = /<!--hero-->[\s\S]*?<!--\/hero-->/;
+const PRELOAD_BLOCK = /<!--hero-preload-->[\s\S]*?<!--\/hero-preload-->/;
+
+/** The preload hint for a blog page's first banner picture, wrapped in markers so it can be replaced. */
+export function blogHeroPreload(content, key) {
+  const hero = content.blog_hero[key] || content.blog_hero.all;
+  return "<!--hero-preload-->" + heroPreloadHtml(hero.slides) + "<!--/hero-preload-->";
+}
 
 /**
  * Gives a section page the shared look: the floating navigation over its own banner. Safe to run
@@ -33,6 +40,9 @@ export function applyBlogHero(html, content, key, label) {
   const block = blogHeroHtml(content, key, label);
   if (HERO_BLOCK.test(out)) out = out.replace(HERO_BLOCK, () => block);
   else out = out.replace("</header>", () => "</header>" + block);
+  const preload = blogHeroPreload(content, key);
+  if (PRELOAD_BLOCK.test(out)) out = out.replace(PRELOAD_BLOCK, () => preload);
+  else out = out.replace("</head>", () => preload + "</head>");
   // the banner now carries the title, so the page's own heading and intro paragraph (above the listings) go
   const start = out.indexOf("<main");
   const listings = out.indexOf("<article", start);
@@ -92,6 +102,7 @@ export function renderBlogHub(content, indexByFolder) {
     active: BLOG_HUB.href,
     bodyClass: "home",
     beforeMain: blogHeroHtml(content, "all", BLOG_HUB.name),
+    head: blogHeroPreload(content, "all"),
     scripts: '<script src="' + jsUrl("hero.js") + '" defer></script>'
   });
 }

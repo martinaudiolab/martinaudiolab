@@ -16,9 +16,15 @@ const content = normalizeContent({
 assert.equal(content.homepage.hero.slides.length, 4, "capped at four");
 const html = renderHome(content).replace(/<script src="[^"]*"[^>]*><\/script>/g, "");
 
-function boot({ reduced = false, observer = true } = {}) {
+function boot({ reduced = false, observer = true, loaded = "all" } = {}) {
   const dom = new JSDOM(html, { url: "https://site.example/", runScripts: "outside-only", pretendToBeVisual: true });
   const w = dom.window;
+  // jsdom does not fetch pictures, so describe them: "all" loaded, or a list of indexes that are, or "failed" for none that arrived
+  Array.from(w.document.querySelectorAll(".hero-slide")).forEach((img, i) => {
+    const ok = loaded === "all" || (Array.isArray(loaded) && loaded.includes(i));
+    Object.defineProperty(img, "complete", { value: true, configurable: true });
+    Object.defineProperty(img, "naturalWidth", { value: ok ? 1600 : 0, configurable: true });
+  });
   w.matchMedia = () => ({ matches: reduced });
   const intervals = [];
   w.setInterval = (fn, ms) => { intervals.push({ fn, ms }); return intervals.length; };
@@ -132,4 +138,51 @@ function boot({ reduced = false, observer = true } = {}) {
   assert.match(css, /@media\(max-width:600px\)\{\s*\.dd\{flex-basis:100%\}/);
   assert.ok(css.indexOf("body.home nav > a,body.home .dd,body.navbar") > css.indexOf(".dd{flex-basis:100%}"), "override comes later");
   console.log("ok 7: phone navigation layout");
+}
+
+// banner pictures are requested up front: no lazy loading, a preload hint for the first, the rest after it
+{
+  const { renderHome } = await import("../shared/site-render.mjs");
+  const out = renderHome(normalizeContent({ homepage: { hero: { slides: [{ image: "images/site/a.jpg" }, { image: "images/site/b.jpg" }, { image: "images/site/c.jpg" }] } } }));
+  const slides = Array.from(out.matchAll(/<img class="hero-slide[^>]*>/g)).map((m) => m[0]);
+  assert.equal(slides.length, 3);
+  assert.ok(slides.every((t) => !/loading="lazy"/.test(t)), "no lazy loading on banner pictures");
+  assert.ok(/fetchpriority="high"/.test(slides[0]) && slides.slice(1).every((t) => /fetchpriority="low"/.test(t)), "first picture high priority, others low");
+  const head = out.slice(0, out.indexOf("</head>"));
+  assert.ok(head.includes('<link rel="preload" as="image" href="/images/site/a.jpg" fetchpriority="high">'), "first picture is preloaded from the head");
+  assert.equal((head.match(/rel="preload"/g) || []).length, 1, "only the first picture is preloaded");
+  console.log("ok 8: banner pictures are requested up front");
+}
+
+// the slideshow only fades to a picture that has loaded, and asks again for one that failed
+{
+  const { d, w, intervals } = boot({ loaded: [0, 2] });          // picture 1 never arrived
+  const active = () => Array.from(d.querySelectorAll(".hero-slide")).map((i) => i.classList.contains("active"));
+  intervals[0].fn();
+  assert.deepEqual(active().slice(0, 3), [false, false, true], "skipped the picture that has not loaded");
+  intervals[0].fn();
+  assert.equal(active()[0], true, "and comes back around to the first");
+
+  const failed = boot({ loaded: "failed" });
+  const before = failed.intervals.length;
+  failed.intervals[0].fn();
+  assert.equal(Array.from(failed.d.querySelectorAll(".hero-slide")).filter((i) => i.classList.contains("active")).length, 1, "stays on the current picture when none other has loaded");
+
+  // an error event schedules a new request with a cache-busting parameter, up to three times
+  const timers = [];
+  const retry = boot({ loaded: [0] });
+  retry.w.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
+  const first = retry.d.querySelector(".hero-slide");
+  assert.ok(first.getAttribute("src"));
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    first.dispatchEvent(new retry.w.Event("error"));
+    if (attempt <= 3) {
+      assert.equal(timers.length, attempt, "a retry is scheduled (attempt " + attempt + ")");
+      timers[attempt - 1].fn();
+      assert.ok(new URL(first.src).searchParams.get("r") === String(attempt), "request carries r=" + attempt);
+    } else {
+      assert.equal(timers.length, 3, "gives up after three tries");
+    }
+  }
+  console.log("ok 9: slideshow skips unloaded pictures and retries failed ones");
 }

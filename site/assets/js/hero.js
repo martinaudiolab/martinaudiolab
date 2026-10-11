@@ -27,6 +27,28 @@
 
   // ---- Slideshow ----------------------------------------------------------------------
   var slides = Array.prototype.slice.call(hero.querySelectorAll(".hero-slide"));
+
+  // A banner picture that fails to arrive (a dropped connection, a cold server) is requested again a
+  // few times, instead of leaving the banner empty until the next visit.
+  function loaded(image) { return image.complete && image.naturalWidth > 0; }
+
+  function retryLater(image) {
+    var attempt = (Number(image.getAttribute("data-retry")) || 0) + 1;
+    if (attempt > 3) return;
+    image.setAttribute("data-retry", String(attempt));
+    window.setTimeout(function () {
+      var address = new URL(image.getAttribute("src"), window.location.href);
+      address.searchParams.set("r", String(attempt));
+      image.src = address.href;
+    }, 700 * attempt);
+  }
+
+  slides.forEach(function (image) {
+    image.addEventListener("error", function () { retryLater(image); });
+    // it may already have failed before this script ran
+    if (image.complete && image.naturalWidth === 0 && image.getAttribute("src")) retryLater(image);
+  });
+
   if (slides.length < 2) return;
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -43,6 +65,10 @@
 
   window.setInterval(function () {
     if (document.hidden) return;
-    show((current + 1) % slides.length);
+    // the next picture that has actually loaded; if none has, stay on the current one
+    for (var step = 1; step < slides.length; step++) {
+      var candidate = (current + step) % slides.length;
+      if (loaded(slides[candidate])) { show(candidate); return; }
+    }
   }, INTERVAL);
 })();

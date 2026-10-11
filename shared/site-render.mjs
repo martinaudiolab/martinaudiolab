@@ -10,7 +10,7 @@ const external = (h) => /^(https?:|mailto:)/i.test(h);
 
 export function shell(content, o) {
   return "<!DOCTYPE html>\n<html lang=\"en\">" + '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
-    esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + CSS_URL + '"></head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
+    esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + CSS_URL + '">' + (o.head || "") + '</head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
     '<header class="site"><a class="brand" href="/">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active) + "</header>" +
     (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT() + "</body></html>\n";
 }
@@ -21,11 +21,19 @@ const paragraphs = (value) => String(value || "").split(/\n\s*\n/).map((p) => p.
 
 const mailto = (email) => '<a href="mailto:' + esc(email) + '">' + esc(email) + "</a>";
 
+/** A preload hint for the first banner picture, so it is requested while the page is still being read. */
+export function heroPreloadHtml(slides) {
+  const first = slides && slides[0];
+  return first ? '<link rel="preload" as="image" href="' + esc(assetUrl(first.image)) + '" fetchpriority="high">' : "";
+}
+
 /** The full-width slideshow hero shared by the homepage and the shop page. */
 export function heroHtml(o) {
   const slides = o.slides.map((slide, i) =>
     '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(assetUrl(slide.image)) + '" alt="' + esc(slide.alt) + '"' +
-    (i === 0 ? ' fetchpriority="high"' : ' loading="lazy"') + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
+    // no lazy loading: a banner picture is above the fold, and a lazy one that the slideshow reaches before it has
+    // loaded leaves the banner blank. The first picture is fetched at high priority, the rest after it.
+    ' fetchpriority="' + (i === 0 ? "high" : "low") + '" decoding="async"' + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
   const text = o.bare ? "" : '<div class="hero-text"><h1>' + esc(o.title) + "</h1>" + (o.subtitle ? "<p>" + esc(o.subtitle) + "</p>" : "") + "</div>";
   return '<section class="hero" id="hero" aria-label="' + esc(o.label) + '">' + slides +
     '<div class="hero-scrim"></div>' + text + "</section>";
@@ -54,6 +62,7 @@ export function renderHome(content) {
     active: "index.html",
     bodyClass: "home",
     beforeMain: hero,
+    head: heroPreloadHtml(h.hero.slides),
     afterMain: carousel + (h.trust_line ? '<p class="trust-line">' + esc(h.trust_line) + "</p>" : "") +
       '<div class="cats" aria-label="Restoration blog sections">' + cats + "</div>",
     scripts: '<script src="' + jsUrl("hero.js") + '" defer></script><script src="' + jsUrl("reveal.js") + '" defer></script>' + (pc.enabled ? '<script src="' + jsUrl("forsale.js") + '" defer></script>' : "")
