@@ -100,6 +100,52 @@
       }
     ]
   },
+  "blog_hero": {
+    "all": {
+      "slides": [
+        {
+          "image": "images/banner.jpg",
+          "alt": ""
+        }
+      ]
+    },
+    "stereo": {
+      "slides": [
+        {
+          "image": "images/site/bloghero-mv3gqo6t-cdoj.jpg",
+          "alt": ""
+        },
+        {
+          "image": "images/site/bloghero-mv3gv4yn-wgln.jpg",
+          "alt": ""
+        },
+        {
+          "image": "images/site/bloghero-mv3gvdk3-yeaq.jpg",
+          "alt": ""
+        },
+        {
+          "image": "images/site/bloghero-mv3gx9p4-5mwy.jpg",
+          "alt": ""
+        }
+      ]
+    },
+    "radio": {
+      "slides": [
+        {
+          "image": "images/site/bloghero-mv3grba0-9naj.jpg",
+          "alt": ""
+        }
+      ]
+    },
+    "test-equipment": {
+      "slides": [
+        {
+          "image": "images/category-test-equipment.jpg",
+          "alt": ""
+        }
+      ]
+    }
+  },
   "request": {
     "title": "Request a Restoration",
     "intro": "If you have a unit that you would like to have restored by myself, please use the form below to contact me. I am fairly busy but I will respond when I can. I restore client items to the same standard as anything posted here. \n\nNote: I do not work on cassette decks or reel to reel decks.",
