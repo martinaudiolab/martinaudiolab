@@ -15,12 +15,17 @@
   var IMAGE_DATA_URL = /^data:image\/(png|jpeg|gif|webp);base64,/i;
   var IMAGE_FILE_TYPE = /^image\/(png|jpeg|gif|webp)$/;
   var IMAGE_WIDTHS = ["25", "50", "75", "100"];
+  var INLINE_MAX_SIDE = 2400;          // photos placed inside a post are kept to a web size
+  var INLINE_MAX_BYTES = 1500000;
+  var POST_MAX_CHARS = 4500000;        // the publisher rejects posts over 5 MB
   var IMAGE_ALIGNMENTS = ["c", "l", "r"];
 
   var connected = false;
   var savedRange = null;        // last selection inside the editor, restored before toolbar commands
   var selectedImage = null;
   var managedSnapshot = null;   // { category, indexSha, indexHtml } for the post list on screen
+  var managedRequest = 0;       // the newest post-list request; older answers are ignored
+  var deleting = false;
 
   function $(id) { return document.getElementById(id); }
   function say(message) { $("pb-status").textContent = message; }
@@ -213,17 +218,25 @@
 
   // ---- Publishing --------------------------------------------------------------------
 
+  /** The src of the first embedded photo in sanitised post HTML, or "". */
+  function firstInlinePhoto(html) {
+    var template = document.createElement("template");
+    template.innerHTML = html;
+    var image = template.content.querySelector("img[src]");
+    return image ? image.getAttribute("src") : "";
+  }
+
   /** A small JPEG (base64) for the section page: the chosen file, else the first photo in the post. */
-  async function thumbnailBase64() {
+  async function thumbnailBase64(cleanContent) {
     var chosen = $("post-thumb").files && $("post-thumb").files[0];
     if (chosen && window.HeicSupport) {
       try { chosen = await window.HeicSupport.prepare(chosen, { maxSide: 1600 }); } catch (error) { chosen = null; }
     }
-    var firstPhoto = $("post-content").querySelector('img[src^="data:image"]');
-    var source = chosen ? URL.createObjectURL(chosen) : firstPhoto ? firstPhoto.getAttribute("src") : "";
+    var firstPhoto = chosen ? null : firstInlinePhoto(cleanContent);
+    var source = chosen ? URL.createObjectURL(chosen) : firstPhoto;
     if (!source) return Promise.resolve("");
     return new Promise(function (resolve) {
-      var timer = window.setTimeout(function () { resolve(""); }, 20000);
+      var timer = window.setTimeout(function () { if (chosen) URL.revokeObjectURL(source); resolve(""); }, 20000);
       var image = new Image();
       image.onload = function () {
         window.clearTimeout(timer);
@@ -258,12 +271,16 @@
     var data = postData();
     if (!data.slug) { say("Add a title with at least one letter or number."); return; }
     if (!data.content.trim()) { say("Add some post content before publishing."); return; }
+    if (data.content.length > POST_MAX_CHARS) {
+      say("This post is about " + (data.content.length / 1000000).toFixed(1) + " MB, over the 5 MB limit. Remove or shrink some photos.");
+      return;
+    }
 
     var button = $("pb-publish");
     button.disabled = true;
     try {
       say("Publishing to GitHub...");
-      var thumbnail = await thumbnailBase64();
+      var thumbnail = await thumbnailBase64(data.content);
       var result = await shell.api("/api/publish", {
         method: "POST",
         body: { category: data.categoryKey, title: data.title, summary: data.summary, date: data.date, content: data.content, thumbnail: thumbnail }
@@ -330,23 +347,28 @@
 
   async function loadManagedPosts() {
     var manageStatus = $("manage-status");
+    var request = ++managedRequest;
     manageStatus.textContent = "Loading posts...";
     $("managed-posts").textContent = "";
     try {
-      managedSnapshot = await shell.api("/api/posts?category=" + encodeURIComponent($("manage-category").value));
+      var snapshot = await shell.api("/api/posts?category=" + encodeURIComponent($("manage-category").value));
+      if (request !== managedRequest) return;      // a newer request (another section) is on its way
+      managedSnapshot = snapshot;
       var count = renderManagedPosts(managedSnapshot.indexHtml);
       manageStatus.textContent = count ? count + " post" + (count === 1 ? "" : "s") + " loaded." : "";
     } catch (error) {
+      if (request !== managedRequest) return;
       managedSnapshot = null;
       manageStatus.textContent = error.message || "Could not load posts.";
     }
   }
 
   async function deleteManagedPost(post) {
-    if (!connected || !managedSnapshot) return;
+    if (!connected || !managedSnapshot || deleting) return;
     if (!window.confirm("Permanently delete \"" + post.title + "\" and remove it from this section?")) return;
     var manageStatus = $("manage-status");
     manageStatus.textContent = "Deleting " + post.title + "...";
+    deleting = true;
     try {
       var result = await shell.api("/api/delete", {
         method: "POST",
@@ -363,6 +385,8 @@
     } catch (error) {
       if (isAuthError(error)) shell.expired(error.message);
       manageStatus.textContent = error.message || "Could not delete that post.";
+    } finally {
+      deleting = false;
     }
   }
 
@@ -418,6 +442,35 @@
 
   // ---- Images -------------------------------------------------------------------------
 
+  /** Photos inside a post are stored in the post itself, so large ones are scaled down (GIFs are left alone). */
+  function fitInlinePhoto(file) {
+    if (!file || file.type === "image/gif" || !file.size) return Promise.resolve(file);
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var image = new Image();
+      var timer = window.setTimeout(function () { URL.revokeObjectURL(url); resolve(file); }, 15000);
+      image.onload = function () {
+        window.clearTimeout(timer);
+        URL.revokeObjectURL(url);
+        var longest = Math.max(image.naturalWidth, image.naturalHeight);
+        if (!longest || (longest <= INLINE_MAX_SIDE && file.size <= INLINE_MAX_BYTES)) { resolve(file); return; }
+        var scale = Math.min(1, INLINE_MAX_SIDE / longest);
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        var context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function (blob) {
+          resolve(blob ? new File([blob], (file.name || "photo").replace(/\.[A-Za-z0-9]+$/, "") + ".jpg", { type: "image/jpeg" }) : file);
+        }, "image/jpeg", 0.85);
+      };
+      image.onerror = function () { window.clearTimeout(timer); URL.revokeObjectURL(url); resolve(file); };
+      image.src = url;
+    });
+  }
+
   async function insertImage(file) {
     try {
       if (window.HeicSupport) {
@@ -434,6 +487,7 @@
       say("Choose a PNG, JPEG, GIF, WebP or HEIC image.");
       return;
     }
+    file = await fitInlinePhoto(file);
     var reader = new FileReader();
     reader.onload = function () {
       runCommand("insertHTML", '<img src="' + reader.result + '" alt="" data-w="100" data-a="c">');
@@ -542,8 +596,9 @@
     try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (error) { }
     loadDraft();
 
+    var editor = $("post-content");
     document.addEventListener("selectionchange", function () {
-      var editor = $("post-content");
+      if (!editor.contains(document.activeElement)) return;     // fires for every caret move on the page
       var selection = window.getSelection();
       if (selection.rangeCount && editor.contains(selection.anchorNode) && editor.contains(selection.focusNode)) {
         savedRange = selection.getRangeAt(0).cloneRange();
