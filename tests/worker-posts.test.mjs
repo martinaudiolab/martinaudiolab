@@ -205,3 +205,36 @@ console.log("ok: post thumbnails (publish, fallback, validation, delete)");
   assert.ok(page.includes('<figure data-gallery="4"><img') && !/data-w="33"|data-a="x"/.test(page));
   console.log("ok: gallery width and alignment survive publishing");
 }
+
+// 8. section pages whose title lives on the banner: listings go first in <main>, publishing and deleting still work
+{
+  const NEW_INDEX = '<!DOCTYPE html><html lang="en"><head><title>Stereo Repair</title></head><body class="home"><header class="site"></header>' +
+    '<!--hero--><section class="hero hero-short" id="hero"><div class="hero-scrim"></div><div class="hero-text"><h1>Stereo Repair</h1></div></section><!--/hero-->' +
+    '<main><article class="post has-thumb"><a class="post-thumb" href="old-post.html"><img src="/images/category-stereo.jpg" alt=""></a><div class="post-main"><h2><a href="old-post.html">Old post</a></h2></div></article></main></body></html>';
+  seed();
+  head.tree["site/stereo/index.html"] = putBlob(Buffer.from(NEW_INDEX));
+  head.tree["site/stereo/old-post.html"] = putBlob(Buffer.from("old"));
+  commits[head.sha] = { tree: structuredClone(head.tree) };
+
+  let res = await call("/api/publish", "POST", post({ title: "Banner Layout Post" }));
+  assert.equal(res.status, 201, JSON.stringify(res.body));
+  let index = blobs.get(head.tree["site/stereo/index.html"]).toString();
+  assert.ok(index.indexOf("<main><article class=\"post has-thumb\">") > -1, "the new listing is first in <main>");
+  assert.ok(index.indexOf("banner-layout-post.html") < index.indexOf("old-post.html"), "newest first");
+  assert.equal((index.match(/<h1/g) || []).length, 1, "still just the banner title");
+
+  // delete it again with the client's flow
+  const list = await call("/api/posts?category=stereo");
+  assert.equal(list.status, 200);
+  const stripped = list.body.indexHtml.replace(/<article class="post[^"]*">(?:(?!<\/article>)[\s\S])*?banner-layout-post\.html[\s\S]*?<\/article>/, "");
+  res = await call("/api/delete", "POST", { category: "stereo", slug: "banner-layout-post", indexSha: list.body.indexSha, indexHtml: stripped });
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.ok(!head.tree["site/stereo/banner-layout-post.html"]);
+
+  // a page whose title is not the expected section is refused
+  head.tree["site/stereo/index.html"] = putBlob(Buffer.from(NEW_INDEX.replace("<h1>Stereo Repair</h1>", "<h1>Something Else</h1>")));
+  commits[head.sha] = { tree: structuredClone(head.tree) };
+  res = await call("/api/publish", "POST", post({ title: "Wrong Page" }));
+  assert.equal(res.status, 409, "mismatched section page is rejected");
+  console.log("ok: section pages with the title on the banner");
+}

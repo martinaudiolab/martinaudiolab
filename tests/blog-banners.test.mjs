@@ -40,8 +40,10 @@ const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
   assert.ok(once.includes('<body class="home">') && !once.includes('class="navbar"'));
   assert.ok(once.includes('src="/images/site/bloghero-r-1111.jpg" alt="Radios"'));
   assert.ok(once.indexOf("<!--hero-->") > once.indexOf("</header>") && once.indexOf("<!--/hero-->") < once.indexOf("<main>"), "banner sits between the toolbar and the page");
-  assert.ok(!/<h1[^>]*>[^<]*<\/h1>/.test(once.slice(once.indexOf("<!--hero-->"), once.indexOf("<!--/hero-->"))), "the banner adds no second heading");
-  assert.ok(once.includes("<main><h1 class=\"h2\">Radio Repair</h1>"), "the page's own heading is untouched (the Worker checks it)");
+  const banner = once.slice(once.indexOf("<!--hero-->"), once.indexOf("<!--/hero-->"));
+  assert.ok(banner.includes('<div class="hero-text"><h1>Radio Repair</h1></div>'), "the title is on the banner");
+  assert.equal((once.match(/<h1/g) || []).length, 1, "one heading on the page");
+  assert.ok(once.includes("<main></main>") && !once.includes('class="intro"'), "the heading and intro paragraph below the banner are removed");
   assert.ok(once.indexOf("assets/js/hero.js") > -1 && once.indexOf("assets/js/hero.js") < once.indexOf("nav.js"), "slideshow script added before nav.js");
   assert.equal(applyBlogHero(once, content, "radio", "Radio Repair"), once, "idempotent");
   // changing the banner replaces it rather than adding another

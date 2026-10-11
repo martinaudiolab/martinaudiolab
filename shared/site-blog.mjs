@@ -16,10 +16,10 @@ const timeOf = (label) => {
   return Number.isNaN(t) ? 0 : t;
 };
 
-/** The banner slideshow of a blog page (key: "all" or a section key), wrapped in markers so it can be replaced. */
+/** The banner slideshow of a blog page (key: "all" or a section key) with the page title on it, wrapped in markers so it can be replaced. */
 export function blogHeroHtml(content, key, label) {
   const hero = content.blog_hero[key] || content.blog_hero.all;
-  return "<!--hero-->" + heroHtml({ slides: hero.slides, label: label, bare: true, short: true }) + "<!--/hero-->";
+  return "<!--hero-->" + heroHtml({ slides: hero.slides, label: label, title: label, short: true }) + "<!--/hero-->";
 }
 
 const HERO_BLOCK = /<!--hero-->[\s\S]*?<!--\/hero-->/;
@@ -33,6 +33,16 @@ export function applyBlogHero(html, content, key, label) {
   const block = blogHeroHtml(content, key, label);
   if (HERO_BLOCK.test(out)) out = out.replace(HERO_BLOCK, () => block);
   else out = out.replace("</header>", () => "</header>" + block);
+  // the banner now carries the title, so the page's own heading and intro paragraph (above the listings) go
+  const start = out.indexOf("<main");
+  const listings = out.indexOf("<article", start);
+  if (start >= 0) {
+    const end = listings >= 0 ? listings : out.indexOf("</main>", start);
+    const head = out.slice(start, end)
+      .replace(/<h1\b[\s\S]*?<\/h1>\s*/, "")
+      .replace(/<p class="intro">[\s\S]*?<\/p>\s*/, "");
+    out = out.slice(0, start) + head + out.slice(end);
+  }
   if (!/assets\/js\/hero\.js/.test(out)) {
     const script = '<script src="' + jsUrl("hero.js") + '" defer></script>';
     const nav = out.match(/<script[^>]*nav\.js[^>]*><\/script>/);
@@ -74,9 +84,8 @@ export function renderBlogHub(content, indexByFolder) {
         '<a class="more" href="' + esc(href) + '">Read the post</a></div>');
   });
 
-  const inner = '<h1 class="h2" style="font-size:2rem">' + esc(BLOG_HUB.name) + "</h1>" +
-    '<p class="intro">' + esc(BLOG_HUB.intro) + "</p>" +
-    '<div class="blog-sections" role="navigation" aria-label="Blog sections">' + chips + "</div>" +
+  // the title is on the banner above; the page starts with the section chips
+  const inner = '<div class="blog-sections" role="navigation" aria-label="Blog sections">' + chips + "</div>" +
     (cards.length ? cards.join("") : "<p>No posts yet. Check back soon.</p>");
 
   return shell(content, {

@@ -53,16 +53,30 @@ function listingHtml(data, category, folder, hasThumbnail) {
     '</p></div><a class="more" href="' + slug + '.html">Read the post</a>');
 }
 
-/** Adds the new post's listing right after the section page's intro paragraph. */
+/**
+ * Adds the new post's listing at the top of the section page. Pages with an intro paragraph (the older
+ * layout) get it right after that paragraph; pages whose title lives on the banner get it first in <main>.
+ * The page title (the only <h1>) must be the expected section name.
+ */
 async function updateIndex(indexHtml, data, category, hasThumbnail) {
+  const listing = listingHtml(data, category, category.folder, hasThumbnail);
+  const hasIntro = /<p[^>]*class="intro"/.test(indexHtml);
   let heading = "";
-  let introCount = 0;
+  let mains = 0;
+  let intros = 0;
   const output = await new HTMLRewriter()
-    .on("main h1", { text: function (text) { heading += text.text; } })
-    .on("main .intro", { element: function (element) { introCount += 1; element.after(listingHtml(data, category, category.folder, hasThumbnail), { html: true }); } })
+    .on("h1", { text: function (text) { heading += text.text; } })
+    .on("main", { element: function (element) {
+      mains += 1;
+      if (!hasIntro) element.prepend(listing, { html: true });
+    } })
+    .on("main .intro", { element: function (element) {
+      intros += 1;
+      element.after(listing, { html: true });
+    } })
     .transform(new Response(indexHtml, { headers: { "Content-Type": "text/html; charset=utf-8" } }))
     .text();
-  if (heading.trim() !== category.name || introCount !== 1) {
+  if (heading.trim() !== category.name || mains !== 1 || (hasIntro && intros !== 1)) {
     throw new HttpError(409, "The GitHub section index does not match " + category.name + ".");
   }
   return output;
@@ -129,16 +143,16 @@ export async function publishPost(request, env, session, body) {
 /** Checks a section page is the expected one and counts the links to `slug` (used before and after a delete). */
 async function inspectSectionIndex(indexHtml, category, slug) {
   let heading = "";
-  let introCount = 0;
+  let mains = 0;
   let matchingLinks = 0;
   const selector = 'main article.post h2 a[href="' + slug + '.html"]';
   const html = await new HTMLRewriter()
-    .on("main h1", { text: function (text) { heading += text.text; } })
-    .on("main .intro", { element: function () { introCount += 1; } })
+    .on("h1", { text: function (text) { heading += text.text; } })
+    .on("main", { element: function () { mains += 1; } })
     .on(selector, { element: function () { matchingLinks += 1; } })
     .transform(new Response(indexHtml, { headers: { "Content-Type": "text/html; charset=utf-8" } }))
     .text();
-  if (heading.trim() !== category.name || introCount !== 1) {
+  if (heading.trim() !== category.name || mains !== 1) {
     throw new HttpError(409, "The GitHub section index does not match " + category.name + ".");
   }
   return { html: html, matchingLinks: matchingLinks };

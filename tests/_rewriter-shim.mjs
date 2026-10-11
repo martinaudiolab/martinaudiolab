@@ -25,6 +25,7 @@ class Rewriter {
                 remove: () => node.remove(),
                 removeAndKeepContent: () => { while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node); node.remove(); },
                 after: (html) => node.insertAdjacentHTML("afterend", html),
+                prepend: (html) => node.insertAdjacentHTML("afterbegin", html),
                 before: (html) => node.insertAdjacentHTML("beforebegin", html)
               };
               handlers.element(wrap);
