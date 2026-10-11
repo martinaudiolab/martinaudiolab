@@ -266,7 +266,7 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 
 /* Homepage category rows: full-bleed, alternating text and image */
 .cats{width:100%;margin-top:3rem}
-.cat-row{position:relative;overflow:hidden;display:flex;flex-direction:row-reverse;align-items:stretch;min-height:70vh;min-height:70svh;background:#141414;color:#fff;font-family:var(--sans)}
+.cat-row{position:relative;overflow:hidden;display:flex;flex-direction:row-reverse;align-items:stretch;min-height:clamp(26rem,40vw,40rem);background:#141414;color:#fff;font-family:var(--sans)}
 .cat-row:nth-child(even){flex-direction:row}
 .cat-media{position:relative;flex:0 0 55%;min-height:inherit}
 .cat-media img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:0;display:block}
@@ -291,13 +291,13 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 }
 @media(max-width:1024px){
   .cat-row,.cat-row:nth-child(even){flex-direction:column;min-height:0}
-  .cat-media{flex:none;width:100%;height:50vh;height:50svh;min-height:0}
+  .cat-media{flex:none;width:100%;height:clamp(15rem,50vw,24rem);min-height:0}
   .cat-text{flex:none;width:100%;text-align:center;padding:40px 32px}
   .cat-copy{margin:0 auto}
   .cat-copy p{margin-left:auto;margin-right:auto}
 }
 @media(max-width:599px){
-  .cat-media{height:40vh;height:40svh}
+  .cat-media{height:clamp(13rem,56vw,18rem)}
   .cat-text{padding:24px}
   .cat-copy h2{font-size:24px;letter-spacing:3px}
 }
@@ -350,10 +350,11 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .request-result.ok{color:var(--accent)}
 .request-result.error{color:#d9534f}
 
-/* Heights that depend on the screen use svh (the small, fixed viewport) after a vh fallback: on phones the address
-   bar slides away as you scroll and a dynamic unit would make the banner grow and shrink under your finger. */
+/* Banners and picture rows are sized from the page WIDTH, never from the screen height. Phone browsers change the
+   visible height while you scroll (toolbars, address bar), and anything sized from it grows and shrinks under your
+   finger. Width does not change, so these stay put. */
 /* Homepage: full-bleed hero with a crossfade slideshow, navigation floating over it */
-.hero{position:relative;width:100%;min-height:clamp(26rem,72vh,46rem);min-height:clamp(26rem,72svh,46rem);overflow:hidden;background:#141a19;display:flex;align-items:flex-end}
+.hero{position:relative;width:100%;height:clamp(28rem,45vw,46rem);contain:layout paint;overflow:hidden;background:#141a19;display:flex;align-items:flex-end}
 .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s ease-in-out}
 .hero-slide.active{opacity:1}
 .hero-scrim{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.4) 34%,rgba(0,0,0,0) 62%),linear-gradient(to bottom,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 24%)}
@@ -366,6 +367,11 @@ body.home header.site.solid{background:rgba(18,18,18,.95)}
 body.home .brand{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 /* One continuous translucent bar; items are flush inside it */
 body.home nav,body.navbar nav{gap:0;padding:0;border-radius:0;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+/* Touch screens: a plain translucent fill instead of a live blur over the moving banner (cheaper, and avoids
+   compositing glitches in Safari) */
+@media(hover:none){
+  body.home nav{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(0,0,0,.6)}
+}
 body.home nav > a,body.home .dd-toggle,body.navbar nav > a,body.navbar .dd-toggle{color:#fff;background:none;border:0;border-radius:0;padding:12px 18px;font-size:.95rem;transition:background-color .15s ease}
 body.home nav > a:hover,body.home .dd-toggle:hover,body.home .dd.open .dd-toggle,body.navbar nav > a:hover,body.navbar .dd-toggle:hover,body.navbar .dd.open .dd-toggle{color:#fff;background:rgba(255,255,255,.14)}
 body.home nav > a.on,body.home .dd-toggle.on,body.navbar nav > a.on,body.navbar .dd-toggle.on{color:#fff;background:rgba(255,255,255,.18);box-shadow:inset 0 -2px 0 #72c4ba}

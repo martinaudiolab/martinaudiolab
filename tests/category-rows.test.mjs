@@ -26,7 +26,7 @@ assert.ok(!html.includes("See the work &rarr;") && !html.includes('class="cat"')
 assert.ok(html.indexOf('class="cats"') > html.indexOf("</main>"));
 
 const must = [
-  ["row min height", /\.cat-row\{[^}]*min-height:70vh/],
+  ["row min height from the page width", /\.cat-row\{[^}]*min-height:clamp\(26rem,40vw,40rem\)/],
   ["flex stretch", /\.cat-row\{[^}]*display:flex[^}]*align-items:stretch/],
   ["overflow hidden", /\.cat-row\{position:relative;overflow:hidden/],
   ["text 45 / image 55", /\.cat-media\{[^}]*flex:0 0 55%/],
@@ -35,8 +35,8 @@ const must = [
   ["description", /\.cat-copy p\{[^}]*max-width:420px;[^}]*line-height:1\.7;color:rgba\(255,255,255,\.6\)/],
   ["cta", /\.cat-cta\{[^}]*margin-top:28px;padding:12px 28px;border-radius:3px;background:#333/],
   ["square images", /\.cat-media img\{[^}]*object-fit:cover;border-radius:0/],
-  ["tablet stacked image 50vh", /@media\(max-width:1024px\)\{[^]*flex-direction:column[^]*height:50vh/],
-  ["mobile image 40vh and 24px", /@media\(max-width:599px\)\{\s*\.cat-media\{height:40vh;height:40svh\}\s*\.cat-text\{padding:24px\}/],
+  ["tablet stacked image", /@media\(max-width:1024px\)\{[^]*flex-direction:column[^]*height:clamp\(15rem,50vw,24rem\)/],
+  ["mobile image and 24px", /@media\(max-width:599px\)\{\s*\.cat-media\{height:clamp\(13rem,56vw,18rem\)\}\s*\.cat-text\{padding:24px\}/],
   ["alternation", /\.cat-row\{[^}]*flex-direction:row-reverse[^}]*\}\s*\.cat-row:nth-child\(even\)\{flex-direction:row\}/]
 ];
 must.forEach(([n, re]) => assert.match(css, re, n));
