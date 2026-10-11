@@ -95,7 +95,7 @@ const content = normalizeContent({});
   });
   const order = Array.from(html.matchAll(/<h2><a href="([^"]+)">/g)).map((m) => m[1]);
   assert.deepEqual(order, ["/radio/r-new", "/radio/r-mid", "/stereo/s-old"], "newest first across sections");
-  assert.ok(html.includes('<body class="navbar">') && html.includes('href="/assets/css/style.css"') && html.includes("<h1 class=\"h2\""));
+  assert.ok(html.includes('<body class="home">') && html.includes('href="/assets/css/style.css"') && html.includes("<h1 class=\"h2\""));
   assert.ok(html.includes('src="/images/posts/radio-r-new.jpg"'), "uses the post's own thumbnail");
   for (const s of SECTIONS) assert.ok(html.includes('<a href="/' + s.folder + '/">' + s.name + "</a>"), "links to " + s.name);
   assert.ok(html.includes('aria-current="page">All Posts</a>'), "All Posts is the active nav entry");

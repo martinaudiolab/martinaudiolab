@@ -5,8 +5,8 @@
 
 import { BLOG_HUB, SECTIONS } from "./sections.mjs";
 import { listingsOf, listingWithThumb } from "./site-posts.mjs";
-import { shell } from "./site-render.mjs";
-import { assetUrl, pageUrl } from "./site-urls.mjs";
+import { heroHtml, shell } from "./site-render.mjs";
+import { assetUrl, jsUrl, pageUrl } from "./site-urls.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -15,6 +15,36 @@ const timeOf = (label) => {
   const t = Date.parse(label + " UTC");
   return Number.isNaN(t) ? 0 : t;
 };
+
+/** The banner slideshow of a blog page (key: "all" or a section key), wrapped in markers so it can be replaced. */
+export function blogHeroHtml(content, key, label) {
+  const hero = content.blog_hero[key] || content.blog_hero.all;
+  return "<!--hero-->" + heroHtml({ slides: hero.slides, label: label, bare: true, short: true }) + "<!--/hero-->";
+}
+
+const HERO_BLOCK = /<!--hero-->[\s\S]*?<!--\/hero-->/;
+
+/**
+ * Gives a section page the shared look: the floating navigation over its own banner. Safe to run
+ * repeatedly; the banner is replaced, never duplicated.
+ */
+export function applyBlogHero(html, content, key, label) {
+  let out = html.replace(/<body(?: class="[^"]*")?>/, () => '<body class="home">');
+  const block = blogHeroHtml(content, key, label);
+  if (HERO_BLOCK.test(out)) out = out.replace(HERO_BLOCK, () => block);
+  else out = out.replace("</header>", () => "</header>" + block);
+  if (!/assets\/js\/hero\.js/.test(out)) {
+    const script = '<script src="' + jsUrl("hero.js") + '" defer></script>';
+    const nav = out.match(/<script[^>]*nav\.js[^>]*><\/script>/);
+    out = nav ? out.replace(nav[0], () => script + nav[0]) : out.replace("</body>", () => script + "</body>");
+  }
+  return out;
+}
+
+/** Post pages share the continuous navigation bar (no banner). */
+export function applyPostBar(html) {
+  return html.replace(/<body(?: class="[^"]*")?>/, () => '<body class="navbar">');
+}
 
 /**
  * @param {object} content        normalized site content
@@ -54,6 +84,8 @@ export function renderBlogHub(content, indexByFolder) {
     description: BLOG_HUB.intro,
     inner,
     active: BLOG_HUB.href,
-    bodyClass: "navbar"
+    bodyClass: "home",
+    beforeMain: blogHeroHtml(content, "all", BLOG_HUB.name),
+    scripts: '<script src="' + jsUrl("hero.js") + '" defer></script>'
   });
 }

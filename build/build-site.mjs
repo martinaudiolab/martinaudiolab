@@ -14,7 +14,7 @@ import { renderAbout, renderHome, renderRequest, applyGlobals } from "../shared/
 import { isShopPage, renderShop, validateShop } from "../shared/shop-render.mjs";
 import { addPostHero, addThumbnails, applyPostChrome, listingsOf } from "../shared/site-posts.mjs";
 import { BLOG_HUB, SECTIONS } from "../shared/sections.mjs";
-import { renderBlogHub } from "../shared/site-blog.mjs";
+import { applyBlogHero, applyPostBar, renderBlogHub } from "../shared/site-blog.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
@@ -78,7 +78,7 @@ for (const section of SECTIONS) {
   const crlf = raw.includes("\r\n");
   const before = crlf ? raw.split("\r\n").join("\n") : raw;
   let after = addThumbnails(before, folder, (p) => fs.existsSync(path.join(SITE, p)));
-  after = after.replace("<body>", () => '<body class="navbar">');
+  after = applyBlogHero(after, content, section.key, section.name);   // the shared toolbar over this section's own banner
   if (after !== before) fs.writeFileSync(file, crlf ? after.split("\n").join("\r\n") : after);
   sectionIndexes[folder] = after;
   const listings = listingsOf(after);
@@ -86,13 +86,14 @@ for (const section of SECTIONS) {
   // every post page: the picture under its title, the breadcrumb, and older/newer links
   for (const name of fs.readdirSync(dir)) {
     const m = name.match(/^([a-z0-9]+(?:-[a-z0-9]+)*)\.html$/);
-    if (!m) continue;
+    if (!m || name === "index.html") continue;   // the section page itself is handled above
     const post = path.join(dir, name);
     const rawPost = fs.readFileSync(post, "utf8");
     const postCrlf = rawPost.includes("\r\n");
     const postBefore = postCrlf ? rawPost.split("\r\n").join("\n") : rawPost;
     let postAfter = addPostHero(postBefore, folder, m[1], (p) => fs.existsSync(path.join(SITE, p)));
     postAfter = applyPostChrome(postAfter, folder, m[1], listings);
+    postAfter = applyPostBar(postAfter);
     if (postAfter !== postBefore) fs.writeFileSync(post, postCrlf ? postAfter.split("\n").join("\r\n") : postAfter);
   }
 }
@@ -107,9 +108,14 @@ if (writeIfChanged(path.join(SITE, BLOG_HUB.href), renderBlogHub(content, sectio
     const crlf = raw.includes("\r\n");
     const before = crlf ? raw.split("\r\n").join("\n") : raw;
     const options = SECTIONS.map((s) => '<option value="' + s.key + '">' + s.name.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</option>").join("\n");
+    // one banner slideshow editor per blog page: "all posts" first, then each section
+    const esc = (v) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    const heroEditors = [["all", "All posts"]].concat(SECTIONS.map((s) => [s.key, s.name]))
+      .map(([key, name]) => "<h3>" + esc(name) + '</h3>\n<div data-blog-hero="' + key + '"></div>').join("\n");
     const after = before
       .replace(/(<select id="category" required>)[\s\S]*?(<\/select>)/, (m, a, b) => a + "\n" + options + "\n" + b)
-      .replace(/(<select id="manage-category">)[\s\S]*?(<\/select>)/, (m, a, b) => a + "\n" + options + "\n" + b);
+      .replace(/(<select id="manage-category">)[\s\S]*?(<\/select>)/, (m, a, b) => a + "\n" + options + "\n" + b)
+      .replace(/(<!--blog-heroes-->)[\s\S]*?(<!--\/blog-heroes-->)/, (m, a, b) => a + "\n" + heroEditors + "\n" + b);
     if (after !== before) fs.writeFileSync(adminFile, crlf ? after.split("\n").join("\r\n") : after);
   }
 }

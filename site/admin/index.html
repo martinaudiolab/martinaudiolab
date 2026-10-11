@@ -36,6 +36,7 @@
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="request">Request</button>
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="about">About</button>
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="shop">Shop</button>
+<button class="tab" type="button" role="tab" aria-selected="false" data-tab="blog">Blog</button>
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="shop-builder">Shop Builder</button>
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="post-builder">Post Builder</button>
 <button class="tab" type="button" role="tab" aria-selected="false" data-tab="manage-posts">Manage Blog Posts</button>
@@ -141,6 +142,21 @@
 <label for="s-intro">Intro (shown under the title)</label>
 <textarea id="s-intro" rows="3" maxlength="600" data-shop="intro"></textarea>
 <p class="hint">Products, prices, photos and status are managed in the <a href="#shop-builder" data-goto-tab="shop-builder">Shop Builder</a>.</p>
+</section>
+<!-- Blog pages -->
+<section class="admin-panel" data-panel="blog" role="tabpanel" hidden>
+<h2>Blog pages</h2>
+<p class="hint">Each blog page has its own banner slideshow: up to four images that crossfade under the navigation. A page with no image of its own uses the default shown when it is empty.</p>
+<!--blog-heroes-->
+<h3>All posts</h3>
+<div data-blog-hero="all"></div>
+<h3>Stereo Repair</h3>
+<div data-blog-hero="stereo"></div>
+<h3>Radio Repair</h3>
+<div data-blog-hero="radio"></div>
+<h3>Test Equipment</h3>
+<div data-blog-hero="test-equipment"></div>
+<!--/blog-heroes-->
 </section>
 <!-- Shop Builder -->
 <section class="admin-panel builder-panel" data-panel="shop-builder" role="tabpanel" hidden>

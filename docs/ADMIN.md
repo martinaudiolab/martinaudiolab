@@ -1,6 +1,6 @@
 # Site Admin
 
-`/admin` is the one place to manage the site. It has eight tabs: **Global**, **Homepage**, **Request**, **About** and **Shop** edit the site content, and **Shop Builder**, **Post Builder** and **Manage Blog Posts** hold the shop listing manager, the blog post editor and the published-post manager. One GitHub sign-in covers all of them, through the publisher Worker.
+`/admin` is the one place to manage the site. It has nine tabs: **Global**, **Homepage**, **Request**, **About**, **Shop** and **Blog** edit the site content, and **Shop Builder**, **Post Builder** and **Manage Blog Posts** hold the shop listing manager, the blog post editor and the published-post manager. One GitHub sign-in covers all of them, through the publisher Worker.
 
 ## Using it
 1. Open `/admin`, select **Connect GitHub** and sign in with the administrator account.
@@ -13,6 +13,8 @@ If the content changed somewhere else after you opened the page, saving is refus
 The shop listing manager and the blog post editor. Each has its own Publish button; the Save changes bar applies to the five content tabs only. See `SHOP.md` for how shop listings work.
 
 Every post listed on a section page (Stereo Repair, Radio Repair, Test Equipment) has a thumbnail. In the Post Builder you can choose one; otherwise the first photo in the post is used, and a post with no photo shows the section picture. Thumbnails are small JPEGs stored in `site/images/posts/` and are removed when the post is deleted.
+
+**Blog banners:** the **Blog** tab has a banner slideshow (up to four images) for the Restoration Blog page and one for each section, edited independently. Each blog page shows the same floating toolbar as Home and Shop over its own banner (shorter than the homepage hero), and individual posts use the continuous toolbar bar. A page with no image of its own shows its section picture (or the site banner for the Restoration Blog page).
 
 **Galleries:** in the Post Builder, the **Gallery** button places 2 to 4 photos side by side as a grid (choose *2 per row* or *4 in a row* first). A lone last photo in a 2-per-row grid spans the full width, and 4-in-a-row becomes 2 per row on phones. Visitors click any photo to enlarge it, then step through the set with the arrows or the left/right keys. Gallery photos are kept to about 1600 px so a post with several galleries stays under the 5 MB limit.
 

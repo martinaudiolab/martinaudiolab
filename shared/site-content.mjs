@@ -69,7 +69,7 @@ function normalizeNav(input) {
 }
 
 /** Up to four slideshow images; falls back to the legacy single image, then to the default photo. */
-function heroSlides(hero) {
+function heroSlides(hero, fallback) {
   const source = Array.isArray(hero.slides) ? hero.slides : hero.image ? [{ image: hero.image }] : [];
   const slides = source.slice(0, MAX.heroSlides)
     .map((slide) => {
@@ -77,7 +77,7 @@ function heroSlides(hero) {
       return { image: image(o.image, ""), alt: text(o.alt, 160, "") };
     })
     .filter((slide) => slide.image);
-  return slides.length ? slides : [{ image: "images/banner.jpg", alt: "" }];
+  return slides.length ? slides : [{ image: fallback || "images/banner.jpg", alt: "" }];
 }
 
 /**
@@ -91,6 +91,7 @@ export function normalizeContent(input) {
   const pc = h.product_carousel && typeof h.product_carousel === "object" ? h.product_carousel : {};
   const vl = pc.view_all_link && typeof pc.view_all_link === "object" ? pc.view_all_link : {};
   const sh = c.shop_hero && typeof c.shop_hero === "object" ? c.shop_hero : {};
+  const bh = c.blog_hero && typeof c.blog_hero === "object" ? c.blog_hero : {};
   const r = c.request && typeof c.request === "object" ? c.request : {};
   const a = c.about && typeof c.about === "object" ? c.about : {};
   const ac = a.contact && typeof a.contact === "object" ? a.contact : {};
@@ -130,6 +131,10 @@ export function normalizeContent(input) {
       trust_line: text(h.trust_line, 240, "")
     },
     shop_hero: { slides: heroSlides(sh) },
+    // each blog page has its own banner slideshow: "all" is the Restoration Blog page, the rest are the sections
+    blog_hero: Object.fromEntries([["all", "images/banner.jpg"]].concat(SECTIONS.map((s) => [s.key, s.image])).map(([key, fallback]) => [
+      key, { slides: heroSlides(bh[key] && typeof bh[key] === "object" ? bh[key] : {}, fallback) }
+    ])),
     request: {
       title: str(r.title, 80, "Request a Restoration"),
       intro: text(r.intro, 600, "Have a unit that needs attention? Send me the details and I will get back to you."),
@@ -157,6 +162,7 @@ export function normalizeContent(input) {
 export function contentImages(content) {
   const paths = content.homepage.hero.slides.map((s) => s.image)
     .concat(content.shop_hero.slides.map((s) => s.image))
+    .concat(Object.values(content.blog_hero).flatMap((h) => h.slides.map((s) => s.image)))
     .concat(content.homepage.categories.map((c) => c.image));
   return paths.filter((p) => typeof p === "string" && p.startsWith("images/"));
 }

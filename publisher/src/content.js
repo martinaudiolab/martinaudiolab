@@ -44,7 +44,7 @@ export async function publishContent(request, env, session, body) {
 
   const uploads = Array.isArray(body.images) ? body.images : [];
   const uploadedPaths = validateUploads(uploads, {
-    pattern: SITE_UPLOAD_PATH, maxBytes: MAX_SITE_IMAGE, maxCount: 12,
+    pattern: SITE_UPLOAD_PATH, maxBytes: MAX_SITE_IMAGE, maxCount: 20,
     tooMany: "Too many new images in one save.", sizeLabel: "3.5 MB"
   });
 

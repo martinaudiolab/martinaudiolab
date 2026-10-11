@@ -20,7 +20,7 @@
     },
     expired: function (message) { signedOut(message); }
   };
-  var CONTENT_TABS = ["global", "homepage", "request", "about", "shop"];
+  var CONTENT_TABS = ["global", "homepage", "request", "about", "shop", "blog"];
 
   function notifySession() {
     sessionListeners.forEach(function (listener) { listener(session); });
@@ -197,7 +197,8 @@
 
   /** Every object in the content that holds one of the editable image paths. */
   function imageEntries() {
-    return [].concat(content.homepage.hero.slides, content.shop_hero.slides, content.homepage.categories);
+    var blog = Object.keys(content.blog_hero || {}).reduce(function (all, key) { return all.concat(content.blog_hero[key].slides); }, []);
+    return [].concat(content.homepage.hero.slides, content.shop_hero.slides, blog, content.homepage.categories);
   }
 
   function referencedImages() {
@@ -216,9 +217,14 @@
 
   /** Redraws the slideshow slots; pass "hero" or "shop" to redraw just that slideshow. */
   function renderHeroSlots(only) {
-    [["hero-slots", content.homepage.hero.slides, "hero"], ["shop-hero-slots", content.shop_hero.slides, "shop"]].forEach(function (pool) {
+    var pools = [["hero-slots", content.homepage.hero.slides, "hero"], ["shop-hero-slots", content.shop_hero.slides, "shop"]];
+    document.querySelectorAll("[data-blog-hero]").forEach(function (holder) {
+      var key = holder.getAttribute("data-blog-hero");
+      if (content.blog_hero[key]) pools.push([holder, content.blog_hero[key].slides, "blog:" + key]);
+    });
+    pools.forEach(function (pool) {
       if (only && only !== pool[2]) return;
-      var holder = $(pool[0]);
+      var holder = typeof pool[0] === "string" ? $(pool[0]) : pool[0];
       holder.replaceChildren();
       for (var index = 0; index < HERO_SLOTS; index++) holder.appendChild(heroSlot(pool[1], index, pool[2]));
     });
@@ -239,7 +245,7 @@
       file.value = "";
       if (!chosen) return;
       try {
-        var path = await pickImage(chosen, kind === "shop" ? "shophero" : "hero", 2000);
+        var path = await pickImage(chosen, kind === "shop" ? "shophero" : kind.indexOf("blog:") === 0 ? "bloghero" : "hero", 2000);
         if (slide) slide.image = path;
         else slides.push({ image: path, alt: "" });
         releaseUnusedImages();
@@ -413,6 +419,13 @@
     say("Loading the site content...");
     var result = await api("/api/content");
     content = result.content;
+    // an older publisher Worker does not know the blog banners yet
+    content.blog_hero = content.blog_hero || {};
+    document.querySelectorAll("[data-blog-hero]").forEach(function (holder) {
+      var key = holder.getAttribute("data-blog-hero");
+      var entry = content.blog_hero[key];
+      if (!entry || !Array.isArray(entry.slides) || !entry.slides.length) content.blog_hero[key] = { slides: [{ image: "images/banner.jpg", alt: "" }] };
+    });
     // an older publisher Worker does not know the shop slideshow yet
     if (!content.shop_hero || !Array.isArray(content.shop_hero.slides) || !content.shop_hero.slides.length) content.shop_hero = { slides: [{ image: "images/banner.jpg", alt: "" }] };
     shop = result.shop || { title: "", intro: "" };

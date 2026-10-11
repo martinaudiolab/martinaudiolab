@@ -40,7 +40,7 @@ assert.equal(calls.filter((c) => c.path === "/api/session").length, 1);
 assert.equal($("admin-app").hidden, false);
 assert.ok(calls.some((c) => c.path === "/api/shop" && c.auth === "Bearer S"));
 const tabs = Array.from(w.document.querySelectorAll(".tab")).map((t) => t.textContent);
-assert.deepEqual(tabs, ["Global", "Homepage", "Request", "About", "Shop", "Shop Builder", "Post Builder", "Manage Blog Posts"]);
+assert.deepEqual(tabs, ["Global", "Homepage", "Request", "About", "Shop", "Blog", "Shop Builder", "Post Builder", "Manage Blog Posts"]);
 assert.equal($("pb-publish").disabled, false);
 assert.equal($("items").querySelectorAll(".sb-row").length, items.items.length);
 console.log("ok: single sign-in, tabs, both builders connected");
