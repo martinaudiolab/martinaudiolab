@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { CONTENT_PATH, normalizeContent } from "../shared/site-content.mjs";
 import { renderAbout, renderHome, renderRequest, applyGlobals } from "../shared/site-render.mjs";
 import { isShopPage, renderShop, validateShop } from "../shared/shop-render.mjs";
-import { addPostHero, addThumbnails, applyPostChrome, listingsOf } from "../shared/site-posts.mjs";
+import { addPostHero, applyPostChrome, listingsOf, normalizeCards, postBodyHtml, excerptOf } from "../shared/site-posts.mjs";
 import { BLOG_HUB, SECTIONS } from "../shared/sections.mjs";
 import { applyBlogHero, applyPostBar, renderBlogHub } from "../shared/site-blog.mjs";
 
@@ -77,7 +77,14 @@ for (const section of SECTIONS) {
   const raw = fs.readFileSync(file, "utf8");
   const crlf = raw.includes("\r\n");
   const before = crlf ? raw.split("\r\n").join("\n") : raw;
-  let after = addThumbnails(before, folder, (p) => fs.existsSync(path.join(SITE, p)));
+  let after = normalizeCards(before, {
+    section,
+    exists: (p) => fs.existsSync(path.join(SITE, p)),
+    excerptFor: (slug) => {
+      const page = path.join(dir, slug + ".html");
+      return fs.existsSync(page) ? excerptOf(postBodyHtml(fs.readFileSync(page, "utf8"))) : "";
+    }
+  });
   after = applyBlogHero(after, content, section.key, section.name);   // the shared toolbar over this section's own banner
   if (after !== before) fs.writeFileSync(file, crlf ? after.split("\n").join("\r\n") : after);
   sectionIndexes[folder] = after;

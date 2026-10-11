@@ -2,7 +2,7 @@
 
 import { NAV_SCRIPT, navHtml } from "../../shared/site-nav.mjs";
 import { SECTIONS } from "../../shared/sections.mjs";
-import { crumbsHtml, fallbackThumb, heroFigure, listingWithThumb, thumbFile } from "../../shared/site-posts.mjs";
+import { cardHtml, crumbsHtml, excerptOf, fallbackThumb, heroFigure, thumbFile } from "../../shared/site-posts.mjs";
 import { HttpError } from "./errors.js";
 import {
   addBlobEntry, commitEntries, decodeBase64Utf8, getBranchHead, getFile,
@@ -44,13 +44,17 @@ export function articleHtml(data, category, content, site, heroSrc) {
   return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="/assets/css/style.css"></head><body class="navbar"><header class="site"><a class="brand" href="/">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html") + '</header><main>' + crumbsHtml(category.name, title, category.folder) + '<article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div>' + (heroSrc ? heroFigure(heroSrc, data.title) : "") + '<div class="body">' + content + '</div></article></main><script src="/assets/js/lightbox.js" defer><\/script>' + NAV_SCRIPT() + '</body></html>\n';
 }
 
+/** The listing card for a new post (the build also brings older listings to this layout). */
 function listingHtml(data, category, folder, hasThumbnail) {
-  const slug = escapeHtml(data.slug);
-  const src = hasThumbnail ? "/" + thumbFile(folder, data.slug) : fallbackThumb(folder);
-  return listingWithThumb(data.slug, src,
-    '<h2><a href="' + slug + '.html">' + escapeHtml(data.title) + '</a></h2><div class="meta">' + escapeHtml(dateLabel(data.date)) +
-    ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div><div class="body"><p>' + escapeHtml(data.summary) +
-    '</p></div><a class="more" href="' + slug + '.html">Read the post</a>');
+  return cardHtml({
+    section: { name: category.name, folder: folder },
+    slug: data.slug,
+    titleHtml: escapeHtml(data.title),
+    summary: data.summary,
+    date: dateLabel(data.date),
+    thumb: hasThumbnail ? "/" + thumbFile(folder, data.slug) : fallbackThumb(folder),
+    excerpt: data.excerpt || ""
+  });
 }
 
 /**
@@ -122,10 +126,10 @@ export async function publishPost(request, env, session, body) {
 
   const indexPath = folder + "/index.html";
   const indexFile = await getFile(token, apiBase, indexPath, tip);
-  const indexOutput = await updateIndex(decodeBase64Utf8(indexFile.content), {
-    title: title, summary: summary, date: date, slug: slug
-  }, category, Boolean(thumbnail));
   const safeContent = await sanitizeContent(rawContent, env.SITE_ORIGIN);
+  const indexOutput = await updateIndex(decodeBase64Utf8(indexFile.content), {
+    title: title, summary: summary, date: date, slug: slug, excerpt: excerptOf(safeContent)
+  }, category, Boolean(thumbnail));
   const data = { title: title, summary: summary, date: date, slug: slug, category: body.category };
   const site = (await loadSiteContent(token, apiBase, tip)).content;
   const article = articleHtml(data, category, safeContent, site, thumbnail ? "/" + thumbFile(category.folder, slug) : fallbackThumb(category.folder));

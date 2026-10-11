@@ -20,8 +20,65 @@ const decode = (s) => String(s).replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").r
 // ---- section listing entries ------------------------------------------------------
 
 /** The thumbnail link that sits beside a listing; the image is decorative, the title link carries the name. */
-export function thumbLink(slug, src) {
-  return '<a class="post-thumb" href="' + attr(slug) + '.html" tabindex="-1" aria-hidden="true"><img src="' + attr(src) + '" alt="" loading="lazy"></a>';
+export function thumbLink(slug, src, href) {
+  return '<a class="post-thumb" href="' + attr(href || slug + ".html") + '" tabindex="-1" aria-hidden="true"><img src="' + attr(src) + '" alt="" loading="lazy"></a>';
+}
+
+/** Plain text of some HTML, shortened at a word boundary (for the excerpt on a listing card). */
+export function excerptOf(html, max) {
+  const limit = max || 220;
+  const text = String(html || "")
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ").trim();
+  if (text.length <= limit) return text;
+  const cut = text.slice(0, limit);
+  const space = cut.lastIndexOf(" ");
+  return (space > limit * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,.;:!-]+$/, "") + "\u2026";
+}
+
+/** The body text of a published post page (the part inside <div class="body">). */
+export function postBodyHtml(pageHtml) {
+  const m = String(pageHtml).match(/<div class="body">([\s\S]*)<\/div><\/article>/);
+  return m ? m[1] : "";
+}
+
+/**
+ * A listing card for a section page or the blog page: title, one-line summary, date, picture and
+ * excerpt, and a tag naming the section. o: { section, slug, titleHtml, summary, date, thumb, excerpt,
+ * href (the post's address; default "<slug>.html"), tagHref (default "/<folder>/") }.
+ * The title link stays an <h2><a href="...html"> inside <article class="post">, which the Worker and
+ * the Manage Blog Posts tab rely on.
+ */
+export function cardHtml(o) {
+  const href = o.href || o.slug + ".html";
+  const tagHref = o.tagHref || "/" + o.section.folder + "/";
+  const more = '<a class="more" href="' + attr(href) + '">Read more</a>';
+  return '<article class="post post-card">' +
+    '<header class="card-head"><h2><a href="' + attr(href) + '">' + o.titleHtml + "</a></h2>" +
+    (o.summary ? '<p class="card-sub">' + attr(o.summary) + "</p>" : "") +
+    '<div class="meta card-date">' + attr(o.date) + "</div></header>" +
+    '<div class="card-body">' + thumbLink(o.slug, o.thumb, href) +
+    '<p class="card-excerpt">' + (o.excerpt ? attr(o.excerpt) + " " : "") + more + "</p></div>" +
+    '<footer class="card-foot"><a class="card-tag" href="' + attr(tagHref) + '">' + attr(o.section.name) + "</a></footer></article>";
+}
+
+/**
+ * Rewrites every listing on a section page as a card, with the post's picture and an excerpt.
+ * ctx: { section, exists(path), excerptFor(slug) }. Safe to run repeatedly.
+ */
+export function normalizeCards(indexHtml, ctx) {
+  const folder = ctx.section.folder;
+  return indexHtml.replace(/<article class="post[^"]*">[\s\S]*?<\/article>/g, (whole) => {
+    const post = listingsOf(whole)[0];
+    if (!post) return whole;
+    const own = thumbFile(folder, post.slug);
+    let thumb = post.thumb ? post.thumb.replace(/^(\.\.\/)+/, "/") : "";
+    if (!thumb) thumb = typeof ctx.exists === "function" && ctx.exists(own) ? "/" + own : fallbackThumb(folder);
+    const excerpt = (ctx.excerptFor && ctx.excerptFor(post.slug)) || post.excerpt || "";
+    return cardHtml({ section: ctx.section, slug: post.slug, titleHtml: post.titleHtml, summary: post.summary, date: post.date, thumb, excerpt });
+  });
 }
 
 /** A complete listing entry for a section page. `inner` is the title, date, summary and link markup. */
@@ -54,10 +111,12 @@ export function listingsOf(indexHtml) {
   let m;
   while ((m = articles.exec(indexHtml))) {
     const inner = m[1];
-    const link = inner.match(new RegExp('<h2><a href="(' + SLUG + ')\\.html">([\\s\\S]*?)</a></h2>'));
+    const link = inner.match(new RegExp('<h2><a href="(?:/[a-z0-9-]+/)?(' + SLUG + ')(?:\\.html)?">([\\s\\S]*?)</a></h2>'));
     if (!link) continue;
-    const date = inner.match(/<div class="meta">([^<&]*?)\s*&nbsp;/);
-    const summary = inner.match(/<div class="body"><p>([\s\S]*?)<\/p>/);
+    // the card layout, or the earlier plain listing layout
+    const date = inner.match(/<div class="meta[^"]*">([^<&]*?)\s*(?:&nbsp;|<)/);
+    const summary = inner.match(/<p class="card-sub">([\s\S]*?)<\/p>/) || inner.match(/<div class="body"><p>([\s\S]*?)<\/p>/);
+    const excerpt = inner.match(/<p class="card-excerpt">([\s\S]*?)\s*<a class="more"/);
     const thumb = inner.match(/<img src="([^"]+)"/);
     out.push({
       slug: link[1],
@@ -65,6 +124,7 @@ export function listingsOf(indexHtml) {
       title: decode(link[2]),
       date: date ? date[1].trim() : "",
       summary: summary ? decode(summary[1]) : "",
+      excerpt: excerpt ? decode(excerpt[1]).trim() : "",
       thumb: thumb ? thumb[1].replace(/&amp;/g, "&") : ""
     });
   }

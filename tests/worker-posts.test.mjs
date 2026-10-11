@@ -125,7 +125,16 @@ assert.equal(blobs.get(head.tree[thumbPath]).toString("base64"), JPEG);
 let index = blobs.get(head.tree["site/stereo/index.html"]).toString();
 assert.ok(index.includes('src="/images/posts/stereo-marantz-2270-recap.jpg"'), "listing uses the post thumbnail");
 assert.ok(index.indexOf("marantz-2270-recap.html") < index.indexOf("old-post.html"), "newest first");
-assert.ok(index.includes('<article class="post has-thumb">') && index.includes('<div class="post-main"><h2><a href="marantz-2270-recap.html">'));
+assert.ok(index.includes('<article class="post post-card"><header class="card-head"><h2><a href="marantz-2270-recap.html">'), "new listings are cards");
+{
+  const card = index.slice(index.indexOf('<article class="post post-card"><header class="card-head"><h2><a href="marantz-2270-recap.html">'));
+  const one = card.slice(0, card.indexOf("</article>"));
+  assert.ok(one.includes('<p class="card-sub">All caps replaced</p>'), "summary is the subtitle");
+  assert.ok(one.includes('<div class="meta card-date">October 9, 2026</div>'), "date sits under the subtitle");
+  assert.ok(!/By:|author|Comments/i.test(one), "no author line or comments button");
+  assert.ok(one.includes('<p class="card-excerpt">Body <a class="more" href="marantz-2270-recap.html">Read more</a></p>'), "excerpt from the post text: " + one);
+  assert.ok(one.includes('<a class="card-tag" href="/stereo/">Stereo Repair</a>'), "tag names the section");
+}
 assert.ok(head.tree["site/stereo/marantz-2270-recap.html"]);
 
 // 2. publish without a thumbnail: falls back to the section picture, no file
@@ -219,7 +228,7 @@ console.log("ok: post thumbnails (publish, fallback, validation, delete)");
   let res = await call("/api/publish", "POST", post({ title: "Banner Layout Post" }));
   assert.equal(res.status, 201, JSON.stringify(res.body));
   let index = blobs.get(head.tree["site/stereo/index.html"]).toString();
-  assert.ok(index.indexOf("<main><article class=\"post has-thumb\">") > -1, "the new listing is first in <main>");
+  assert.ok(index.indexOf("<main><article class=\"post post-card\">") > -1, "the new listing is first in <main>");
   assert.ok(index.indexOf("banner-layout-post.html") < index.indexOf("old-post.html"), "newest first");
   assert.equal((index.match(/<h1/g) || []).length, 1, "still just the banner title");
 

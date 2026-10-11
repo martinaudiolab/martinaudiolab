@@ -146,3 +146,40 @@ const content = normalizeContent({});
     fs.rmSync(work, { recursive: true, force: true });
   }
 }
+
+// 7. listing cards: markup, excerpts, and upgrading older listings
+{
+  const { cardHtml, excerptOf, normalizeCards, postBodyHtml, listingsOf: parse } = await import("../shared/site-posts.mjs");
+  const section = { name: "Radio Repair", folder: "radio" };
+
+  const card = cardHtml({ section, slug: "my-post", titleHtml: "My &amp; post", summary: "A short line", date: "October 9, 2026", thumb: "/images/category-radio.jpg", excerpt: "The text." });
+  assert.ok(card.startsWith('<article class="post post-card"><header class="card-head"><h2><a href="my-post.html">My &amp; post</a></h2>'));
+  assert.ok(card.includes('<p class="card-sub">A short line</p><div class="meta card-date">October 9, 2026</div></header>'), "subtitle then date");
+  assert.ok(card.includes('<p class="card-excerpt">The text. <a class="more" href="my-post.html">Read more</a></p>'));
+  assert.ok(card.includes('<footer class="card-foot"><a class="card-tag" href="/radio/">Radio Repair</a></footer>'));
+  assert.ok(!/By:|Comments|author/i.test(card), "no author or comments");
+  assert.ok(!cardHtml({ section, slug: "s", titleHtml: "T", summary: "", date: "D", thumb: "/x.jpg" }).includes("card-sub"), "no empty subtitle");
+
+  // a card reads back as the same post
+  const [back] = parse(card);
+  assert.deepEqual([back.slug, back.title, back.date, back.summary, back.excerpt, back.thumb],
+    ["my-post", "My & post", "October 9, 2026", "A short line", "The text.", "/images/category-radio.jpg"]);
+
+  // excerpts: plain text, shortened at a word, no markup, nothing for photo-only posts
+  assert.equal(excerptOf("<p>Hello <strong>world</strong> &amp; more</p>"), "Hello world & more");
+  assert.equal(excerptOf('<figure data-gallery="2"><img src="data:image/png;base64,AAAA" alt=""></figure>'), "");
+  const long = excerptOf("<p>" + "word ".repeat(100) + "</p>", 60);
+  assert.ok(long.length <= 61 && long.endsWith("…") && !/\s…$/.test(long), long);
+  assert.equal(postBodyHtml('<article class="post"><h1>T</h1><div class="body"><p>Text</p></div></article>'), "<p>Text</p>");
+
+  // older listings are upgraded, with the excerpt taken from the post page, and the result is stable
+  const older = '<main><article class="post has-thumb"><a class="post-thumb" href="old.html"><img src="../images/category-radio.jpg" alt=""></a><div class="post-main">' +
+    '<h2><a href="old.html">Old one</a></h2><div class="meta">October 1, 2026 &nbsp;|&nbsp; <a href="index.html">Radio Repair</a></div><div class="body"><p>Summary line</p></div><a class="more" href="old.html">Read the post</a></div></article></main>';
+  const ctx = { section, exists: () => false, excerptFor: (slug) => (slug === "old" ? "From the post body." : "") };
+  const upgraded = normalizeCards(older, ctx);
+  assert.ok(upgraded.includes('<article class="post post-card">') && !upgraded.includes("has-thumb"));
+  assert.ok(upgraded.includes('<p class="card-sub">Summary line</p>') && upgraded.includes('<div class="meta card-date">October 1, 2026</div>'));
+  assert.ok(upgraded.includes("From the post body.") && upgraded.includes('src="/images/category-radio.jpg"'), "legacy ../ picture path made absolute");
+  assert.equal(normalizeCards(upgraded, ctx), upgraded, "idempotent");
+  console.log("ok 7: listing cards");
+}

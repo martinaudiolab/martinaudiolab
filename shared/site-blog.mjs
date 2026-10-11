@@ -4,7 +4,7 @@
 // Pure string code: the build supplies the section pages' HTML.
 
 import { BLOG_HUB, SECTIONS } from "./sections.mjs";
-import { listingsOf, listingWithThumb } from "./site-posts.mjs";
+import { cardHtml, listingsOf } from "./site-posts.mjs";
 import { heroHtml, shell } from "./site-render.mjs";
 import { assetUrl, jsUrl, pageUrl } from "./site-urls.mjs";
 
@@ -75,13 +75,10 @@ export function renderBlogHub(content, indexByFolder) {
     const href = pageUrl(section.folder + "/" + post.slug + ".html");
     // a listing's thumbnail may be a legacy "../images/..." path; either way the hub wants the absolute address
     const thumb = assetUrl((post.thumb || section.image).replace(/^(\.\.\/)+/, ""));
-    return listingWithThumb(post.slug, thumb, "")
-      .replace('href="' + post.slug + '.html"', 'href="' + esc(href) + '"')
-      .replace('<div class="post-main"></div>',
-        '<div class="post-main"><h2><a href="' + esc(href) + '">' + post.titleHtml + "</a></h2>" +
-        '<div class="meta">' + esc(post.date) + ' &nbsp;|&nbsp; <a href="' + esc(pageUrl(section.folder + "/index.html")) + '">' + esc(section.name) + "</a></div>" +
-        (post.summary ? '<div class="body"><p>' + esc(post.summary) + "</p></div>" : "") +
-        '<a class="more" href="' + esc(href) + '">Read the post</a></div>');
+    return cardHtml({
+      section, slug: post.slug, titleHtml: post.titleHtml, summary: post.summary, date: post.date,
+      thumb, excerpt: post.excerpt, href, tagHref: pageUrl(section.folder + "/index.html")
+    });
   });
 
   // the title is on the banner above; the page starts with the section chips
