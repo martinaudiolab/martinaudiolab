@@ -36,11 +36,11 @@ try {
     'var box=function(s){var r=q(s).getBoundingClientRect();return {w:r.width,x:r.left,y:r.top,h:r.height}};' +
     'document.getElementById("out").textContent=JSON.stringify({' +
     'order:["h2",".card-sub",".card-date"].map(function(s){return box(s).y}),' +
-    'title:[c("h2","fontSize"),c("h2","fontWeight")],kicker:[c(".card-sub","fontSize"),c(".card-sub","fontWeight"),c(".card-sub","textTransform"),c(".card-sub","letterSpacing")],' +
+    'title:[c("h2","fontSize"),c("h2","fontWeight"),c("h2","textTransform")],kicker:[c(".card-sub","fontSize"),c(".card-sub","fontWeight"),c(".card-sub","textTransform"),c(".card-sub","letterSpacing")],' +
     'date:[c(".card-date","fontSize"),c(".card-date","fontWeight"),c(".card-date","textTransform")],excerpt:[c(".card-excerpt","fontSize"),c(".card-excerpt","lineHeight")],' +
-    'more:[c(".more","fontWeight"),c(".more","fontSize"),c(".card-excerpt","fontSize")],' +
+    'more:[c(".more","fontWeight"),c(".more","textTransform")],' +
     'cols:c(".card-body","gridTemplateColumns"),gap:c(".card-body","columnGap"),bodyPad:c(".card-body","padding"),' +
-    'headPad:c(".card-head","padding"),radius:c(".post-card","borderRadius"),imgRadius:c(".card-body img","borderRadius"),' +
+    'headPad:c(".card-head","padding"),radius:c(".post-card","borderRadius"),bg:c(".post-card","backgroundColor"),footBg:c(".card-foot","backgroundColor"),imgRadius:c(".card-body img","borderRadius"),' +
     'foot:{pad:c(".card-foot","padding"),w:box(".card-foot").w,card:box(".post-card").w},rule:{w:box(".card-rule").w,card:box(".post-card").w,top:c(".card-rule","borderTopWidth")},' +
     'tag:{pad:c(".card-tag","padding"),radius:c(".card-tag","borderRadius"),size:c(".card-tag","fontSize"),weight:c(".card-tag","fontWeight"),text:q(".card-tag").textContent},' +
     'tagLeft:box(".card-tag").x-box(".card-foot").x});});</script>';
@@ -57,29 +57,31 @@ try {
 
   const d = measure(1280);
   assert.ok(d.order[0] < d.order[1] && d.order[1] < d.order[2], "header order: title, subtitle, date");
-  assert.deepEqual(d.title, ["30px", "700"]);
-  assert.deepEqual(d.kicker.slice(0, 3), ["16px", "700", "uppercase"]);
-  assert.equal(d.kicker[3], "1px");
-  assert.deepEqual(d.date, ["14px", "700", "uppercase"]);
+  // the homepage cards' look: thin uppercase title, small spaced uppercase subtitle and date
+  assert.deepEqual(d.title, ["28px", "400", "uppercase"]);
+  assert.deepEqual(d.kicker.slice(0, 3), ["13px", "600", "uppercase"]);
+  assert.equal(d.kicker[3], "1.5px");
+  assert.deepEqual(d.date, ["13px", "600", "uppercase"]);
   assert.equal(d.excerpt[0], "19px");
   assert.ok(Math.abs(parseFloat(d.excerpt[1]) - 19 * 1.7) < 0.6, "line height 1.7");
-  assert.equal(d.more[0], "700");
-  assert.equal(d.more[1], d.more[2], "Read More is inline at the text size");
+  assert.deepEqual(d.more, ["600", "uppercase"], "Read More is a small uppercase link after the excerpt");
   assert.ok(/^420px /.test(d.cols), "image column is 420px: " + d.cols);
   assert.equal(d.gap, "48px");
   assert.equal(d.bodyPad, "28px");
   assert.equal(d.headPad, "24px 28px 0px");
-  assert.equal(d.radius, "8px");
+  assert.equal(d.radius, "0px", "square, like the rest of the site");
+  assert.equal(d.bg, "rgb(20, 20, 20)", "near-black, like the homepage rows");
+  assert.equal(d.footBg, "rgba(0, 0, 0, 0)", "no coloured footer band: a rule above the tag instead");
   assert.equal(d.imgRadius, "0px");
   assert.equal(d.foot.pad, "18px 28px");
   assert.ok(Math.abs(d.foot.w - d.foot.card) <= 2, "footer band is full-bleed");
   assert.ok(Math.abs(d.rule.w - d.rule.card) <= 2 && d.rule.top === "1px", "divider is full-bleed and 1px");
-  assert.deepEqual([d.tag.pad, d.tag.radius, d.tag.size, d.tag.weight, d.tag.text], ["10px 18px", "8px", "15px", "700", "Stereo"]);
+  assert.deepEqual([d.tag.pad, d.tag.radius, d.tag.size, d.tag.weight, d.tag.text], ["9px 16px", "0px", "12px", "600", "Stereo"]);
   assert.ok(Math.abs(d.tagLeft - 28) <= 1, "tag is left-aligned inside the footer padding");
 
   const phone = measure(700);
   assert.ok(!/^420px /.test(phone.cols) && phone.cols.split(" ").length === 1, "single column under 960px: " + phone.cols);
-  assert.equal(phone.title[0], "24px");
+  assert.equal(phone.title[0], "22px");
   console.log("ok: listing card geometry matches the spec (" + path.basename(browser) + ")");
 } finally {
   fs.rmSync(work, { recursive: true, force: true });

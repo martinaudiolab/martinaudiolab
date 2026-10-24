@@ -28,6 +28,8 @@ Every post listed on a section page (Stereo Repair, Radio Repair, Test Equipment
 
 **Shop listings:** each listing page uses the same navigation bar as the blog posts, and shows one large photo with a row of thumbnails under it (selecting a thumbnail swaps the photo; selecting the photo enlarges it and steps through all of them). The name, price and Inquire button follow straight after, so on a phone they are on the first screen.
 
+**Phone menu:** below 700 px wide the navigation folds behind a menu button beside the site name; it opens as a full-width list with the blog sections under their heading. The button is added by `nav.js`, so without JavaScript the bar is simply shown as before.
+
 **Galleries:** in the Post Builder, the **Gallery** button places 2 to 4 photos side by side as a grid (choose *2 per row* or *4 in a row* first). A lone last photo in a 2-per-row grid spans the full width, and 4-in-a-row becomes 2 per row on phones. Visitors click any photo to enlarge it, then step through the set with the arrows or the left/right keys. Gallery photos are kept to about 1600 px so a post with several galleries stays under the 5 MB limit.
 
 Every image field in the admin accepts HEIC/HEIF photos (for example straight from an iPhone). They are converted to JPEG in the browser before upload, using the `heic2any` library from the jsDelivr CDN, which is downloaded only the first time a HEIC photo is chosen.
