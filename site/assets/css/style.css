@@ -162,7 +162,6 @@ textarea{line-height:1.5}
 .bar select{width:auto;font-size:.9rem;padding:.3rem .5rem}
 .bar strong{font-size:.85rem}
 .sz{display:inline-flex;gap:.25rem;align-items:center}.sz input{width:4.2rem;padding:.3rem .4rem;font-size:.85rem}
-.phil{margin:2.5rem 0;padding-top:2rem;border-top:1px solid var(--rule)}.phil h2{font-size:1.7rem;line-height:1.2;margin:0 0 1rem;font-weight:600}.phil p{max-width:40rem;margin:0 0 1.1rem}
 .builder-fields{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 .builder-fields>div{min-width:0}
 .builder textarea{resize:vertical}
@@ -275,7 +274,7 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .cat-text{flex:0 0 45%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:48px}
 .cat-row.no-image .cat-text{flex-basis:100%;text-align:center}
 .cat-copy{max-width:460px}
-.cat-copy h2{margin:0;font-family:var(--sans);font-size:30px;font-weight:400;letter-spacing:3.5px;text-transform:uppercase;line-height:1.3;color:#fff}
+.cat-copy h1,.cat-copy h2{margin:0;font-family:var(--sans);font-size:30px;font-weight:400;letter-spacing:3.5px;text-transform:uppercase;line-height:1.3;color:#fff}
 .cat-copy p{margin:16px 0 0;max-width:420px;font-size:14.5px;line-height:1.7;color:rgba(255,255,255,.6)}
 .cat-row.no-image .cat-copy p{margin-left:auto;margin-right:auto}
 .cat-cta{display:inline-block;margin-top:28px;padding:12px 28px;border-radius:3px;background:#333;color:#fff;font-size:13px;letter-spacing:1px;text-decoration:none;transition:background-color .15s ease}
@@ -301,13 +300,11 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 @media(max-width:599px){
   .cat-media{height:clamp(13rem,56vw,18rem)}
   .cat-text{padding:24px}
-  .cat-copy h2{font-size:24px;letter-spacing:3px}
+  .cat-copy h1,.cat-copy h2{font-size:24px;letter-spacing:3px}
 }
-.about-contact{font-family:var(--sans);margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--rule)}
 
 /* Homepage extras */
 .trust-line{padding:0 2rem;text-align:center;font-family:var(--sans);font-size:.9rem;color:var(--muted);margin:1rem 0 0}
-.about-bio p{margin:0 0 1rem}
 
 /* Admin panel */
 .admin-tabs{display:flex;flex-wrap:wrap;gap:.35rem;border-bottom:1px solid var(--rule);margin-top:1rem}
@@ -414,3 +411,15 @@ body.request-page main{position:relative;z-index:1;padding-top:clamp(1.5rem,5vw,
   body.request-page main{padding:1rem 12px 3rem}
   .request-wrap{padding:1.5rem 1.15rem 1.25rem}
 }
+
+/* About: no banner. The sections are full-width cards like the homepage rows (picture beside the text, alternating
+   sides), and the navigation is the homepage's floating bar, kept in place at the top on a solid strip. */
+body.about-page header.site{position:sticky;background:rgba(18,18,18,.95)}
+body.about-page main{max-width:none;padding:0}
+.about-cards{margin-top:0}
+.about-cards .cat-copy{max-width:540px}
+.about-cards .cat-copy p{max-width:none;font-size:16px;line-height:1.75;color:rgba(255,255,255,.75)}
+.about-cards .cat-copy h1+p,.about-cards .cat-copy h2+p{margin-top:20px}
+.about-contact{margin:0;padding:3rem 1.5rem 3.5rem;text-align:center;font-family:var(--sans);font-size:1.05rem;color:rgba(255,255,255,.8)}
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media(max-width:1024px){.about-cards .cat-copy{max-width:640px}.about-cards .cat-copy p{text-align:left}}

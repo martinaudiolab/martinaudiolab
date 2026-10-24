@@ -198,7 +198,7 @@
   /** Every object in the content that holds one of the editable image paths. */
   function imageEntries() {
     var blog = Object.keys(content.blog_hero || {}).reduce(function (all, key) { return all.concat(content.blog_hero[key].slides); }, []);
-    return [].concat(content.homepage.hero.slides, content.shop_hero.slides, content.request_background.slides, blog, content.homepage.categories);
+    return [].concat(content.homepage.hero.slides, content.shop_hero.slides, content.request_background.slides, blog, content.homepage.categories, content.about.sections);
   }
 
   function referencedImages() {
@@ -214,6 +214,8 @@
   }
 
   var HERO_SLOTS = 4;
+  // every image picker accepts HEIC/HEIF (converted to JPEG in the browser by heic.js)
+  var IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif";
 
   /** Redraws the slideshow slots; pass "hero", "shop" or "request" to redraw just that slideshow. */
   function renderHeroSlots(only) {
@@ -239,7 +241,7 @@
       ? el("img", { class: "ae-thumb", alt: "", src: imageSrc(slide.image) })
       : el("div", { class: "ae-thumb ae-empty", text: "Empty" });
 
-    var file = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif", hidden: "" });
+    var file = el("input", { type: "file", accept: IMAGE_TYPES, hidden: "" });
     var pick = smallButton(slide ? "Replace image" : "Choose image", "Choose image for slideshow slot " + number, function () { file.click(); });
     file.addEventListener("change", async function () {
       var chosen = file.files[0];
@@ -352,7 +354,7 @@
       var thumb = category.image
         ? el("img", { class: "ae-thumb", alt: "", src: imageSrc(category.image) })
         : el("div", { class: "ae-thumb ae-empty", text: "No image" });
-      var file = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif", hidden: "" });
+      var file = el("input", { type: "file", accept: IMAGE_TYPES, hidden: "" });
       var pick = smallButton(category.image ? "Replace image" : "Choose image", "Choose image for " + (category.label || "category"), function () { file.click(); });
       file.addEventListener("change", async function () {
         var chosen = file.files[0];
@@ -395,7 +397,28 @@
       var body = el("textarea", { rows: "9", "aria-label": "Section text", placeholder: "Text. Leave a blank line between paragraphs." });
       body.value = section.body || "";
       body.addEventListener("input", function () { section.body = body.value; markDirty(); });
+      var name = section.heading || "section " + (index + 1);
+      var thumb = section.image
+        ? el("img", { class: "ae-thumb", alt: "", src: imageSrc(section.image) })
+        : el("div", { class: "ae-thumb ae-empty", text: "No image" });
+      var file = el("input", { type: "file", accept: IMAGE_TYPES, hidden: "" });
+      file.addEventListener("change", async function () {
+        var chosen = file.files[0];
+        file.value = "";
+        if (!chosen) return;
+        try {
+          section.image = await pickImage(chosen, "about", 1800);
+          releaseUnusedImages();
+          markDirty();
+          renderSections();
+        } catch (error) { say(error.message); }
+      });
       var actions = el("div", { class: "sb-actions" }, [
+        smallButton(section.image ? "Replace image" : "Choose image", "Choose image for " + name, function () { file.click(); }), file,
+        smallButton("Remove image", "Remove image for " + name, function () {
+          section.image = "";
+          releaseUnusedImages(); markDirty(); renderSections();
+        }, !section.image),
         smallButton("Up", "Move section up", function () { if (move(sections, index, -1)) { markDirty(); renderSections(); } }, index === 0),
         smallButton("Down", "Move section down", function () { if (move(sections, index, 1)) { markDirty(); renderSections(); } }, index === sections.length - 1),
         smallButton("Remove", "Remove section", function () {
@@ -403,7 +426,7 @@
           sections.splice(index, 1); markDirty(); renderSections();
         })
       ]);
-      holder.appendChild(el("div", { class: "ae-row" }, [heading, body, actions]));
+      holder.appendChild(el("div", { class: "ae-row ae-cat" }, [thumb, el("div", { class: "ae-fields" }, [heading, body]), actions]));
     });
   }
 
@@ -530,7 +553,7 @@
     markDirty(); renderNav();
   });
   $("add-section").addEventListener("click", function () {
-    content.about.sections.push({ heading: "", body: "" });
+    content.about.sections.push({ heading: "", body: "", image: "" });
     markDirty(); renderSections();
   });
   $("save").addEventListener("click", save);

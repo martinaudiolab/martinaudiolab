@@ -59,14 +59,14 @@ assert.deepEqual(rows, [
 ]);
 assert.equal(w.document.querySelector(".cats .cat-row .cat-media").nextElementSibling.className, "cat-text", "image then text in markup");
 assert.equal(w.document.querySelectorAll(".cat-row img").length, 3);
-// about page keeps every philosophy paragraph
+// about page: five cards, the first heading is the page heading, every section's text kept
 const about = load("about.html", true).document;
-const orig = execFile();
-function execFile() { return null; }
-assert.ok(about.querySelector("h1").textContent === "About Me");
-const phil = about.querySelector(".phil");
-assert.equal(phil.querySelectorAll("p").length, 4); assert.equal(phil.querySelector("h2").textContent, "My Philosophy");
-assert.ok(phil.textContent.includes("Every single modern high end audio products embraces new technology"));
+assert.equal(about.querySelectorAll("h1").length, 1);
+assert.ok(about.querySelector(".about-cards .cat-row h1").textContent === "About Me");
+const cards = Array.from(about.querySelectorAll(".about-cards .cat-row"));
+assert.deepEqual(cards.map((c) => c.querySelector("h1, h2").textContent), ["About Me", "Philosophy", "Quality", "Skillset", "Sound Quality"]);
+assert.ok(cards.every((c) => c.querySelector(".cat-media img")), "each card has a picture");
+assert.ok(cards[4].textContent.includes("Every single modern high end audio products embraces new technology"));
 console.log("ok: nav, dropdown behavior, homepage, about");
 {
   const { renderHome } = await import(ROOT_URL + "shared/site-render.mjs");

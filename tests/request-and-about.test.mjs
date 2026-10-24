@@ -121,7 +121,32 @@ function fill(d) {
 {
   const { renderAbout } = await import(ROOT_URL + "shared/site-render.mjs");
   const { normalizeContent } = await import(ROOT_URL + "shared/site-content.mjs");
-  const html = renderAbout(normalizeContent({}));
-  assert.ok(html.includes('<body class="navbar">') && !html.includes('class="hero"'), "About uses the nav bar, no hero");
-  console.log("ok 6: about page uses the continuous nav bar");
+  const fsx = await import("node:fs");
+  const { JSDOM: J } = await import("jsdom");
+  const html = renderAbout(normalizeContent({ about: { title: "About Me", sections: [
+    { heading: "About Me", body: "Hello.\n\nSecond.", image: "images/site/me.jpg" },
+    { heading: "Quality", body: "Done right.", image: "javascript:x" }
+  ] } }));
+  assert.ok(html.includes('<body class="home about-page">') && !html.includes('class="hero"') && !html.includes("page-bg"), "floating nav, no banner");
+  const d = new J(html).window.document;
+  const rows = d.querySelectorAll(".cats.about-cards .cat-row");
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].querySelector("h1").textContent, "About Me");
+  assert.ok(rows[0].classList.contains("in-view") && !rows[1].classList.contains("in-view"), "the top card is shown at once; the rest reveal on scroll");
+  assert.equal(rows[0].querySelector(".cat-media img").getAttribute("src"), "/images/site/me.jpg");
+  assert.equal(rows[0].querySelectorAll(".cat-copy p").length, 2, "paragraphs");
+  assert.ok(rows[1].classList.contains("no-image") && !rows[1].querySelector("img"), "unsafe image dropped: text-only card");
+  assert.equal(rows[1].querySelector("h2").textContent, "Quality");
+  assert.ok(d.querySelector('script[src="/assets/js/reveal.js"]') && d.querySelector(".about-contact a[href^='mailto:']"));
+  // without a heading on the first card, the title is still the page heading for screen readers
+  const bare = new J(renderAbout(normalizeContent({ about: { title: "About", sections: [{ body: "Text only." }] } }))).window.document;
+  assert.equal(bare.querySelector("h1.visually-hidden").textContent, "About");
+  // content from before the cards: the bio becomes the first card
+  const old = normalizeContent({ about: { title: "About Me", bio: "I'm Alex.", sections: [{ heading: "My Philosophy", body: "Text" }] } });
+  assert.deepEqual(old.about.sections.map((s) => [s.heading, s.body, s.image]), [["About Me", "I'm Alex.", ""], ["My Philosophy", "Text", ""]]);
+  assert.equal(old.about.bio, undefined);
+  const css = fsx.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
+  assert.match(css, /body\.about-page header\.site\{position:sticky;background:rgba\(18,18,18,\.95\)\}/);
+  assert.ok(css.indexOf("body.about-page header.site{position:sticky") > css.indexOf("body.home header.site{position:fixed"), "sticky override comes later");
+  console.log("ok 6: about page is homepage-style cards under the floating nav");
 }

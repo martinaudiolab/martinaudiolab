@@ -104,17 +104,27 @@ export function renderRequest(content) {
 export function renderAbout(content) {
   const a = content.about;
   const email = a.contact.email || content.contact_email;
-  const sections = a.sections.map((s) => '<section class="phil">' + (s.heading ? "<h2>" + esc(s.heading) + "</h2>" : "") + paragraphs(s.body) + "</section>").join("");
+  // Cards like the homepage rows: a full-width picture beside each section's text, alternating sides. The first
+  // card's heading is the page heading; without one, the page title is kept for screen readers.
+  const named = a.sections.length && a.sections[0].heading;
+  const cards = a.sections.map((s, i) => {
+    const tag = i === 0 && named ? "h1" : "h2";
+    // the first card is the top of the page: already shown, so it never waits on the scroll reveal
+    return '<section class="cat-row' + (s.image ? "" : " no-image") + (i === 0 ? " in-view" : "") + '"' + (s.heading ? ' aria-label="' + esc(s.heading) + '"' : "") + ">" +
+      (s.image ? '<div class="cat-media"><img src="' + esc(assetUrl(s.image)) + '" alt=""' + (i === 0 ? ' fetchpriority="high"' : ' loading="lazy"') + "></div>" : "") +
+      '<div class="cat-text"><div class="cat-copy">' + (s.heading ? "<" + tag + ">" + esc(s.heading) + "</" + tag + ">" : "") + paragraphs(s.body) + "</div></div></section>";
+  }).join("");
   const meta = [a.location, a.response_time].filter(Boolean).map((t) => "<br>" + esc(t)).join("");
-  const inner = '<h1 class="h2" style="font-size:2rem">' + esc(a.title) + "</h1>" +
-    (a.bio ? '<div class="intro about-bio">' + paragraphs(a.bio) + "</div>" : "") +
-    sections +
+  const inner = (named ? "" : '<h1 class="visually-hidden">' + esc(a.title) + "</h1>") +
+    '<div class="cats about-cards">' + cards + "</div>" +
     '<p class="about-contact">' + (a.contact.heading ? esc(a.contact.heading) + " " : "") + mailto(email) + meta + "</p>";
-  return shell(content, { bodyClass: "navbar",
+  const first = a.sections.find((s) => s.body);
+  return shell(content, { bodyClass: "home about-page",
     title: a.title + " - " + content.site_name,
-    description: (a.bio ? a.bio.split("\n")[0] : "About " + content.site_name).slice(0, 200),
+    description: (first ? first.body.split("\n")[0] : "About " + content.site_name).slice(0, 200),
     inner,
-    active: "about.html"
+    active: "about.html",
+    scripts: '<script src="' + jsUrl("reveal.js") + '" defer></script>'
   });
 }
 

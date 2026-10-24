@@ -14,7 +14,10 @@ const html = fs.readFileSync(R + "site/admin/index.html", "utf8");
   files.forEach((i) => assert.ok(/\.heic/.test(i.accept) && /image\/heic/.test(i.accept), i.id + " accepts HEIC"));
   const order = Array.from(d.querySelectorAll("script[src]")).map((s) => s.getAttribute("src").split("/").pop());
   assert.ok(order.indexOf("heic.js") >= 0 && order.indexOf("heic.js") < order.indexOf("admin.js"));
-  assert.equal(fs.readFileSync(R + "site/admin/admin.js", "utf8").split("image/heic").length, 3, "both dynamic pickers accept HEIC");
+  const adminJs = fs.readFileSync(R + "site/admin/admin.js", "utf8");
+  assert.match(adminJs, /var IMAGE_TYPES = "[^"]*image\/heic[^"]*\.heic[^"]*";/, "the shared picker types include HEIC");
+  const pickers = adminJs.match(/type: "file", accept: [^,}]+/g) || [];
+  assert.ok(pickers.length >= 3 && pickers.every((p) => p.endsWith("accept: IMAGE_TYPES")), "every dynamic picker uses the shared types");
   console.log("ok 0: all image fields accept HEIC");
 }
 

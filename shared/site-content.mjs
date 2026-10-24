@@ -147,9 +147,13 @@ export function normalizeContent(input) {
     },
     about: {
       title: str(a.title, 80, "About Me"),
-      bio: text(a.bio, 3000, ""),
-      sections: (Array.isArray(a.sections) ? a.sections : []).slice(0, MAX.sections)
-        .map((s) => (s && typeof s === "object" ? { heading: str(s.heading, 120), body: text(s.body, 12000, "") } : null))
+      // Each section is a card with its own picture. Content from before the cards had a separate bio: it
+      // becomes the first card, under the page title.
+      sections: (typeof a.bio === "string" && a.bio.trim() ? [{ heading: str(a.title, 80, "About Me"), body: a.bio }] : [])
+        .concat(Array.isArray(a.sections) ? a.sections : []).slice(0, MAX.sections)
+        .map((s) => (s && typeof s === "object" ? {
+          heading: str(s.heading, 120), body: text(s.body, 12000, ""), image: s.image === "" ? "" : image(s.image, "")
+        } : null))
         .filter((s) => s && (s.heading || s.body)),
       contact: {
         heading: text(ac.heading, 120, "Questions or comments?"),
@@ -167,6 +171,7 @@ export function contentImages(content) {
     .concat(content.shop_hero.slides.map((s) => s.image))
     .concat(content.request_background.slides.map((s) => s.image))
     .concat(Object.values(content.blog_hero).flatMap((h) => h.slides.map((s) => s.image)))
-    .concat(content.homepage.categories.map((c) => c.image));
+    .concat(content.homepage.categories.map((c) => c.image))
+    .concat(content.about.sections.map((s) => s.image));
   return paths.filter((p) => typeof p === "string" && p.startsWith("images/"));
 }
