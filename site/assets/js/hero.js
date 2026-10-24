@@ -1,5 +1,6 @@
 // Homepage hero: crossfade slideshow, and the navigation turning solid once the
 // visitor scrolls past the hero. Everything degrades to a still first image.
+// Also drives the request page's full-page background (#hero.page-bg).
 (function () {
   "use strict";
 
@@ -13,7 +14,12 @@
     if (header) header.classList.toggle("solid", solid);
   }
 
-  if (header && "IntersectionObserver" in window) {
+  if (header && hero.classList.contains("page-bg")) {
+    // A full-page background never scrolls away: the bar turns solid as soon as the page moves under it.
+    var onPageScroll = function () { setSolid(window.scrollY > 8); };
+    window.addEventListener("scroll", onPageScroll, { passive: true });
+    onPageScroll();
+  } else if (header && "IntersectionObserver" in window) {
     // Solid once the hero has scrolled up behind the navigation bar.
     var offset = Math.max(0, Math.round(header.getBoundingClientRect().height));
     new IntersectionObserver(function (entries) {

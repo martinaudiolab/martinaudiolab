@@ -99,14 +99,24 @@ function fill(d) {
   const { renderRequest } = await import(ROOT_URL + "shared/site-render.mjs");
   const { normalizeContent } = await import(ROOT_URL + "shared/site-content.mjs");
   const fsx = await import("node:fs");
-  const html = renderRequest(normalizeContent({}));
-  assert.ok(html.includes('<body class="navbar">') && !html.includes('class="hero"') && !html.includes("hero.js"), "bar nav, no hero");
+  const html = renderRequest(normalizeContent({ request_background: { slides: [{ image: "images/site/bg-a.jpg" }, { image: "javascript:x" }, { image: "images/site/bg-b.jpg" }] } }));
+  assert.ok(html.includes('<body class="home request-page">'), "floating homepage nav");
+  assert.ok(!html.includes('class="hero"') && !html.includes('class="hero-text"'), "no banner");
+  const { JSDOM: J } = await import("jsdom");
+  const d = new J(html).window.document;
+  const bg = d.querySelector(".page-bg");
+  assert.ok(bg && bg.id === "hero" && bg.getAttribute("aria-hidden") === "true", "decorative full-page background driven by hero.js");
+  assert.deepEqual(Array.from(bg.querySelectorAll("img.hero-slide")).map((i) => i.getAttribute("src")), ["/images/site/bg-a.jpg", "/images/site/bg-b.jpg"], "unsafe image dropped");
+  assert.ok(bg.compareDocumentPosition(d.querySelector("main")) & 4, "background comes before the content");
+  assert.ok(d.querySelector('link[rel="preload"][href="/images/site/bg-a.jpg"]'), "first picture preloaded");
+  assert.ok(d.querySelector('script[src="/assets/js/hero.js"]'));
+  assert.deepEqual(normalizeContent({}).request_background.slides.map((s) => s.image), ["images/banner.jpg"], "default picture");
   const css = fsx.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
-  assert.match(css, /body\.home nav,body\.navbar nav\{gap:0;padding:0;border-radius:0;/);
-  assert.match(css, /body\.navbar nav > a\.on,body\.navbar \.dd-toggle\.on\{/);
-  assert.match(css, /body\.navbar nav\{background:var\(--panel\)\}/);
-  assert.ok(!/body\.navbar header\.site\{position:fixed/.test(css), "header stays in the flow on request page");
-  console.log("ok 5: request page uses the continuous nav bar without a hero");
+  assert.match(css, /\.page-bg\{position:fixed;[^}]*height:100lvh;/);
+  assert.match(css, /body\.request-page header\.site\{position:sticky\}/);
+  assert.ok(css.indexOf("body.request-page header.site{position:sticky}") > css.indexOf("body.home header.site{position:fixed"), "sticky override comes later");
+  assert.match(css, /\.request-wrap\{[^}]*background:rgba\(0,0,0,\.55\);[^}]*backdrop-filter:blur\(6px\)/);
+  console.log("ok 5: request page has a full-page background, the floating nav and a translucent form panel");
 }
 {
   const { renderAbout } = await import(ROOT_URL + "shared/site-render.mjs");

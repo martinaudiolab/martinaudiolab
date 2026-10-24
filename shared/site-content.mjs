@@ -92,6 +92,7 @@ export function normalizeContent(input) {
   const vl = pc.view_all_link && typeof pc.view_all_link === "object" ? pc.view_all_link : {};
   const sh = c.shop_hero && typeof c.shop_hero === "object" ? c.shop_hero : {};
   const bh = c.blog_hero && typeof c.blog_hero === "object" ? c.blog_hero : {};
+  const rb = c.request_background && typeof c.request_background === "object" ? c.request_background : {};
   const r = c.request && typeof c.request === "object" ? c.request : {};
   const a = c.about && typeof c.about === "object" ? c.about : {};
   const ac = a.contact && typeof a.contact === "object" ? a.contact : {};
@@ -135,6 +136,8 @@ export function normalizeContent(input) {
     blog_hero: Object.fromEntries([["all", "images/banner.jpg"]].concat(SECTIONS.map((s) => [s.key, s.image])).map(([key, fallback]) => [
       key, { slides: heroSlides(bh[key] && typeof bh[key] === "object" ? bh[key] : {}, fallback) }
     ])),
+    // the request page has no banner: its pictures fill the page behind the form
+    request_background: { slides: heroSlides(rb) },
     request: {
       title: str(r.title, 80, "Request a Restoration"),
       intro: text(r.intro, 600, "Have a unit that needs attention? Send me the details and I will get back to you."),
@@ -162,6 +165,7 @@ export function normalizeContent(input) {
 export function contentImages(content) {
   const paths = content.homepage.hero.slides.map((s) => s.image)
     .concat(content.shop_hero.slides.map((s) => s.image))
+    .concat(content.request_background.slides.map((s) => s.image))
     .concat(Object.values(content.blog_hero).flatMap((h) => h.slides.map((s) => s.image)))
     .concat(content.homepage.categories.map((c) => c.image));
   return paths.filter((p) => typeof p === "string" && p.startsWith("images/"));

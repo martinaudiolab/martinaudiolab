@@ -28,12 +28,14 @@ export function heroPreloadHtml(slides) {
 }
 
 /** The full-width slideshow hero shared by the homepage and the shop page. */
+const slideImages = (slides) => slides.map((slide, i) =>
+  '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(assetUrl(slide.image)) + '" alt="' + esc(slide.alt) + '"' +
+  // no lazy loading: a banner picture is above the fold, and a lazy one that the slideshow reaches before it has
+  // loaded leaves the banner blank. The first picture is fetched at high priority, the rest after it.
+  ' fetchpriority="' + (i === 0 ? "high" : "low") + '" decoding="async"' + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
+
 export function heroHtml(o) {
-  const slides = o.slides.map((slide, i) =>
-    '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(assetUrl(slide.image)) + '" alt="' + esc(slide.alt) + '"' +
-    // no lazy loading: a banner picture is above the fold, and a lazy one that the slideshow reaches before it has
-    // loaded leaves the banner blank. The first picture is fetched at high priority, the rest after it.
-    ' fetchpriority="' + (i === 0 ? "high" : "low") + '" decoding="async"' + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
+  const slides = slideImages(o.slides);
   const text = o.bare ? "" : '<div class="hero-text"><h1>' + esc(o.title) + "</h1>" + (o.subtitle ? "<p>" + esc(o.subtitle) + "</p>" : "") + "</div>";
   return '<section class="hero" id="hero" aria-label="' + esc(o.label) + '">' + slides +
     '<div class="hero-scrim"></div>' + text + "</section>";
@@ -72,7 +74,7 @@ export function renderHome(content) {
 export function renderRequest(content) {
   const r = content.request;
   const field = (id, label, control) => '<div class="field"><label for="' + id + '">' + label + "</label>" + control + "</div>";
-  const inner = '<div class="request-wrap"><h1 class="h2" style="font-size:2rem">' + esc(r.title) + "</h1>" +
+  const inner = '<div class="request-wrap"><h1>' + esc(r.title) + "</h1>" +
     (r.intro ? '<p class="intro">' + esc(r.intro) + "</p>" : "") +
     '<form class="request-form" id="request-form" action="' + esc(r.form_action) + '" method="POST" data-success="' + esc(r.success_message) + '">' +
     field("req-name", "Name", '<input type="text" id="req-name" name="name" required placeholder="Your name" autocomplete="name">') +
@@ -84,12 +86,18 @@ export function renderRequest(content) {
     '<button class="btn request-submit" type="submit">Send Request</button>' +
     '<p class="request-result" id="request-result" role="status" aria-live="polite"></p>' +
     "</form></div>";
-  return shell(content, { bodyClass: "navbar",
+  const slides = content.request_background.slides;
+  // No banner: the pictures fill the window behind the form (fixed, crossfading like the banners) and the
+  // navigation floats over them as it does on the homepage and the shop.
+  const background = '<div class="page-bg" id="hero" aria-hidden="true">' + slideImages(slides) + '<div class="page-bg-scrim"></div></div>';
+  return shell(content, { bodyClass: "home request-page",
     title: r.title + " - " + content.site_name,
     description: "Request a restoration from " + content.site_name,
     inner,
     active: "request.html",
-    scripts: '<script src="' + jsUrl("request.js") + '" defer></script>'
+    beforeMain: background,
+    head: heroPreloadHtml(slides),
+    scripts: '<script src="' + jsUrl("request.js") + '" defer></script><script src="' + jsUrl("hero.js") + '" defer></script>'
   });
 }
 

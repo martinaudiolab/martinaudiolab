@@ -198,7 +198,7 @@
   /** Every object in the content that holds one of the editable image paths. */
   function imageEntries() {
     var blog = Object.keys(content.blog_hero || {}).reduce(function (all, key) { return all.concat(content.blog_hero[key].slides); }, []);
-    return [].concat(content.homepage.hero.slides, content.shop_hero.slides, blog, content.homepage.categories);
+    return [].concat(content.homepage.hero.slides, content.shop_hero.slides, content.request_background.slides, blog, content.homepage.categories);
   }
 
   function referencedImages() {
@@ -215,9 +215,10 @@
 
   var HERO_SLOTS = 4;
 
-  /** Redraws the slideshow slots; pass "hero" or "shop" to redraw just that slideshow. */
+  /** Redraws the slideshow slots; pass "hero", "shop" or "request" to redraw just that slideshow. */
   function renderHeroSlots(only) {
-    var pools = [["hero-slots", content.homepage.hero.slides, "hero"], ["shop-hero-slots", content.shop_hero.slides, "shop"]];
+    var pools = [["hero-slots", content.homepage.hero.slides, "hero"], ["shop-hero-slots", content.shop_hero.slides, "shop"],
+      ["request-bg-slots", content.request_background.slides, "request"]];
     document.querySelectorAll("[data-blog-hero]").forEach(function (holder) {
       var key = holder.getAttribute("data-blog-hero");
       if (content.blog_hero[key]) pools.push([holder, content.blog_hero[key].slides, "blog:" + key]);
@@ -245,7 +246,8 @@
       file.value = "";
       if (!chosen) return;
       try {
-        var path = await pickImage(chosen, kind === "shop" ? "shophero" : kind.indexOf("blog:") === 0 ? "bloghero" : "hero", 2000);
+        var prefix = kind === "shop" ? "shophero" : kind === "request" ? "requestbg" : kind.indexOf("blog:") === 0 ? "bloghero" : "hero";
+        var path = await pickImage(chosen, prefix, 2000);
         if (slide) slide.image = path;
         else slides.push({ image: path, alt: "" });
         releaseUnusedImages();
@@ -428,6 +430,8 @@
     });
     // an older publisher Worker does not know the shop slideshow yet
     if (!content.shop_hero || !Array.isArray(content.shop_hero.slides) || !content.shop_hero.slides.length) content.shop_hero = { slides: [{ image: "images/banner.jpg", alt: "" }] };
+    // ...nor the request page background
+    if (!content.request_background || !Array.isArray(content.request_background.slides) || !content.request_background.slides.length) content.request_background = { slides: [{ image: "images/banner.jpg", alt: "" }] };
     shop = result.shop || { title: "", intro: "" };
     contentSha = result.contentSha || "";
     shopSha = result.shopSha;

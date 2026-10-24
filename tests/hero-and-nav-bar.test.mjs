@@ -190,7 +190,11 @@ function boot({ reduced = false, observer = true, loaded = "all" } = {}) {
 // banner and picture-row sizes come from the page width, never from the screen height: phone browsers change
 // the visible height while you scroll, and anything sized from it grows and shrinks under the finger
 {
-  const sized = (css.match(/[{;]\s*(?:min-|max-)?height:[^;}]*/g) || []).filter((d) => /\b[0-9.]+(?:vh|dvh|svh|lvh)\b/.test(d));
+  // The one exception is the request page's fixed full-window background, which must cover the window: it uses the
+  // large viewport (lvh, and vh as its fallback), which stays the same while the toolbars come and go.
+  const pageBg = (css.match(/\.page-bg\{[^}]*\}/) || [""])[0];
+  assert.ok(/height:100lvh/.test(pageBg) && !/[ds]vh\b/.test(pageBg), "page background uses the stable large viewport");
+  const sized = (css.replace(pageBg, "").match(/[{;]\s*(?:min-|max-)?height:[^;}]*/g) || []).filter((d) => /\b[0-9.]+(?:vh|dvh|svh|lvh)\b/.test(d));
   assert.deepEqual(sized, [], "heights set from the screen height: " + sized.join(" | "));
   assert.match(css, /\.hero\{[^}]*height:clamp\(28rem,45vw,46rem\);contain:layout paint/, "banner has a definite, width-based height");
   console.log("ok 10: banner sizes do not depend on the screen height");
