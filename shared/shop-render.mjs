@@ -1,6 +1,7 @@
 // Pure shop rendering shared by build/build-shop.mjs (local CLI) and
 // publisher/worker.js (the shop builder). No file-system or runtime APIs here.
 
+import { footerHtml } from "./site-footer.mjs";
 import { NAV_SCRIPT, navHtml } from "./site-nav.mjs";
 import { normalizeContent } from "./site-content.mjs";
 import { heroHtml, heroPreloadHtml } from "./site-render.mjs";
@@ -62,7 +63,7 @@ const priceHtml = (it) => {
 const paras = (d) => (Array.isArray(d) ? d : d ? [d] : []).map((p) => "<p>" + esc(p).replace(/\n/g, "<br>") + "</p>").join("");
 
 const LIGHTBOX = '<script src="' + jsUrl("lightbox.js") + '" defer></script>';
-const page = (ctx, title, desc, inner, extra, o = {}) =>'<!DOCTYPE html>\n' + SHOP_MARK + '\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + esc(title) + '</title><meta name="description" content="' + esc(desc) + '"><link rel="stylesheet" href="' + CSS_URL + '">' + FAVICON_LINKS + (o.head || "") + '</head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + '><header class="site"><a class="brand" href="/">' + esc(ctx.content.site_name) + '</a>' + navHtml(ctx.content.nav_items, "shop/index.html") + '</header>' + (o.beforeMain || "") + (inner ? '<main>' + inner + '</main>' : "") + (extra || "") + NAV_SCRIPT() + '</body></html>\n';
+const page = (ctx, title, desc, inner, extra, o = {}) =>'<!DOCTYPE html>\n' + SHOP_MARK + '\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + esc(title) + '</title><meta name="description" content="' + esc(desc) + '"><link rel="stylesheet" href="' + CSS_URL + '">' + FAVICON_LINKS + (o.head || "") + '</head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + '><header class="site"><a class="brand" href="/">' + esc(ctx.content.site_name) + '</a>' + navHtml(ctx.content.nav_items, "shop/index.html") + '</header>' + (o.beforeMain || "") + (inner ? '<main>' + inner + '</main>' : "") + (o.afterMain || "") + footerHtml(ctx.content) + (extra || "") + NAV_SCRIPT() + '</body></html>\n';
 
 /**
  * Renders the gallery and one page per item.
@@ -95,7 +96,13 @@ export function renderShop(data, options) {
     const subject = encodeURIComponent("Inquiry: " + it.title);
     const body = encodeURIComponent("Hello,\n\nI would like to ask about: " + it.title + "\n\nThank you,\n");
     const specs = Array.isArray(it.details) && it.details.length ? '<dl class="shop-specs">' + it.details.map((d) => "<dt>" + esc(d[0]) + "</dt><dd>" + esc(d[1]) + "</dd>").join("") + "</dl>" : "";
-    const photos = it.images.map((p, n) => '<img class="shop-photo" src="' + esc(imgSrc(p)) + '" alt="' + esc(it.title) + (n ? " (photo " + (n + 1) + ")" : "") + '"' + (n ? ' loading="lazy"' : "") + ">").join("");
+    // One large photo, then a row of thumbnails that swap it (lightbox.js). Each thumbnail links to its photo, so
+    // without JavaScript it still opens. The enlarged view steps through every photo.
+    const label = (n) => it.title + (n ? " (photo " + (n + 1) + ")" : "");
+    const thumbs = it.images.length > 1 ? '<div class="shop-thumbs">' + it.images.map((p, n) =>
+      '<a class="shop-thumb' + (n ? "" : " on") + '" href="' + esc(imgSrc(p)) + '"' + (n ? "" : ' aria-current="true"') + ' aria-label="Show photo ' + (n + 1) + " of " + it.images.length + '">' +
+      '<img src="' + esc(imgSrc(p)) + '" alt="' + esc(label(n)) + '" loading="lazy"></a>').join("") + "</div>" : "";
+    const photos = '<img class="shop-photo" src="' + esc(imgSrc(it.images[0])) + '" alt="' + esc(label(0)) + '">' + thumbs;
     const action = st === "sold" ? '<p class="shop-note">This item has been sold.</p>' : email ? '<p><a class="btn" href="mailto:' + esc(email) + "?subject=" + subject + "&amp;body=" + body + '">Inquire about this item</a></p>' : "";
     return '<a class="back" href="/shop/">Back to ' + esc(shop.title || "Shop") + '</a><article class="shop-detail"><div class="shop-gallery">' + photos + '</div><div class="shop-info"><h1>' + esc(it.title) + "</h1>" +
       (it.category ? '<div class="meta">' + esc(it.category) + (STATUS[st] ? " &nbsp;|&nbsp; " + STATUS[st] : "") + "</div>" : "") +
@@ -110,8 +117,9 @@ export function renderShop(data, options) {
     slides: ctx.content.shop_hero.slides, title: shop.title || "Shop", subtitle: shop.intro || "", label: shop.title || "Shop"
   });
   files["index.html"] = page(ctx, (shop.title || "Shop") + " - " + ctx.content.site_name, shop.intro || "Shop", indexInner,
-    gallery + '<script src="' + jsUrl("hero.js") + '" defer></script>', { bodyClass: "home", beforeMain: hero, head: heroPreloadHtml(ctx.content.shop_hero.slides) });
-  for (const it of items) files[it.slug + ".html"] = page(ctx, it.title + " - " + (shop.title || "Shop") + " - " + ctx.content.site_name, it.summary || it.title, detail(it), LIGHTBOX);
+    '<script src="' + jsUrl("hero.js") + '" defer></script>', { bodyClass: "home", beforeMain: hero, afterMain: gallery, head: heroPreloadHtml(ctx.content.shop_hero.slides) });
+  // item pages use the continuous navigation bar, like the blog posts
+  for (const it of items) files[it.slug + ".html"] = page(ctx, it.title + " - " + (shop.title || "Shop") + " - " + ctx.content.site_name, it.summary || it.title, detail(it), LIGHTBOX, { bodyClass: "navbar" });
   // Small public feed used by the homepage "For Sale Now" carousel.
   const feed = ordered.filter((it) => status(it) !== "sold").map((it) => ({
     slug: it.slug,

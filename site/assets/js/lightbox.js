@@ -1,5 +1,6 @@
-// Click a photo in a post or the shop to see it enlarged. Photos in a gallery grid can be
-// stepped through with the arrows on screen or the left/right keys.
+// Click a photo in a post or the shop to see it enlarged. Photos in a gallery grid, and all of a
+// shop listing's photos, can be stepped through with the arrows on screen or the left/right keys.
+// On a shop listing the thumbnails under the large photo swap it.
 (function () {
   "use strict";
   var overlay = null;
@@ -24,6 +25,13 @@
     var figure = source.closest && source.closest("figure[data-gallery]");
     var group = figure ? Array.prototype.slice.call(figure.querySelectorAll("img")) : [source];
     var index = Math.max(0, group.indexOf(source));
+    // a shop listing's large photo: step through all of its photos, starting at the one shown
+    var shop = source.closest && source.closest(".shop-gallery");
+    var thumbs = shop ? Array.prototype.slice.call(shop.querySelectorAll(".shop-thumb")) : [];
+    if (thumbs.length) {
+      group = thumbs.map(function (thumb) { return thumb.querySelector("img"); });
+      index = Math.max(0, thumbs.findIndex(function (thumb) { return thumb.classList.contains("on"); }));
+    }
 
     overlay = document.createElement("div");
     overlay.className = "lightbox";
@@ -68,8 +76,30 @@
     document.addEventListener("keydown", onKey);
   }
 
+  // A shop listing's thumbnails swap the large photo above them.
+  function showThumb(thumb) {
+    var gallery = thumb.closest(".shop-gallery");
+    var main = gallery && gallery.querySelector(".shop-photo");
+    if (!main) return;
+    var image = thumb.querySelector("img");
+    main.src = thumb.getAttribute("href");
+    main.alt = image ? image.alt : main.alt;
+    gallery.querySelectorAll(".shop-thumb").forEach(function (other) {
+      var on = other === thumb;
+      other.classList.toggle("on", on);
+      if (on) other.setAttribute("aria-current", "true");
+      else other.removeAttribute("aria-current");
+    });
+  }
+
   document.addEventListener("click", function (event) {
-    var image = event.target.closest && event.target.closest(".post .body img, .post-hero img, .shop-gallery img");
+    var thumb = event.target.closest && event.target.closest(".shop-thumb");
+    if (thumb) {
+      event.preventDefault();
+      showThumb(thumb);
+      return;
+    }
+    var image = event.target.closest && event.target.closest(".post .body img, .post-hero img, .shop-gallery .shop-photo");
     if (image) open(image);
   });
 })();

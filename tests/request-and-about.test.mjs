@@ -51,8 +51,9 @@ function fill(d) {
   assert.equal(form.querySelector('input[name="_subject"]').value, "New Restoration Request \u2014 Martin Audio Labs");
   assert.equal(form.querySelector('input[name="_gotcha"]').style.display, "none");
   assert.equal(form.querySelector(".request-submit").textContent, "Send Request");
-  assert.ok(!d.body.innerHTML.includes("mailto:"), "no mailto links");
-  assert.ok(!/To get started|Or write to/.test(d.body.innerHTML));
+  // the page itself points to the form, not to email (the site footer carries the address on every page)
+  assert.ok(!d.querySelector("main").innerHTML.includes("mailto:"), "no mailto links in the page content");
+  assert.ok(!/To get started|Or write to/.test(d.querySelector("main").innerHTML));
   console.log("ok 1: structure, labels, field order, hidden fields");
 }
 

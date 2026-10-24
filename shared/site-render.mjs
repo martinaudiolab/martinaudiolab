@@ -2,6 +2,7 @@
 // and applies the global fields (site name, navigation) to
 // hand-written or published pages. Pure string code: no file-system APIs.
 
+import { applyFooter, footerHtml } from "./site-footer.mjs";
 import { NAV_SCRIPT, navHtml } from "./site-nav.mjs";
 import { CSS_URL, FAVICON_LINKS, absolutizeAssets, assetUrl, jsUrl, pageUrl } from "./site-urls.mjs";
 
@@ -12,7 +13,7 @@ export function shell(content, o) {
   return "<!DOCTYPE html>\n<html lang=\"en\">" + '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' +
     esc(o.title) + '</title><meta name="description" content="' + esc(o.description) + '"><link rel="stylesheet" href="' + CSS_URL + '">' + FAVICON_LINKS + (o.head || "") + '</head><body' + (o.bodyClass ? ' class="' + o.bodyClass + '"' : "") + ">" +
     '<header class="site"><a class="brand" href="/">' + esc(content.site_name) + "</a>" + navHtml(content.nav_items, o.active) + "</header>" +
-    (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + (o.scripts || "") + NAV_SCRIPT() + "</body></html>\n";
+    (o.beforeMain || "") + (o.inner ? "<main>" + o.inner + "</main>" : "") + (o.afterMain || "") + footerHtml(content) + (o.scripts || "") + NAV_SCRIPT() + "</body></html>\n";
 }
 
 /** Paragraphs separated by blank lines; single line breaks become <br>. */
@@ -144,6 +145,8 @@ export function applyGlobals(html, content, rel) {
   if (navStart < 0 || navEnd < 0) return html;
   let out = html.slice(0, navStart) + navHtml(content.nav_items, activeFor(rel)) + html.slice(navEnd + "</nav>".length);
   out = absolutizeAssets(out);
+  // every public page ends with the site footer (the admin is a tool, not part of the site)
+  if (!rel.startsWith("admin/")) out = applyFooter(out, content);
   // pages written before the site icon existed get its links
   if (!/rel="icon"/.test(out)) out = out.replace("</head>", () => FAVICON_LINKS + "</head>");
 

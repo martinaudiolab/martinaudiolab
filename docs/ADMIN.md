@@ -24,6 +24,10 @@ Every post listed on a section page (Stereo Repair, Radio Repair, Test Equipment
 
 **About page:** no banner. Each section on the **About** tab is a full-width card like the homepage rows (its picture beside the text, alternating sides, fading in as you scroll); a card without a picture shows its text centered. The first card's heading is the page heading. The navigation is the homepage's floating bar, kept at the top on a solid strip. (The old separate *Bio* field is gone: content that still has one shows it as the first card.)
 
+**Footer:** every public page ends with the same footer: the site name with the homepage subtitle under it, the menu (one column for the plain links and one per dropdown), the contact email and a Request a Restoration button. It is built from the **Global** and **Homepage** tabs, so renaming the site, changing the menu or the contact email updates it everywhere on the next build. The admin page has none.
+
+**Shop listings:** each listing page uses the same navigation bar as the blog posts, and shows one large photo with a row of thumbnails under it (selecting a thumbnail swaps the photo; selecting the photo enlarges it and steps through all of them). The name, price and Inquire button follow straight after, so on a phone they are on the first screen.
+
 **Galleries:** in the Post Builder, the **Gallery** button places 2 to 4 photos side by side as a grid (choose *2 per row* or *4 in a row* first). A lone last photo in a 2-per-row grid spans the full width, and 4-in-a-row becomes 2 per row on phones. Visitors click any photo to enlarge it, then step through the set with the arrows or the left/right keys. Gallery photos are kept to about 1600 px so a post with several galleries stays under the 5 MB limit.
 
 Every image field in the admin accepts HEIC/HEIF photos (for example straight from an iPhone). They are converted to JPEG in the browser before upload, using the `heic2any` library from the jsDelivr CDN, which is downloaded only the first time a HEIC photo is chosen.
