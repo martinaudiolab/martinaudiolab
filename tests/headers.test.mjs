@@ -1,6 +1,6 @@
 // site/_headers: caching rules are well-formed and don't overlap. Pictures must always be revalidated
 // (never "immutable" or long-lived: a picture requested just before it finishes deploying must not get stuck),
-// pages and data stay on the default re-check, and only the stylesheet and scripts are cached briefly.
+// pages and data stay on the default re-check, and the stylesheet and scripts are revalidated every time too.
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
@@ -55,6 +55,15 @@ for (const raw of text.split(/\r?\n/)) {
   for (const file of pictures) {
     const rule = matched.get(file);
     assert.ok(rule && /no-cache/.test(rule.headers["Cache-Control"] || ""), file + " must be sent with no-cache");
+  }
+
+  // the stylesheet and scripts are revalidated as well: a page and its stylesheet must never come from different
+  // versions of the site (a cached old stylesheet left newly added parts of a page unstyled)
+  const assets = files.filter((f) => f.startsWith("/assets/"));
+  assert.ok(assets.some((f) => f.endsWith("style.css")));
+  for (const file of assets) {
+    const rule = matched.get(file);
+    assert.ok(rule && /no-cache/.test(rule.headers["Cache-Control"] || "") && !/max-age/.test(rule.headers["Cache-Control"]), file + " must be sent with no-cache");
   }
 
   // pages and data keep the default re-check

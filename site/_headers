@@ -7,6 +7,8 @@
 /images/*
   Cache-Control: no-cache
 
-# The stylesheet and scripts keep their names when they change, so they are kept only briefly.
+# The stylesheet and scripts keep their names when they change, so they are re-checked every time too. Caching
+# them for a few minutes let a visitor get a new page with the previous stylesheet after an update (new parts of
+# the page then showed unstyled until that copy expired).
 /assets/*
-  Cache-Control: public, max-age=600
+  Cache-Control: no-cache
