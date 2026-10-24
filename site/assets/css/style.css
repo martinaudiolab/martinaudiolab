@@ -2,7 +2,9 @@
 :root{color-scheme:dark;--bg:#141a19;--ink:#e3e9e6;--muted:#9aa8a3;--rule:#2b3634;--accent:#72c4ba;--panel:#1c2524;
 --serif:Georgia,"Times New Roman",serif;--sans:system-ui,-apple-system,"Segoe UI",sans-serif;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+/* the scrollbar's space is always kept, so a page too short to scroll is the same width as one that does and
+   the header and navigation do not jump sideways when moving between them */
+html{scroll-padding-top:env(safe-area-inset-top,0px);scrollbar-gutter:stable}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:1.15rem;line-height:1.7}
 a{color:var(--accent)}
@@ -389,8 +391,6 @@ body.navbar header.site{align-items:center}
 .page-bg-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.6) 0%,rgba(0,0,0,.38) 45%,rgba(0,0,0,.65) 100%)}
 /* the bar floats over the pictures but keeps its place in the flow, so the panel is never hidden under it */
 body.request-page header.site{position:sticky}
-/* brand and bar centered over the form, which is centered too (Home and Shop keep them at either side) */
-body.request-page header.site{flex-direction:column;align-items:center;justify-content:center;gap:.6rem}
 body.request-page main{position:relative;z-index:1;padding-top:clamp(1.5rem,5vw,3.5rem)}
 .request-wrap{max-width:640px;margin:0 auto;padding:2.25rem 2.5rem 2rem;color:#fff;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.1)}
 @media(hover:none){.request-wrap{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(0,0,0,.7)}}
