@@ -1,6 +1,6 @@
 // Homepage hero: crossfade slideshow, and the navigation turning solid once the
 // visitor scrolls past the hero. Everything degrades to a still first image.
-// Also drives the request page's full-page background (#hero.page-bg).
+// Also drives the full-page backgrounds of the request and shop pages (#hero.page-bg).
 (function () {
   "use strict";
 

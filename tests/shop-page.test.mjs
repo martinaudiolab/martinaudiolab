@@ -13,21 +13,30 @@ assert.deepEqual(content.shop_hero.slides.map((s) => s.image), ["images/site/sho
 assert.ok(contentImages(content).includes("images/site/shop-b.jpg"));
 const files = renderShop(data, { content });
 const idx = files["index.html"];
-assert.ok(idx.includes('<body class="home">') && idx.includes('src="/images/site/shop-a.jpg"') && idx.includes('src="/images/site/shop-b.jpg"'));
+assert.ok(idx.includes('<body class="home backdrop shop-page">') && idx.includes('src="/images/site/shop-a.jpg"') && idx.includes('src="/images/site/shop-b.jpg"'));
 assert.ok(!idx.includes("home-a.jpg"), "separate pool from the homepage");
+assert.ok(!idx.includes('class="hero"') && !idx.includes('class="hero-text"'), "no banner");
 assert.equal((idx.match(/<h1>/g) || []).length, 1);
-assert.ok(idx.indexOf('class="hero"') < idx.indexOf(`class="forsale shop-list"`) && idx.includes('<script src="/assets/js/hero.js" defer>'));
+assert.ok(idx.indexOf('class="page-bg" id="hero" aria-hidden="true"') < idx.indexOf("<main>"), "full-page backdrop before the content");
+assert.ok(idx.indexOf('<div class="shop-head"><h1>') > idx.indexOf("<main>") && idx.indexOf('class="forsale shop-list"') < idx.indexOf("</main>"), "title and listings sit inside the content, over the backdrop");
+assert.ok(idx.includes('<link rel="preload" as="image" href="/images/site/shop-a.jpg"') && idx.includes('<script src="/assets/js/hero.js" defer>'));
 const detail = Object.entries(files).find(([n]) => n.endsWith(".html") && n !== "index.html")[1];
-assert.ok(!detail.includes('class="hero"') && !detail.includes('<body class="home">'), "item pages keep the normal header");
-console.log("ok: shop hero pool, markup, item pages unchanged");
+assert.ok(!detail.includes('class="page-bg"') && !detail.includes('class="home'), "item pages keep the normal header");
+console.log("ok: shop backdrop pool, markup, item pages unchanged");
 {
   const sale = JSON.parse(JSON.stringify(data));
   sale.items[0].was = 999; sale.items[0].price = 500; sale.items[0].status = "pending";
   const html = renderShop(sale, { content })["index.html"];
   assert.ok(html.includes('<section class="forsale shop-list"') && html.includes('<div class="fs-grid">'));
-  assert.ok(!html.includes("<main>"), "grid is full width, after the container");
   assert.ok(html.includes('class="fs-card"') && html.includes('<div class="fs-name">') && html.includes('<div class="fs-price">'));
   assert.ok(html.includes('<s>$999.00</s><span class="fs-sale">$500.00</span>') && html.includes('<span class="fs-badge">Sale pending</span>'));
   assert.ok(!html.includes("shop-card") && !html.includes("shop-grid"));
   console.log("ok: shop cards use the For Sale Now markup");
+}
+{
+  const empty = renderShop({ shop: { title: "Shop" }, items: [] }, { content })["index.html"];
+  assert.ok(empty.includes('<p class="shop-empty">') && !empty.includes("shop-list"), "empty shop says so on a panel");
+  const css = fs.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
+  assert.match(css, /body\.shop-page \.fs-card\{background:rgba\(0,0,0,\.6\);[^}]*backdrop-filter:blur\(6px\)/, "listings on translucent black cards");
+  console.log("ok: empty shop and listing cards");
 }
