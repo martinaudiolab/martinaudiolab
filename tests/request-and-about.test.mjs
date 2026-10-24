@@ -100,7 +100,7 @@ function fill(d) {
   const { normalizeContent } = await import(ROOT_URL + "shared/site-content.mjs");
   const fsx = await import("node:fs");
   const html = renderRequest(normalizeContent({ request_background: { slides: [{ image: "images/site/bg-a.jpg" }, { image: "javascript:x" }, { image: "images/site/bg-b.jpg" }] } }));
-  assert.ok(html.includes('<body class="home backdrop request-page">'), "floating homepage nav");
+  assert.ok(html.includes('<body class="home request-page">'), "floating homepage nav");
   assert.ok(!html.includes('class="hero"') && !html.includes('class="hero-text"'), "no banner");
   const { JSDOM: J } = await import("jsdom");
   const d = new J(html).window.document;
@@ -113,8 +113,8 @@ function fill(d) {
   assert.deepEqual(normalizeContent({}).request_background.slides.map((s) => s.image), ["images/banner.jpg"], "default picture");
   const css = fsx.readFileSync(ROOT + "site/assets/css/style.css", "utf8");
   assert.match(css, /\.page-bg\{position:fixed;[^}]*height:100lvh;/);
-  assert.match(css, /body\.backdrop header\.site\{position:sticky\}/);
-  assert.ok(css.indexOf("body.backdrop header.site{position:sticky}") > css.indexOf("body.home header.site{position:fixed"), "sticky override comes later");
+  assert.match(css, /body\.request-page header\.site\{position:sticky\}/);
+  assert.ok(css.indexOf("body.request-page header.site{position:sticky}") > css.indexOf("body.home header.site{position:fixed"), "sticky override comes later");
   assert.match(css, /\.request-wrap\{[^}]*background:rgba\(0,0,0,\.55\);[^}]*backdrop-filter:blur\(6px\)/);
   console.log("ok 5: request page has a full-page background, the floating nav and a translucent form panel");
 }

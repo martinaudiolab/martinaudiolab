@@ -20,7 +20,7 @@ Every post listed on a section page (Stereo Repair, Radio Repair, Test Equipment
 
 **Blog banners:** the **Blog** tab has a banner slideshow (up to four images) for the Restoration Blog page and one for each section, edited independently. Each blog page shows the same floating toolbar as Home and Shop over its own banner (the same size as the homepage and shop banners) with the page title on it (the section name, or Restoration Blog); the heading and intro paragraph that used to sit below the banner are gone, and individual posts use the continuous toolbar bar. A page with no image of its own shows its section picture (or the site banner for the Restoration Blog page).
 
-**Request and Shop pages:** neither has a banner. Each page's pictures (up to four, chosen under **Background images** on the **Request** or **Shop** tab) fill the window behind the page and crossfade like the banners. The request form sits on a translucent black panel; on the shop the title and introduction sit on the pictures and each listing is a translucent black card. The navigation is the same floating bar as Home; it keeps its place at the top and turns solid once the page scrolls. With no image of its own a page shows the site banner. Individual shop listings keep the normal header.
+**Request page:** it has no banner. Its pictures (up to four, chosen under **Background images** on the **Request** tab) fill the window behind the page and crossfade like the banners, while the form sits on a translucent black panel. The navigation is the same floating bar as Home and Shop; it keeps its place at the top and turns solid once the page scrolls. With no image of its own the page shows the site banner.
 
 **Galleries:** in the Post Builder, the **Gallery** button places 2 to 4 photos side by side as a grid (choose *2 per row* or *4 in a row* first). A lone last photo in a 2-per-row grid spans the full width, and 4-in-a-row becomes 2 per row on phones. Visitors click any photo to enlarge it, then step through the set with the arrows or the left/right keys. Gallery photos are kept to about 1600 px so a post with several galleries stays under the 5 MB limit.
 
@@ -34,7 +34,7 @@ Every image field in the admin accepts HEIC/HEIF photos (for example straight fr
 | --- | --- |
 | Global | `site_name`, `contact_email`, `nav_items` (with `children` for dropdowns) |
 | Homepage | `homepage.hero.{slides[],title,subtitle}` (up to 4 slides, each `{image, alt}`), `homepage.categories[]`, `homepage.product_carousel.{enabled,heading,view_all_link}`, `homepage.trust_line` |
-| Shop page | `shop_hero.slides[]` (the page's background images: its own set of up to 4, separate from the homepage), plus the shop title and intro from `shop-data/items.json` |
+| Shop page | `shop_hero.slides[]` (its own set of up to 4 slides, separate from the homepage), plus the shop title and intro from `shop-data/items.json` |
 | Request | `request_background.slides[]` (up to 4 slides, each `{image, alt}`), `request.{title,intro,form_action,subject,success_message}` |
 | About | `about.{title,bio}`, `about.sections[]`, `about.contact.{heading,email}`, `about.location`, `about.response_time` |
 

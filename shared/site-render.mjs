@@ -34,14 +34,6 @@ const slideImages = (slides) => slides.map((slide, i) =>
   // loaded leaves the banner blank. The first picture is fetched at high priority, the rest after it.
   ' fetchpriority="' + (i === 0 ? "high" : "low") + '" decoding="async"' + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
 
-/**
- * A full-page backdrop instead of a banner (request and shop pages): the pictures fill the window behind the
- * page (fixed, crossfading like the banners, driven by hero.js) and the navigation floats over them.
- */
-export function pageBackgroundHtml(slides) {
-  return '<div class="page-bg" id="hero" aria-hidden="true">' + slideImages(slides) + '<div class="page-bg-scrim"></div></div>';
-}
-
 export function heroHtml(o) {
   const slides = slideImages(o.slides);
   const text = o.bare ? "" : '<div class="hero-text"><h1>' + esc(o.title) + "</h1>" + (o.subtitle ? "<p>" + esc(o.subtitle) + "</p>" : "") + "</div>";
@@ -95,13 +87,15 @@ export function renderRequest(content) {
     '<p class="request-result" id="request-result" role="status" aria-live="polite"></p>' +
     "</form></div>";
   const slides = content.request_background.slides;
-  // No banner: the pictures fill the window behind the form.
-  return shell(content, { bodyClass: "home backdrop request-page",
+  // No banner: the pictures fill the window behind the form (fixed, crossfading like the banners) and the
+  // navigation floats over them as it does on the homepage and the shop.
+  const background = '<div class="page-bg" id="hero" aria-hidden="true">' + slideImages(slides) + '<div class="page-bg-scrim"></div></div>';
+  return shell(content, { bodyClass: "home request-page",
     title: r.title + " - " + content.site_name,
     description: "Request a restoration from " + content.site_name,
     inner,
     active: "request.html",
-    beforeMain: pageBackgroundHtml(slides),
+    beforeMain: background,
     head: heroPreloadHtml(slides),
     scripts: '<script src="' + jsUrl("request.js") + '" defer></script><script src="' + jsUrl("hero.js") + '" defer></script>'
   });
