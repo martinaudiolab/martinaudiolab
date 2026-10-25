@@ -8,12 +8,14 @@
 # - the referrer sent to other sites is the site's address only, never the page's full path
 # - the content security policy: scripts only from this site (there are no inline scripts), pictures from this site
 #   or any https address (shop listings may use one), and the request form may only send to Formspree
+# - visitor statistics (Cloudflare Web Analytics, only when a token is set on the admin's Global tab): its beacon
+#   script from static.cloudflareinsights.com, reporting to cloudflareinsights.com
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://formspree.io; form-action 'self' https://formspree.io; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://formspree.io https://cloudflareinsights.com; form-action 'self' https://formspree.io; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
 
 # The admin has its own policy: it also talks to the publisher Worker, and its HEIC converter (heic-to, loaded from
 # jsDelivr with an integrity hash, see admin/heic.js) decodes in a worker made from a blob, with WebAssembly whose

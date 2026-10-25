@@ -141,3 +141,35 @@ const files = renderShop(data, { content });
   assert.equal(ps[1].textContent, "Note: I do not work on cassette decks.");
   console.log("ok 7: request intro note highlighted");
 }
+
+// ---- 8. visitor statistics: Cloudflare's beacon after the footer on every public page, only with a token ------------
+{
+  const { analyticsToken } = await import(ROOT_URL + "shared/site-content.mjs");
+  const token = "0123456789abcdef0123456789abcdef";
+  // the token, or Cloudflare's whole snippet pasted into the field; anything else is ignored
+  assert.equal(analyticsToken(token), token);
+  assert.equal(analyticsToken(" <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{\"token\": \"" + token + "\"}'></script> "), token, "taken from a pasted snippet");
+  assert.equal(analyticsToken('x" onload="alert(1)'), "", "not a token: nothing");
+  assert.equal(normalizeContent({}).analytics_token, "", "off by default");
+
+  const on = normalizeContent({ site_name: "Test Labs", analytics_token: token });
+  const beacon = footerHtml(on).match(/<!--analytics-->([\s\S]*?)<!--\/analytics-->/);
+  assert.ok(beacon, "the beacon follows the footer");
+  const s = new JSDOM(beacon[1]).window.document.querySelector("script");
+  assert.equal(s.getAttribute("src"), "https://static.cloudflareinsights.com/beacon.min.js");
+  assert.deepEqual(JSON.parse(s.getAttribute("data-cf-beacon")), { token });
+  assert.ok(!footerHtml(content).includes("cloudflareinsights"), "no token, no script");
+  // applied once and kept current: a page that had it gets the new token, never two beacons; removing the token removes it
+  const page = applyFooter("<html><body><main>x</main></body></html>", on);
+  const other = normalizeContent({ site_name: "Test Labs", analytics_token: "fedcba9876543210fedcba9876543210" });
+  const again = applyFooter(page, other);
+  assert.equal((again.match(/<!--analytics-->/g) || []).length, 1);
+  assert.ok(again.includes("fedcba9876543210") && !again.includes(token));
+  assert.ok(!applyFooter(again, content).includes("analytics"), "cleared when the token is removed");
+  // every page that is rendered with the footer carries it: generated pages, shop pages
+  const { renderHome, renderRequest, renderAbout } = await import(ROOT_URL + "shared/site-render.mjs");
+  for (const html of [renderHome(on), renderRequest(on), renderAbout(on), renderShop(data, { content: on })["radio.html"]]) {
+    assert.equal((html.match(/static\.cloudflareinsights\.com\/beacon\.min\.js/g) || []).length, 1);
+  }
+  console.log("ok 8: visitor statistics beacon, only with a token, once per page");
+}

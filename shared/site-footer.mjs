@@ -7,7 +7,19 @@ import { pageUrl } from "./site-urls.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const external = (h) => /^(https?:|mailto:)/i.test(h);
-const FOOTER = /<footer class="site-foot">[\s\S]*?<\/footer>/;
+// the footer, and the statistics script that travels with it (so every page that gets the footer gets both, once)
+const FOOTER = /<footer class="site-foot">[\s\S]*?<\/footer>(?:<!--analytics-->[\s\S]*?<!--\/analytics-->)?/;
+
+/**
+ * Cloudflare Web Analytics, when a token is set on the Global tab: Cloudflare's own beacon (no cookies, no personal
+ * data). The content security policy in site/_headers allows its script and the address it reports to. Without a
+ * token there is no script at all.
+ */
+export function analyticsHtml(content) {
+  const token = content.analytics_token;
+  if (!token || !/^[A-Za-z0-9]{16,64}$/.test(token)) return "";
+  return "<!--analytics--><script defer src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"" + token + "\"}'></script><!--/analytics-->";
+}
 
 export function footerHtml(content) {
   const items = Array.isArray(content.nav_items) && content.nav_items.length ? content.nav_items : DEFAULT_NAV;
@@ -23,7 +35,7 @@ export function footerHtml(content) {
     menus.map((menu) => column(menu.label, menu.children)).join("") +
     '<div class="foot-col foot-contact"><h2>Contact</h2>' + (email ? '<a href="mailto:' + esc(email) + '">' + esc(email) + "</a>" : "") +
     '<a class="foot-cta" href="' + pageUrl("request.html") + '">Request a Restoration</a></div>' +
-    '</div><p class="foot-copy">&copy; ' + new Date().getFullYear() + " " + esc(content.site_name) + "</p></footer>";
+    '</div><p class="foot-copy">&copy; ' + new Date().getFullYear() + " " + esc(content.site_name) + "</p></footer>" + analyticsHtml(content);
 }
 
 /**

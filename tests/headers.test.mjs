@@ -107,9 +107,10 @@ function headersFor(file) {
   }
   // public pages: scripts only from the site, the form only to Formspree, no eval
   const pub = directives(headersFor("/stereo/888")["Content-Security-Policy"]);
-  assert.deepEqual(pub["script-src"], ["'self'"]);
+  // scripts: the site's own, plus Cloudflare's statistics beacon (only loaded when a token is set)
+  assert.deepEqual(pub["script-src"], ["'self'", "https://static.cloudflareinsights.com"]);
   assert.deepEqual(pub["form-action"], ["'self'", "https://formspree.io"]);
-  assert.ok(pub["connect-src"].every((s) => s === "'self'" || s === "https://formspree.io"));
+  assert.deepEqual(pub["connect-src"], ["'self'", "https://formspree.io", "https://cloudflareinsights.com"], "the form service and the statistics endpoint only");
   assert.ok(!headersFor("/about")["Content-Security-Policy"].includes("unsafe-eval"), "only the admin allows eval (for the HEIC decoder)");
   // the admin replaces that policy (one policy, not two combined): its scripts come from the site and jsDelivr only,
   // and it may talk to the publisher Worker named in its own page

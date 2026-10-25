@@ -81,6 +81,17 @@ function heroSlides(hero, fallback) {
 }
 
 /**
+ * The Cloudflare Web Analytics site token. Either the token itself or the whole snippet Cloudflare shows can be
+ * pasted; anything that is not a plain token gives "" (no statistics script).
+ */
+export function analyticsToken(value) {
+  const v = typeof value === "string" ? value.trim() : "";
+  const fromSnippet = v.match(/["']?token["']?\s*[:=]\s*["']?([A-Za-z0-9]{16,64})/);
+  const token = fromSnippet ? fromSnippet[1] : v;
+  return /^[A-Za-z0-9]{16,64}$/.test(token) ? token : "";
+}
+
+/**
  * Returns a complete, safe content object. Unknown keys are dropped; missing or
  * invalid values fall back to the defaults.
  */
@@ -116,6 +127,7 @@ export function normalizeContent(input) {
   return {
     site_name: str(c.site_name, 60, "Martin Audio Labs"),
     contact_email: contactEmail,
+    analytics_token: analyticsToken(c.analytics_token),
     nav_items: normalizeNav(c.nav_items),
     homepage: {
       hero: {

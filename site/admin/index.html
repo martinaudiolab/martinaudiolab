@@ -58,6 +58,9 @@
 <label for="g-email">Contact email</label>
 <input id="g-email" type="email" maxlength="120" data-path="contact_email">
 <p class="hint">Shown on the About page.</p>
+<label for="g-analytics">Visitor statistics token</label>
+<input id="g-analytics" type="text" maxlength="400" data-path="analytics_token" placeholder="Paste the Cloudflare Web Analytics token or its whole snippet" autocomplete="off" spellcheck="false">
+<p class="hint">From Cloudflare: Web Analytics, Add a site, then Manage site. Paste the token (or the whole snippet; the token is taken from it) and save. Visits then show in Cloudflare's Web Analytics page. Leave empty for no statistics. The admin page itself is never counted.</p>
 <label>Navigation</label>
 <p class="hint">An item with sub-items becomes a dropdown. Use a page path such as <code>shop/index.html</code>, or a full https:// address.</p>
 <div id="nav-editor"></div>

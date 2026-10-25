@@ -34,6 +34,8 @@ Every post listed on a section page (Stereo Repair, Radio Repair, Test Equipment
 
 **Phone menu:** below 700 px wide the navigation folds behind a menu button beside the site name; it opens as a full-width list with the blog sections under their heading. The button is added by `nav.js`, so without JavaScript the bar is simply shown as before.
 
+**Visitor statistics:** Cloudflare Web Analytics (free, no cookies, no personal data). In the Cloudflare dashboard open **Web Analytics**, choose **Add a site**, enter the site's hostname (the address visitors use, without `https://`), then open **Manage site** and copy the snippet. Paste the token, or the whole snippet, into **Visitor statistics token** on the **Global** tab and save. Every public page then loads Cloudflare's beacon after the footer, and visits appear on the Web Analytics page within a few minutes. The admin is never counted. Leaving the field empty removes the script from every page on the next build. If the site moves to a new domain, add the new hostname in Web Analytics as well.
+
 **Galleries:** in the Post Builder, the **Gallery** button places 2 to 4 photos side by side as a grid (choose *2 per row* or *4 in a row* first). A lone last photo in a 2-per-row grid spans the full width, and 4-in-a-row becomes 2 per row on phones. Visitors click any photo to enlarge it, then step through the set with the arrows or the left/right keys. Gallery photos are kept to about 1600 px so a post with several galleries stays under the 5 MB limit.
 
 Every image field in the admin accepts HEIC/HEIF photos (for example straight from an iPhone). They are converted to JPEG in the browser before upload, using the `heic2any` library from the jsDelivr CDN, which is downloaded only the first time a HEIC photo is chosen.
@@ -44,7 +46,7 @@ Every image field in the admin accepts HEIC/HEIF photos (for example straight fr
 
 | Tab | Keys |
 | --- | --- |
-| Global | `site_name`, `contact_email`, `nav_items` (with `children` for dropdowns) |
+| Global | `site_name`, `contact_email`, `analytics_token` (Cloudflare Web Analytics; empty for none), `nav_items` (with `children` for dropdowns) |
 | Homepage | `homepage.hero.{slides[],title,subtitle}` (up to 4 slides, each `{image, alt}`), `homepage.categories[]`, `homepage.product_carousel.{enabled,heading,view_all_link}`, `homepage.trust_line` |
 | Shop page | `shop_hero.slides[]` (its own set of up to 4 slides, separate from the homepage), plus the shop title and intro from `shop-data/items.json` |
 | Request | `request_background.slides[]` (up to 4 slides, each `{image, alt}`), `request.{title,intro,form_action,subject,success_message}` |
