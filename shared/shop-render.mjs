@@ -104,7 +104,11 @@ export function renderShop(data, options) {
       '<img src="' + esc(imgSrc(p)) + '" alt="' + esc(label(n)) + '" loading="lazy"></a>').join("") + "</div>" : "";
     const photos = '<img class="shop-photo" src="' + esc(imgSrc(it.images[0])) + '" alt="' + esc(label(0)) + '">' + thumbs;
     const action = st === "sold" ? '<p class="shop-note">This item has been sold.</p>' : email ? '<p><a class="btn" href="mailto:' + esc(email) + "?subject=" + subject + "&amp;body=" + body + '">Inquire about this item</a></p>' : "";
-    return '<a class="back" href="/shop/">Back to ' + esc(shop.title || "Shop") + '</a><article class="shop-detail"><div class="shop-gallery">' + photos + '</div><div class="shop-info"><h1>' + esc(it.title) + "</h1>" +
+    // a breadcrumb like the blog posts': Home > Shop > this item
+    const sep = '<span aria-hidden="true">&rsaquo;</span>';
+    const crumbs = '<div class="crumbs shop-crumbs" role="navigation" aria-label="Breadcrumb"><a href="/">Home</a>' + sep +
+      '<a href="/shop/">' + esc(shop.title || "Shop") + "</a>" + sep + '<span aria-current="page">' + esc(it.title) + "</span></div>";
+    return crumbs + '<article class="shop-detail"><div class="shop-gallery">' + photos + '</div><div class="shop-info"><h1>' + esc(it.title) + "</h1>" +
       (it.category ? '<div class="meta">' + esc(it.category) + (STATUS[st] ? " &nbsp;|&nbsp; " + STATUS[st] : "") + "</div>" : "") +
       '<div class="shop-price big">' + priceHtml(it) + "</div>" +
       (it.sample ? '<p class="shop-note">Sample listing. Replace or remove it before the shop goes live.</p>' : "") +

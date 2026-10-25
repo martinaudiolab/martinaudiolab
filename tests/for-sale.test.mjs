@@ -102,16 +102,16 @@ const flush = (b) => { while (b.timeouts.length) b.timeouts.shift().fn(); };
   console.log("ok 3: under five products stay still");
 }
 
-// 4. phones: one product at a time, still rotating; breakpoint changes re-render
+// 4. phones: two products side by side (like the shop page), still rotating; breakpoint changes re-render
 {
-  const b = await boot(feedOf(3), { phone: true });
-  assert.deepEqual(b.names(), ["Item 0"]);
+  const b = await boot(feedOf(5), { phone: true });
+  assert.deepEqual(b.names(), ["Item 0", "Item 1"]);
   assert.equal(b.live().length, 1);
   b.live()[0].fn(); flush(b);
-  assert.deepEqual(b.names(), ["Item 1"]);
+  assert.deepEqual(b.names(), ["Item 2", "Item 3"]);
   b.listeners[0]();      // viewport crosses the breakpoint
-  assert.deepEqual(b.names(), ["Item 0"]);
-  console.log("ok 4: phone shows one at a time and rotates");
+  assert.deepEqual(b.names(), ["Item 0", "Item 1"]);
+  console.log("ok 4: phone shows two at a time and rotates");
 }
 
 // 5. reduced motion, failures and empty feeds
@@ -138,7 +138,7 @@ const flush = (b) => { while (b.timeouts.length) b.timeouts.shift().fn(); };
   const must = [
     ["four columns by default", /\.fs-grid\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:4px/],
     ["two columns up to 1024px", /@media\(max-width:1024px\)\{\.fs-grid\{grid-template-columns:repeat\(2,/],
-    ["one column under 600px", /@media\(max-width:599px\)\{\.fs-grid\{grid-template-columns:1fr\}\}/],
+    ["two columns under 600px", /@media\(max-width:599px\)\{\.fs-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/],
     ["spaced uppercase label", /\.fs-label\{[^}]*letter-spacing:3px;text-transform:uppercase/],
     ["image 4:3, square corners", /\.fs-thumb\{[^}]*aspect-ratio:4\/3;[^}]*border-radius:0/],
     ["subtle hover zoom", /\.fs-card:hover \.fs-thumb img[^{]*\{transform:scale\(1\.03\)\}/],

@@ -11,7 +11,7 @@
   var ROTATE_MS = 30000;      // time between sets
   var FADE_MS = 300;          // fade out, then fade in: about 600ms in total
   var DESKTOP_COUNT = 4;      // products shown at once (tablet shows the same four as 2 x 2)
-  var PHONE_COUNT = 1;        // phones show one product at a time and rotate through the rest
+  var PHONE_COUNT = 2;        // phones show two side by side (like the shop page) and rotate through the rest
 
   var phone = window.matchMedia ? window.matchMedia("(max-width: 599px)") : { matches: false };
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

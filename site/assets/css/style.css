@@ -244,7 +244,7 @@ body:has(h1.post-title) .body>p,body:has(h1.post-title) .body>ul,body:has(h1.pos
 .fs-viewall{display:inline-block;font-family:var(--sans);font-size:.95rem;color:#fff;text-decoration:none;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border-radius:999px;padding:9px 28px;transition:background-color .15s ease}
 .fs-viewall:hover,.fs-viewall:focus-visible{background:rgba(0,0,0,.75);color:#fff}
 @media(max-width:1024px){.fs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:599px){.fs-grid{grid-template-columns:1fr}}
+@media(max-width:599px){.fs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fs-name{margin-top:10px;padding:0 .5rem;font-size:14px}.fs-price{padding:0 .5rem 1.1rem;font-size:13px}}
 
 /* Navigation dropdown */
 .dd{position:relative}
@@ -527,3 +527,26 @@ body.home .forsale.shop-list .fs-grid{gap:16px}
 
 /* Phones and tablets: longer card text on the homepage and About page reads left-aligned under its centered heading */
 @media(max-width:1024px){.cat-copy p{text-align:left}}
+
+/* Photos are square-cornered everywhere, like the banners, cards and panels */
+figure img,.body img,.shop-photo,.shop-thumb,.lightbox img{border-radius:0}
+
+/* The footer's Request button is not repeated on the Request page itself */
+body.request-page .foot-cta{display:none}
+
+/* Older / newer links under a post: the near-black square panels of the cards */
+.post-pager a{background:#141414;border:1px solid rgba(255,255,255,.08);transition:border-color .15s ease}
+.post-pager a:hover,.post-pager a:focus-visible{background:#141414;border-color:rgba(114,196,186,.45)}
+.post-pager small{color:var(--accent);letter-spacing:1.5px}
+
+/* Shop listings: the breadcrumb sits where the "Back to Shop" link was */
+.shop-crumbs{margin-bottom:1.5rem}
+
+/* 404 page */
+.notfound{max-width:40rem;margin:2rem auto 3rem;text-align:center}
+.notfound h1{margin:0 0 .75rem;font-size:clamp(1.6rem,4vw,2.2rem)}
+.notfound p{margin:0 auto;color:rgba(255,255,255,.72)}
+.notfound-links{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:1.75rem;font-family:var(--sans)}
+.notfound-links a{padding:.7rem 1.1rem;background:#141414;border:1px solid rgba(255,255,255,.1);color:#fff;font-size:.78rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:border-color .15s ease}
+.notfound-links a:hover,.notfound-links a:focus-visible{border-color:var(--accent)}
+.notfound-links a.primary{background:var(--accent);border-color:var(--accent);color:#0d1312}
