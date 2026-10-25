@@ -10,6 +10,10 @@
   // heic-to bundles a recent libheif and decodes inside a web worker, so large and
   // newer iPhone photos work. It is a single self-contained file.
   var CONVERTER = "https://cdn.jsdelivr.net/npm/heic-to@1.6.5/dist/iife/heic-to.js";
+  // The file's fingerprint (checked against the same file in the npm package): the browser refuses to run any
+  // other content at that address, so a tampered CDN copy can never run inside the signed-in admin. Changing the
+  // version above means recomputing this:  openssl dgst -sha384 -binary heic-to.js | openssl base64 -A
+  var CONVERTER_INTEGRITY = "sha384-pztinaMu47Qnun2X85+8CYi3nu+Sz1aLjadtPyHxdG2G9otfa3kLoI1w+HiCVEjK";
   var loading = null;
 
   /** Extra values for an <input type="file"> accept list. */
@@ -55,6 +59,8 @@
       loading = new Promise(function (resolve, reject) {
         var script = document.createElement("script");
         script.src = CONVERTER;
+        script.integrity = CONVERTER_INTEGRITY;
+        script.crossOrigin = "anonymous";   // needed for the integrity check on a file from another site
         script.onload = function () {
           if (window.HeicTo) resolve(window.HeicTo);
           else { loading = null; reject(new Error("The HEIC converter did not start.")); }

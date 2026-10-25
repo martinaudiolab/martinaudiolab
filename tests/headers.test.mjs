@@ -1,6 +1,7 @@
-// site/_headers: caching rules are well-formed and don't overlap. Pictures must always be revalidated
-// (never "immutable" or long-lived: a picture requested just before it finishes deploying must not get stuck),
-// pages and data stay on the default re-check, and the stylesheet and scripts are revalidated every time too.
+// site/_headers: rules are well-formed. Caching: pictures must always be revalidated (never "immutable" or
+// long-lived: a picture requested just before it finishes deploying must not get stuck), pages and data stay on the
+// default re-check, and the stylesheet and scripts are revalidated every time too. Security: every response gets the
+// protective headers and a strict content security policy; the admin swaps in its own, still limited, policy.
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
@@ -9,14 +10,29 @@ import { ROOT } from "./_root.mjs";
 const SITE = ROOT + "site/";
 const text = fs.readFileSync(SITE + "_headers", "utf8");
 
-// parse: a line starting with "/" opens a rule; indented "Name: value" lines belong to it
+// parse: a line starting with "/" opens a rule; indented "Name: value" lines belong to it, and "! Name" drops a
+// header that a broader rule set (Cloudflare's syntax)
 const rules = [];
 for (const raw of text.split(/\r?\n/)) {
   if (!raw.trim() || raw.trim().startsWith("#")) continue;
-  if (/^\//.test(raw)) { rules.push({ pattern: raw.trim(), headers: {} }); continue; }
+  if (/^\//.test(raw)) { rules.push({ pattern: raw.trim(), headers: {}, drops: [] }); continue; }
+  const drop = raw.match(/^\s+!\s+([A-Za-z-]+)$/);
+  if (drop && rules.length) { rules.at(-1).drops.push(drop[1]); continue; }
   const m = raw.match(/^\s+([A-Za-z-]+):\s*(.+)$/);
   assert.ok(m && rules.length, "unparseable line: " + raw);
   rules.at(-1).headers[m[1]] = m[2].trim();
+}
+const toRegex = (p) => new RegExp("^" + p.split("*").map((s) => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$");
+
+/** The headers a path is served with: every matching rule in order, "! Name" removing what came before. */
+function headersFor(file) {
+  const out = {};
+  for (const r of rules) {
+    if (!toRegex(r.pattern).test(file)) continue;
+    r.drops.forEach((name) => { delete out[name]; });
+    Object.assign(out, r.headers);
+  }
+  return out;
 }
 
 // 1. shape
@@ -29,19 +45,19 @@ for (const raw of text.split(/\r?\n/)) {
   console.log("ok 1: " + rules.length + " rules, well-formed");
 }
 
-// 2. matching and policy
+// 2. caching: matching and policy
 {
-  const toRegex = (p) => new RegExp("^" + p.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
   const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
   const files = walk(SITE).map((f) => "/" + path.relative(SITE, f).split(path.sep).join("/"));
   const matched = new Map();
+  // caching rules never overlap (the security headers apply to everything, so they are left out of this check)
   for (const file of files) {
-    const hits = rules.filter((r) => toRegex(r.pattern).test(file));
-    assert.ok(hits.length <= 1, file + " matches several rules: " + hits.map((h) => h.pattern).join(", "));
+    const hits = rules.filter((r) => "Cache-Control" in r.headers && toRegex(r.pattern).test(file));
+    assert.ok(hits.length <= 1, file + " matches several caching rules: " + hits.map((h) => h.pattern).join(", "));
     matched.set(file, hits[0] || null);
   }
 
-  // no rule makes anything immutable or long-lived apart from nothing: the longest allowed age is ten minutes
+  // no rule makes anything immutable or long-lived: the longest allowed age is ten minutes
   for (const r of rules) {
     const value = r.headers["Cache-Control"] || "";
     assert.ok(!/immutable/i.test(value), r.pattern + " must not be immutable");
@@ -73,4 +89,46 @@ for (const raw of text.split(/\r?\n/)) {
     }
   }
   console.log("ok 2: pictures revalidate, nothing long-lived (" + pictures.length + " pictures, " + files.length + " files checked)");
+}
+
+// 3. security headers on every response; the admin's own policy
+{
+  const directives = (csp) => Object.fromEntries(String(csp || "").split(";").map((d) => d.trim().split(/\s+/)).filter((d) => d[0]).map((d) => [d[0], d.slice(1)]));
+  for (const file of ["/", "/index.html", "/request", "/shop/zenith-6d221", "/stereo/888", "/images/banner.jpg", "/assets/css/style.css", "/admin/", "/admin/admin.js"]) {
+    const h = headersFor(file);
+    assert.equal(h["X-Content-Type-Options"], "nosniff", file);
+    assert.equal(h["X-Frame-Options"], "DENY", file);
+    assert.equal(h["Referrer-Policy"], "strict-origin-when-cross-origin", file);
+    const csp = directives(h["Content-Security-Policy"]);
+    assert.deepEqual(csp["frame-ancestors"], ["'none'"], file + ": never shown inside another site's frame");
+    assert.deepEqual(csp["object-src"], ["'none'"], file);
+    assert.deepEqual(csp["base-uri"], ["'self'"], file);
+    assert.ok(!(csp["script-src"] || []).includes("'unsafe-inline'"), file + ": no inline scripts allowed");
+  }
+  // public pages: scripts only from the site, the form only to Formspree, no eval
+  const pub = directives(headersFor("/stereo/888")["Content-Security-Policy"]);
+  assert.deepEqual(pub["script-src"], ["'self'"]);
+  assert.deepEqual(pub["form-action"], ["'self'", "https://formspree.io"]);
+  assert.ok(pub["connect-src"].every((s) => s === "'self'" || s === "https://formspree.io"));
+  assert.ok(!headersFor("/about")["Content-Security-Policy"].includes("unsafe-eval"), "only the admin allows eval (for the HEIC decoder)");
+  // the admin replaces that policy (one policy, not two combined): its scripts come from the site and jsDelivr only,
+  // and it may talk to the publisher Worker named in its own page
+  const adminCsp = headersFor("/admin/")["Content-Security-Policy"];
+  const admin = directives(adminCsp);
+  assert.ok(!/,\s*default-src/.test(adminCsp), "the site-wide policy is dropped, not stacked");
+  assert.deepEqual(admin["script-src"].filter((s) => !s.startsWith("'")), ["https://cdn.jsdelivr.net"]);
+  const publisher = fs.readFileSync(SITE + "admin/index.html", "utf8").match(/name="publisher-api-url" content="([^"]+)"/)[1].replace(/\/+$/, "");
+  assert.ok(admin["connect-src"].includes(publisher), "the admin may reach its publisher: " + publisher);
+  console.log("ok 3: security headers everywhere; the admin has its own policy");
+}
+
+// 4. the admin's HEIC converter is loaded with an integrity hash, so a changed CDN copy is refused
+{
+  const heic = fs.readFileSync(SITE + "admin/heic.js", "utf8");
+  const url = heic.match(/var CONVERTER = "([^"]+)"/)[1];
+  assert.match(url, /^https:\/\/cdn\.jsdelivr\.net\/npm\/heic-to@\d+\.\d+\.\d+\//, "an exact version, from the CDN the policy allows");
+  assert.match(heic, /var CONVERTER_INTEGRITY = "sha384-[A-Za-z0-9+/]{64}";/);
+  assert.match(heic, /script\.integrity = CONVERTER_INTEGRITY;/);
+  assert.match(heic, /script\.crossOrigin = "anonymous";/);
+  console.log("ok 4: HEIC converter pinned by integrity hash");
 }
