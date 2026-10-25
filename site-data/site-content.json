@@ -1,6 +1,7 @@
 {
   "site_name": "Martin Audio Labs",
   "contact_email": "thealexandersound@gmail.com",
+  "analytics_token": "a4eb979603d242a594d3a7cd99b18c68",
   "nav_items": [
     {
       "label": "Home",
