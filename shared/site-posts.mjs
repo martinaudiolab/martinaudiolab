@@ -7,6 +7,38 @@ import { pageUrl } from "./site-urls.mjs";
 /** Where a post's own thumbnail is stored, relative to site/. */
 export const thumbFile = (folder, slug) => "images/posts/" + folder + "-" + slug + ".jpg";
 
+/** The folder holding a post's own photos, relative to site/ (one folder per post, so deleting it is one prefix). */
+export const postImageDir = (folder, slug) => "images/posts/" + folder + "/" + slug + "/";
+
+const EMBEDDED_IMAGE = /(<img\b[^>]*?\bsrc=")data:image\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+\/]+={0,2})"/gi;
+
+/**
+ * Moves the photos embedded in a post's HTML (data: addresses, as the editor sends them) into files of their own:
+ * each becomes images/posts/<folder>/<slug>/<n>.<ext>, and the same photo used twice is stored once. A page then
+ * loads its text first and its photos separately, instead of carrying several megabytes of encoded pictures.
+ * Returns { html, files: [{ path (relative to site/), data (base64) }] }.
+ */
+export function extractPostImages(html, folder, slug) {
+  const files = [];
+  const byData = new Map();
+  const out = String(html).replace(EMBEDDED_IMAGE, (whole, before, type, data) => {
+    let path = byData.get(data);
+    if (!path) {
+      const ext = type.toLowerCase() === "jpeg" ? "jpg" : type.toLowerCase();
+      path = postImageDir(folder, slug) + (files.length + 1) + "." + ext;
+      byData.set(data, path);
+      files.push({ path, data });
+    }
+    return before + "/" + path + '"';
+  });
+  return { html: out, files };
+}
+
+/** Photos in a post's text load as they come into view (the picture under the title is outside the text and loads at once). */
+export function lazyImages(bodyHtml) {
+  return String(bodyHtml).replace(/<img\b(?![^>]*\bloading=)/gi, '<img loading="lazy" decoding="async"');
+}
+
 /** The section picture used when a post has no thumbnail of its own (relative to a section page). */
 export const fallbackThumb = (folder) => {
   const section = sectionByFolder(folder);

@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { CONTENT_PATH, normalizeContent } from "../shared/site-content.mjs";
 import { renderAbout, renderHome, renderRequest, applyGlobals } from "../shared/site-render.mjs";
 import { isShopPage, renderShop, validateShop } from "../shared/shop-render.mjs";
-import { addPostHero, applyPostChrome, listingsOf, normalizeCards, postBodyHtml, excerptOf } from "../shared/site-posts.mjs";
+import { addPostHero, applyPostChrome, extractPostImages, lazyImages, listingsOf, normalizeCards, postBodyHtml, excerptOf } from "../shared/site-posts.mjs";
 import { BLOG_HUB, SECTIONS } from "../shared/sections.mjs";
 import { applyBlogHero, applyPostBar, renderBlogHub } from "../shared/site-blog.mjs";
 
@@ -98,7 +98,22 @@ for (const section of SECTIONS) {
     const rawPost = fs.readFileSync(post, "utf8");
     const postCrlf = rawPost.includes("\r\n");
     const postBefore = postCrlf ? rawPost.split("\r\n").join("\n") : rawPost;
-    let postAfter = addPostHero(postBefore, folder, m[1], (p) => fs.existsSync(path.join(SITE, p)));
+    // photos embedded in the page (posts published before they were stored as files) move into files of their
+    // own, and the photos in the text load as they scroll into view
+    let postAfter = postBefore;
+    const body = postBodyHtml(postAfter);
+    if (body) {
+      const images = extractPostImages(body, folder, m[1]);
+      for (const file of images.files) {
+        const target = path.join(SITE, file.path);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        const bytes = Buffer.from(file.data, "base64");
+        if (!fs.existsSync(target) || !fs.readFileSync(target).equals(bytes)) fs.writeFileSync(target, bytes);
+      }
+      const lighter = lazyImages(images.html);
+      if (lighter !== body) postAfter = postAfter.replace(body, () => lighter);
+    }
+    postAfter = addPostHero(postAfter, folder, m[1], (p) => fs.existsSync(path.join(SITE, p)));
     postAfter = applyPostChrome(postAfter, folder, m[1], listings);
     postAfter = applyPostBar(postAfter);
     if (postAfter !== postBefore) fs.writeFileSync(post, postCrlf ? postAfter.split("\n").join("\r\n") : postAfter);

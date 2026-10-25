@@ -1,14 +1,19 @@
-// Blog posts: publish a post (page, section listing, optional thumbnail), list a section, delete a post.
+// Blog posts: publish a post (page, its photos, section listing, optional thumbnail), list a section, delete a post.
 
 import { NAV_SCRIPT, navHtml } from "../../shared/site-nav.mjs";
 import { SECTIONS } from "../../shared/sections.mjs";
 import { FAVICON_LINKS } from "../../shared/site-urls.mjs";
-import { cardHtml, crumbsHtml, excerptOf, fallbackThumb, heroFigure, thumbFile } from "../../shared/site-posts.mjs";
+import {
+  cardHtml, crumbsHtml, excerptOf, extractPostImages, fallbackThumb, heroFigure, lazyImages, postImageDir, thumbFile
+} from "../../shared/site-posts.mjs";
 import { HttpError } from "./errors.js";
 import {
-  addBlobEntry, commitEntries, decodeBase64Utf8, getBranchHead, getFile,
+  addBlobEntry, commitEntries, decodeBase64Utf8, getBranchHead, getFile, listRepositoryPaths,
   readBranch, repoBase, writeBranch
 } from "./github.js";
+
+/** Largest single photo kept in a post (decoded bytes); the editor resizes them well below this. */
+const MAX_POST_IMAGE = 4_000_000;
 import { loadSiteContent } from "./repo.js";
 import { sanitizeContent } from "./sanitize.js";
 
@@ -133,9 +138,15 @@ export async function publishPost(request, env, session, body) {
   }, category, Boolean(thumbnail));
   const data = { title: title, summary: summary, date: date, slug: slug, category: body.category };
   const site = (await loadSiteContent(token, apiBase, tip)).content;
-  const article = articleHtml(data, category, safeContent, site, thumbnail ? "/" + thumbFile(category.folder, slug) : fallbackThumb(category.folder));
+  // the post's photos are stored as files of their own next to the page, not inside it
+  const images = extractPostImages(safeContent, category.folder, slug);
+  images.files.forEach(function (file) {
+    if (file.data.length * 0.75 > MAX_POST_IMAGE) throw new HttpError(400, "A photo in the post is larger than 4 MB. Use a smaller one.");
+  });
+  const article = articleHtml(data, category, lazyImages(images.html), site, thumbnail ? "/" + thumbFile(category.folder, slug) : fallbackThumb(category.folder));
 
   const entries = [];
+  for (const file of images.files) await addBlobEntry(token, apiBase, entries, "site/" + file.path, { content: file.data, encoding: "base64" });
   await addBlobEntry(token, apiBase, entries, folder + "/" + filename, { content: article, encoding: "utf-8" });
   await addBlobEntry(token, apiBase, entries, indexPath, { content: indexOutput, encoding: "utf-8" });
   if (thumbnail) {
@@ -213,6 +224,12 @@ export async function deletePost(request, env, session, body) {
   } catch (error) {
     if (error.status !== 404) throw error;
   }
+  // and so does its folder of photos
+  const photos = "site/" + postImageDir(category.folder, slug);
+  const existing = await listRepositoryPaths(token, apiBase, head, "The repository is too large to delete the post's photos automatically.");
+  existing.forEach(function (path) {
+    if (path.startsWith(photos)) entries.push({ path: path, mode: "100644", type: "blob", sha: null });
+  });
   const commit = await commitEntries(token, apiBase, branch, head, entries, "Delete " + slug);
   return { filename: slug + ".html", section: category.folder, commit: commit.sha };
 }

@@ -195,9 +195,20 @@ console.log("ok: post thumbnails (publish, fallback, validation, delete)");
   const res = await call("/api/publish", "POST", post({ title: "Gallery Post", content: gallery }));
   assert.equal(res.status, 201, JSON.stringify(res.body));
   const page = blobs.get(head.tree["site/stereo/gallery-post.html"]).toString();
-  assert.ok(page.includes('<figure data-gallery="2"><img src="data:image/jpeg;base64,AAAA" alt="front" data-w="50"><img src="data:image/jpeg;base64,BBBB" alt=""></figure>'), page.slice(page.indexOf("<figure data-gallery")));
+  // the photos are stored as files next to the page (one folder per post) and load as they scroll into view
+  assert.ok(page.includes('<figure data-gallery="2"><img loading="lazy" decoding="async" src="/images/posts/stereo/gallery-post/1.jpg" alt="front" data-w="50"><img loading="lazy" decoding="async" src="/images/posts/stereo/gallery-post/2.jpg" alt=""></figure>'), page.slice(page.indexOf("<figure data-gallery")));
+  assert.ok(!page.includes("data:image"), "no photo is embedded in the page");
+  assert.deepEqual(["1", "2", "3"].map((n) => blobs.get(head.tree["site/images/posts/stereo/gallery-post/" + n + ".jpg"]).toString("base64")), ["AAAA", "BBBB", "CCCC"], "each photo is its own file");
+  assert.ok(!/<figure class="post-hero"><img loading=/.test(page), "the picture under the title is not lazy");
   assert.ok(!page.includes('data-gallery="7"') && !/onclick|class="big"/.test(page));
-  console.log("ok: gallery survives publishing");
+
+  // deleting the post removes its folder of photos too
+  const cur = await call("/api/posts?category=stereo");
+  const stripped = cur.body.indexHtml.replace(/<article class="post[^"]*">(?:(?!<\/article>)[\s\S])*?gallery-post\.html[\s\S]*?<\/article>/, "");
+  const del = await call("/api/delete", "POST", { category: "stereo", slug: "gallery-post", indexSha: cur.body.indexSha, indexHtml: stripped });
+  assert.equal(del.status, 200, JSON.stringify(del.body));
+  assert.ok(!Object.keys(head.tree).some((p) => p.startsWith("site/images/posts/stereo/gallery-post/")), "photos deleted with the post");
+  console.log("ok: gallery survives publishing; photos are files, deleted with the post");
 }
 
 // 7. a gallery's width and alignment survive the Worker's sanitiser; unknown values do not
