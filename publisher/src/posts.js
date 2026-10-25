@@ -1,5 +1,6 @@
 // Blog posts: publish a post (page, its photos, section listing, optional thumbnail), list a section, delete a post.
 
+import { footerHtml, requestCtaHtml } from "../../shared/site-footer.mjs";
 import { NAV_SCRIPT, navHtml } from "../../shared/site-nav.mjs";
 import { SECTIONS } from "../../shared/sections.mjs";
 import { FAVICON_LINKS } from "../../shared/site-urls.mjs";
@@ -43,12 +44,15 @@ function dateLabel(value) {
   }).format(date);
 }
 
-/** The complete HTML page for a published post. */
+/**
+ * The complete HTML page for a published post, with the request block and the site footer, so the committed page is
+ * already what visitors see. The build adds the breadcrumb's older/newer links (they depend on the other posts).
+ */
 export function articleHtml(data, category, content, site, heroSrc) {
   const title = escapeHtml(data.title);
   const summary = escapeHtml(data.summary);
   const label = escapeHtml(dateLabel(data.date));
-  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="/assets/css/style.css">' + FAVICON_LINKS + '</head><body class="navbar"><header class="site"><a class="brand" href="/">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html") + '</header><main>' + crumbsHtml(category.name, title, category.folder) + '<article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div>' + (heroSrc ? heroFigure(heroSrc, data.title) : "") + '<div class="body">' + content + '</div></article></main><script src="/assets/js/lightbox.js" defer><\/script>' + NAV_SCRIPT() + '</body></html>\n';
+  return '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + title + ' - ' + escapeHtml(site.site_name) + '</title><meta name="description" content="' + summary + '"><link rel="stylesheet" href="/assets/css/style.css">' + FAVICON_LINKS + '</head><body class="navbar"><header class="site"><a class="brand" href="/">' + escapeHtml(site.site_name) + '</a>' + navHtml(site.nav_items, category.folder + "/index.html") + '</header><main>' + crumbsHtml(category.name, title, category.folder) + '<article class="post"><h1 class="post-title">' + title + '</h1><div class="meta">' + label + ' &nbsp;|&nbsp; <a href="index.html">' + escapeHtml(category.name) + '</a></div>' + (heroSrc ? heroFigure(heroSrc, data.title) : "") + '<div class="body">' + content + '</div></article>' + requestCtaHtml("Have something like this that needs restoring?") + '</main>' + footerHtml(site) + '<script src="/assets/js/lightbox.js" defer><\/script>' + NAV_SCRIPT() + '</body></html>\n';
 }
 
 /** The listing card for a new post (the build also brings older listings to this layout). */

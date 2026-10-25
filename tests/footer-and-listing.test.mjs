@@ -1,5 +1,6 @@
 // The site footer on every public page, and the shop listing pages: navigation bar, large photo with thumbnails.
 import { ROOT, ROOT_URL } from "./_root.mjs";
+import { builtSite } from "./_built-site.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -38,10 +39,10 @@ const content = normalizeContent({ site_name: "Test Labs", contact_email: "hi@ex
   console.log("ok 2: footer is applied once and kept current");
 }
 
-// ---- 3. the built site: every public page has exactly one footer, the admin has none ----------------------------
+// ---- 3. the site as deployed (a fresh build of a copy): every public page has exactly one footer, the admin has none ----
 {
   const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith(".html") ? [path.join(dir, e.name)] : []);
-  const site = path.join(ROOT, "site");
+  const site = builtSite();
   for (const file of walk(site)) {
     const rel = path.relative(site, file).split(path.sep).join("/");
     const count = (fs.readFileSync(file, "utf8").match(/<footer class="site-foot">/g) || []).length;
@@ -100,17 +101,17 @@ const files = renderShop(data, { content });
   console.log("ok 5: thumbnails swap the photo and the enlarged view steps through them");
 }
 
-// ---- 6. the "next step" block: after a post (built pages), on the About page and on a listing -------------------
+// ---- 6. the "next step" block, on the site as deployed: after each post, on the About page and on a listing -----
 {
   const { requestCtaHtml } = await import(ROOT_URL + "shared/site-footer.mjs");
   const block = new JSDOM(requestCtaHtml("Heading here")).window.document.querySelector("aside.next-step");
   assert.equal(block.querySelector("h2").textContent, "Heading here");
   assert.equal(block.querySelector("a.next-btn").getAttribute("href"), "/request");
-  const page = (rel) => fs.readFileSync(path.join(ROOT, "site", rel), "utf8");
+  const page = (rel) => fs.readFileSync(path.join(builtSite(), rel), "utf8");
   const once = (html) => (html.match(/<!--cta-->/g) || []).length;
   // every built post page has it once, after the older/newer links and before the footer
   for (const folder of ["stereo", "radio", "test-equipment"]) {
-    for (const name of fs.readdirSync(path.join(ROOT, "site", folder)).filter((n) => n.endsWith(".html") && n !== "index.html")) {
+    for (const name of fs.readdirSync(path.join(builtSite(), folder)).filter((n) => n.endsWith(".html") && n !== "index.html")) {
       const html = page(folder + "/" + name);
       assert.equal(once(html), 1, folder + "/" + name);
       assert.ok(html.indexOf("<!--/pager-->") < html.indexOf("<!--cta-->") && html.indexOf("<!--/cta-->") < html.indexOf('<footer class="site-foot">'), folder + "/" + name + ": after the pager");

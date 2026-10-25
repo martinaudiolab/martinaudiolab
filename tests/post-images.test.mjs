@@ -1,6 +1,7 @@
 // Post photos are files of their own, not embedded in the page: the shared extractor, and the build's conversion
 // of posts published before (run on a copy of the site).
 import { ROOT, ROOT_URL } from "./_root.mjs";
+import { builtSite } from "./_built-site.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -52,11 +53,11 @@ const { extractPostImages, lazyImages, postImageDir, postBodyHtml } = await impo
   }
 }
 
-// ---- 3. the site as committed: no post page carries embedded photos ----------------------------------------------
+// ---- 3. the site as deployed: no post page carries embedded photos -------------------------------------------------
 {
   for (const folder of ["stereo", "radio", "test-equipment"]) {
-    for (const name of fs.readdirSync(path.join(ROOT, "site", folder))) {
-      if (name.endsWith(".html")) assert.ok(!fs.readFileSync(path.join(ROOT, "site", folder, name), "utf8").includes('src="data:image'), folder + "/" + name);
+    for (const name of fs.readdirSync(path.join(builtSite(), folder))) {
+      if (name.endsWith(".html")) assert.ok(!fs.readFileSync(path.join(builtSite(), folder, name), "utf8").includes('src="data:image'), folder + "/" + name);
     }
   }
   console.log("ok 3: no post page embeds its photos");
@@ -68,8 +69,8 @@ const { extractPostImages, lazyImages, postImageDir, postBodyHtml } = await impo
   assert.equal(trimTrailingBlank('<p>Text</p><figure>x</figure><p><br></p><br>\n<p>&nbsp;</p>'), "<p>Text</p><figure>x</figure>");
   assert.equal(trimTrailingBlank("<p>A</p><br><p>B</p>"), "<p>A</p><br><p>B</p>", "blank lines between paragraphs stay");
   for (const folder of ["stereo", "radio", "test-equipment"]) {
-    for (const name of fs.readdirSync(path.join(ROOT, "site", folder)).filter((n) => n.endsWith(".html") && n !== "index.html")) {
-      const body = postBodyHtml(fs.readFileSync(path.join(ROOT, "site", folder, name), "utf8"));
+    for (const name of fs.readdirSync(path.join(builtSite(), folder)).filter((n) => n.endsWith(".html") && n !== "index.html")) {
+      const body = postBodyHtml(fs.readFileSync(path.join(builtSite(), folder, name), "utf8"));
       assert.equal(body, trimTrailingBlank(body), folder + "/" + name + " ends without blank lines");
     }
   }

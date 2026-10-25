@@ -201,6 +201,11 @@ console.log("ok: post thumbnails (publish, fallback, validation, delete)");
   assert.deepEqual(["1", "2", "3"].map((n) => blobs.get(head.tree["site/images/posts/stereo/gallery-post/" + n + ".jpg"]).toString("base64")), ["AAAA", "BBBB", "CCCC"], "each photo is its own file");
   assert.ok(!/<figure class="post-hero"><img loading=/.test(page), "the picture under the title is not lazy");
   assert.ok(!page.includes('data-gallery="7"') && !/onclick|class="big"/.test(page));
+  // the committed page is already complete: the request block after the article and the site footer after <main>
+  assert.equal((page.match(/<!--cta-->/g) || []).length, 1, "request block once");
+  assert.ok(page.indexOf("</article>") < page.indexOf("<!--cta-->") && page.indexOf("<!--/cta-->") < page.indexOf("</main>"), "request block after the article, inside <main>");
+  assert.equal((page.match(/<footer class="site-foot">/g) || []).length, 1, "site footer once");
+  assert.ok(page.indexOf("</main>") < page.indexOf('<footer class="site-foot">'), "footer after <main>");
 
   // deleting the post removes its folder of photos too
   const cur = await call("/api/posts?category=stereo");
