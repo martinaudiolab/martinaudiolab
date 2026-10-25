@@ -65,7 +65,7 @@ console.log("ok 1: every page gets a menu button");
   assert.ok(shared, "one shared rule for the page titles");
   assert.match(shared[1], /font-family:var\(--sans\);font-weight:400;text-transform:uppercase/);
   assert.ok(css.lastIndexOf(shared[0]) > css.indexOf(".hero-text h1{font-size:clamp(1.9rem"), "comes after the older banner rule");
-  assert.match(css, /article\.post\.post-card \.card-head h2\{[^}]*font:400 28px\/1\.25 var\(--sans\);letter-spacing:2\.5px;text-transform:uppercase/, "blog card titles match");
+  assert.match(css, /article\.post\.post-card \.card-head h2\{[^}]*font:400 20px\/1\.3 var\(--sans\);letter-spacing:2px;text-transform:uppercase/, "blog card titles match");
   assert.match(css, /\.cat-copy h1,\.cat-copy h2\{[^}]*font-weight:400;letter-spacing:3\.5px;text-transform:uppercase/, "the homepage cards they follow");
   console.log("ok 4: one title style");
 }

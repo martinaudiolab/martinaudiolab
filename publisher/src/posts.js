@@ -4,7 +4,8 @@ import { NAV_SCRIPT, navHtml } from "../../shared/site-nav.mjs";
 import { SECTIONS } from "../../shared/sections.mjs";
 import { FAVICON_LINKS } from "../../shared/site-urls.mjs";
 import {
-  cardHtml, crumbsHtml, excerptOf, extractPostImages, fallbackThumb, heroFigure, lazyImages, postImageDir, thumbFile
+  cardHtml, crumbsHtml, excerptOf, extractPostImages, fallbackThumb, heroFigure, lazyImages, postImageDir, thumbFile,
+  trimTrailingBlank
 } from "../../shared/site-posts.mjs";
 import { HttpError } from "./errors.js";
 import {
@@ -143,7 +144,7 @@ export async function publishPost(request, env, session, body) {
   images.files.forEach(function (file) {
     if (file.data.length * 0.75 > MAX_POST_IMAGE) throw new HttpError(400, "A photo in the post is larger than 4 MB. Use a smaller one.");
   });
-  const article = articleHtml(data, category, lazyImages(images.html), site, thumbnail ? "/" + thumbFile(category.folder, slug) : fallbackThumb(category.folder));
+  const article = articleHtml(data, category, lazyImages(trimTrailingBlank(images.html)), site, thumbnail ? "/" + thumbFile(category.folder, slug) : fallbackThumb(category.folder));
 
   const entries = [];
   for (const file of images.files) await addBlobEntry(token, apiBase, entries, "site/" + file.path, { content: file.data, encoding: "base64" });

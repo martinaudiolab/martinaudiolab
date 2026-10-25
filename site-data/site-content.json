@@ -104,7 +104,15 @@
     "all": {
       "slides": [
         {
-          "image": "images/banner.jpg",
+          "image": "images/site/bloghero-mv3gqo6t-cdoj.jpg",
+          "alt": ""
+        },
+        {
+          "image": "images/site/bloghero-mv3grba0-9naj.jpg",
+          "alt": ""
+        },
+        {
+          "image": "images/category-test-equipment.jpg",
           "alt": ""
         }
       ]

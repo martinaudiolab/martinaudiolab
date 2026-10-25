@@ -107,7 +107,8 @@ function fill(d) {
   const d = new J(html).window.document;
   const bg = d.querySelector(".page-bg");
   assert.ok(bg && bg.id === "hero" && bg.getAttribute("aria-hidden") === "true", "decorative full-page background driven by hero.js");
-  assert.deepEqual(Array.from(bg.querySelectorAll("img.hero-slide")).map((i) => i.getAttribute("src")), ["/images/site/bg-a.jpg", "/images/site/bg-b.jpg"], "unsafe image dropped");
+  // (pictures after the first wait in data-src until the page has loaded)
+  assert.deepEqual(Array.from(bg.querySelectorAll("img.hero-slide")).map((i) => i.getAttribute("src") || i.getAttribute("data-src")), ["/images/site/bg-a.jpg", "/images/site/bg-b.jpg"], "unsafe image dropped");
   assert.ok(bg.compareDocumentPosition(d.querySelector("main")) & 4, "background comes before the content");
   assert.ok(d.querySelector('link[rel="preload"][href="/images/site/bg-a.jpg"]'), "first picture preloaded");
   assert.ok(d.querySelector('script[src="/assets/js/hero.js"]'));

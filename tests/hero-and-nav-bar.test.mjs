@@ -140,7 +140,8 @@ function boot({ reduced = false, observer = true, loaded = "all" } = {}) {
   console.log("ok 7: phone navigation layout");
 }
 
-// banner pictures are requested up front: no lazy loading, a preload hint for the first, the rest after it
+// banner pictures: the first is preloaded with the page at high priority; the others wait in data-src until the page
+// has loaded (hero.js then requests them), never lazy
 {
   const { renderHome } = await import("../shared/site-render.mjs");
   const out = renderHome(normalizeContent({ homepage: { hero: { slides: [{ image: "images/site/a.jpg" }, { image: "images/site/b.jpg" }, { image: "images/site/c.jpg" }] } } }));
@@ -148,10 +149,26 @@ function boot({ reduced = false, observer = true, loaded = "all" } = {}) {
   assert.equal(slides.length, 3);
   assert.ok(slides.every((t) => !/loading="lazy"/.test(t)), "no lazy loading on banner pictures");
   assert.ok(/fetchpriority="high"/.test(slides[0]) && slides.slice(1).every((t) => /fetchpriority="low"/.test(t)), "first picture high priority, others low");
+  assert.ok(/ src="\/images\/site\/a\.jpg"/.test(slides[0]) && !/data-src/.test(slides[0]), "the first picture loads with the page");
+  assert.ok(slides.slice(1).every((t) => /data-src="\/images\/site\/[bc]\.jpg"/.test(t) && !/ src=/.test(t)), "the others wait for the page to load");
+  {
+    // hero.js requests them once the page has loaded
+    const dom = new JSDOM(out.replace(/<script[^>]*><\/script>/g, ""), { url: "https://site.example/", runScripts: "outside-only" });
+    Object.defineProperty(dom.window.document, "readyState", { value: "loading", configurable: true });
+    dom.window.matchMedia = () => ({ matches: false });
+    dom.window.IntersectionObserver = class { observe() {} };
+    dom.window.eval(fs.readFileSync(ROOT + "site/assets/js/hero.js", "utf8"));
+    const imgs = Array.from(dom.window.document.querySelectorAll(".hero-slide"));
+    assert.ok(imgs.slice(1).every((i) => !i.getAttribute("src")), "not before the page has loaded");
+    dom.window.dispatchEvent(new dom.window.Event("load"));
+    assert.deepEqual(imgs.map((i) => new URL(i.getAttribute("src"), "https://site.example/").pathname), ["/images/site/a.jpg", "/images/site/b.jpg", "/images/site/c.jpg"]);
+    assert.ok(imgs.every((i) => !i.hasAttribute("data-src")));
+    dom.window.close();   // stops the slideshow timer so the test can finish
+  }
   const head = out.slice(0, out.indexOf("</head>"));
   assert.ok(head.includes('<link rel="preload" as="image" href="/images/site/a.jpg" fetchpriority="high">'), "first picture is preloaded from the head");
   assert.equal((head.match(/rel="preload"/g) || []).length, 1, "only the first picture is preloaded");
-  console.log("ok 8: banner pictures are requested up front");
+  console.log("ok 8: the first banner picture loads with the page, the rest once it has loaded");
 }
 
 // the slideshow only fades to a picture that has loaded, and asks again for one that failed

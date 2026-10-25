@@ -2,7 +2,7 @@
 // and applies the global fields (site name, navigation) to
 // hand-written or published pages. Pure string code: no file-system APIs.
 
-import { applyFooter, footerHtml } from "./site-footer.mjs";
+import { applyFooter, footerHtml, requestCtaHtml } from "./site-footer.mjs";
 import { NAV_SCRIPT, navHtml } from "./site-nav.mjs";
 import { CSS_URL, FAVICON_LINKS, absolutizeAssets, assetUrl, jsUrl, pageUrl } from "./site-urls.mjs";
 
@@ -29,10 +29,12 @@ export function heroPreloadHtml(slides) {
 }
 
 /** The full-width slideshow hero shared by the homepage and the shop page. */
+// Only the first picture is requested with the page (preloaded from the head, at high priority). The others carry
+// their address in data-src and hero.js requests them once the page has finished loading, so they never compete
+// with it; the slideshow only fades to a picture that has arrived, so a slow one is skipped, never shown blank.
+// (Not lazy loading: that would leave a slide unrequested until scrolled to, and the banner is at the top.)
 const slideImages = (slides) => slides.map((slide, i) =>
-  '<img class="hero-slide' + (i === 0 ? " active" : "") + '" src="' + esc(assetUrl(slide.image)) + '" alt="' + esc(slide.alt) + '"' +
-  // no lazy loading: a banner picture is above the fold, and a lazy one that the slideshow reaches before it has
-  // loaded leaves the banner blank. The first picture is fetched at high priority, the rest after it.
+  '<img class="hero-slide' + (i === 0 ? " active" : "") + '" ' + (i === 0 ? "src" : "data-src") + '="' + esc(assetUrl(slide.image)) + '" alt="' + esc(slide.alt) + '"' +
   ' fetchpriority="' + (i === 0 ? "high" : "low") + '" decoding="async"' + (i === 0 ? "" : ' aria-hidden="true"') + ">").join("");
 
 export function heroHtml(o) {
@@ -76,7 +78,8 @@ export function renderRequest(content) {
   const r = content.request;
   const field = (id, label, control) => '<div class="field"><label for="' + id + '">' + label + "</label>" + control + "</div>";
   const inner = '<div class="request-wrap"><h1>' + esc(r.title) + "</h1>" +
-    (r.intro ? '<p class="intro">' + esc(r.intro) + "</p>" : "") +
+    // the intro's paragraphs; one that starts with "Note:" is shown as a small highlighted line
+    (r.intro ? '<div class="intro">' + paragraphs(r.intro).replace(/<p>(Note:)/gi, '<p class="intro-note">$1') + "</div>" : "") +
     '<form class="request-form" id="request-form" action="' + esc(r.form_action) + '" method="POST" data-success="' + esc(r.success_message) + '">' +
     field("req-name", "Name", '<input type="text" id="req-name" name="name" required placeholder="Your name" autocomplete="name">') +
     field("req-email", "Email", '<input type="email" id="req-email" name="email" required placeholder="you@example.com" autocomplete="email">') +
@@ -118,6 +121,7 @@ export function renderAbout(content) {
   const meta = [a.location, a.response_time].filter(Boolean).map((t) => "<br>" + esc(t)).join("");
   const inner = (named ? "" : '<h1 class="visually-hidden">' + esc(a.title) + "</h1>") +
     '<div class="cats about-cards">' + cards + "</div>" +
+    requestCtaHtml("Have something that needs restoring?") +
     '<p class="about-contact">' + (a.contact.heading ? esc(a.contact.heading) + " " : "") + mailto(email) + meta + "</p>";
   const first = a.sections.find((s) => s.body);
   return shell(content, { bodyClass: "home about-page",

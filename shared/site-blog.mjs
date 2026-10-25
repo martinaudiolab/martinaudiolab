@@ -23,6 +23,15 @@ export function blogHeroHtml(content, key, label) {
 }
 
 const HERO_BLOCK = /<!--hero-->[\s\S]*?<!--\/hero-->/;
+const CHIPS_BLOCK = /<!--chips-->[\s\S]*?<!--\/chips-->/g;
+
+/** The row of blog page buttons (All, then each section) with the current page highlighted. key: "all" or a section key. */
+export function blogChipsHtml(key) {
+  const chip = (href, label, on) => '<a href="' + esc(pageUrl(href)) + '"' + (on ? ' class="on" aria-current="page"' : "") + ">" + esc(label) + "</a>";
+  return '<!--chips--><div class="blog-sections" role="navigation" aria-label="Blog sections">' +
+    chip(BLOG_HUB.href, "All", key === "all") + SECTIONS.map((s) => chip(s.folder + "/index.html", s.name, s.key === key)).join("") +
+    "</div><!--/chips-->";
+}
 const PRELOAD_BLOCK = /<!--hero-preload-->[\s\S]*?<!--\/hero-preload-->/;
 
 /** The preload hint for a blog page's first banner picture, wrapped in markers so it can be replaced. */
@@ -53,6 +62,9 @@ export function applyBlogHero(html, content, key, label) {
       .replace(/<p class="intro">[\s\S]*?<\/p>\s*/, "");
     out = out.slice(0, start) + head + out.slice(end);
   }
+  // the blog page buttons go first in <main>: taken out wherever they are (the publisher adds a new listing at the
+  // top of <main>, so it can land above them) and put back at the start
+  out = out.replace(CHIPS_BLOCK, "").replace(/<main>/, () => "<main>" + blogChipsHtml(key));
   if (!/assets\/js\/hero\.js/.test(out)) {
     const script = '<script src="' + jsUrl("hero.js") + '" defer></script>';
     const nav = out.match(/<script[^>]*nav\.js[^>]*><\/script>/);
@@ -80,7 +92,6 @@ export function renderBlogHub(content, indexByFolder) {
   // newest first; ties keep the section order, then the section's own order
   posts.sort((a, b) => timeOf(b.post.date) - timeOf(a.post.date) || a.order - b.order || a.position - b.position);
 
-  const chips = SECTIONS.map((s) => '<a href="' + esc(pageUrl(s.folder + "/index.html")) + '">' + esc(s.name) + "</a>").join("");
   const cards = posts.map(({ post, section }) => {
     const href = pageUrl(section.folder + "/" + post.slug + ".html");
     // a listing's thumbnail may be a legacy "../images/..." path; either way the hub wants the absolute address
@@ -91,9 +102,8 @@ export function renderBlogHub(content, indexByFolder) {
     });
   });
 
-  // the title is on the banner above; the page starts with the section chips
-  const inner = '<div class="blog-sections" role="navigation" aria-label="Blog sections">' + chips + "</div>" +
-    (cards.length ? cards.join("") : "<p>No posts yet. Check back soon.</p>");
+  // the title is on the banner above; the page starts with the blog page buttons, "All" highlighted
+  const inner = blogChipsHtml("all") + (cards.length ? cards.join("") : "<p>No posts yet. Check back soon.</p>");
 
   return shell(content, {
     title: BLOG_HUB.name + " - " + content.site_name,

@@ -55,6 +55,19 @@
     if (image.complete && image.naturalWidth === 0 && image.getAttribute("src")) retryLater(image);
   });
 
+  // The later slides are requested once the page itself has loaded (their address waits in data-src), so the
+  // first picture and the rest of the page get the connection to themselves.
+  function requestRest() {
+    slides.forEach(function (image) {
+      var address = image.getAttribute("data-src");
+      if (!address) return;
+      image.removeAttribute("data-src");
+      image.src = address;
+    });
+  }
+  if (document.readyState === "complete") requestRest();
+  else window.addEventListener("load", requestRest);
+
   if (slides.length < 2) return;
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 

@@ -99,3 +99,40 @@ const files = renderShop(data, { content });
   assert.equal(shown(), "/images/shop/a.jpg", "steps through all of the listing's photos");
   console.log("ok 5: thumbnails swap the photo and the enlarged view steps through them");
 }
+
+// ---- 6. the "next step" block: after a post (built pages), on the About page and on a listing -------------------
+{
+  const { requestCtaHtml } = await import(ROOT_URL + "shared/site-footer.mjs");
+  const block = new JSDOM(requestCtaHtml("Heading here")).window.document.querySelector("aside.next-step");
+  assert.equal(block.querySelector("h2").textContent, "Heading here");
+  assert.equal(block.querySelector("a.next-btn").getAttribute("href"), "/request");
+  const page = (rel) => fs.readFileSync(path.join(ROOT, "site", rel), "utf8");
+  const once = (html) => (html.match(/<!--cta-->/g) || []).length;
+  // every built post page has it once, after the older/newer links and before the footer
+  for (const folder of ["stereo", "radio", "test-equipment"]) {
+    for (const name of fs.readdirSync(path.join(ROOT, "site", folder)).filter((n) => n.endsWith(".html") && n !== "index.html")) {
+      const html = page(folder + "/" + name);
+      assert.equal(once(html), 1, folder + "/" + name);
+      assert.ok(html.indexOf("<!--/pager-->") < html.indexOf("<!--cta-->") && html.indexOf("<!--/cta-->") < html.indexOf('<footer class="site-foot">'), folder + "/" + name + ": after the pager");
+    }
+  }
+  const about = page("about.html");
+  assert.equal(once(about), 1);
+  assert.ok(about.indexOf("about-cards") < about.indexOf("<!--cta-->") && about.indexOf("<!--/cta-->") < about.indexOf('class="about-contact"'), "About: between the cards and the contact line");
+  const listing = files["radio.html"];
+  assert.equal(once(listing), 1);
+  assert.ok(listing.indexOf("</article>") < listing.indexOf("<!--cta-->"), "listing: after the item");
+  assert.ok(!files["index.html"].includes("<!--cta-->"), "not on the shop's own page");
+  console.log("ok 6: the request block ends posts, the About page and listings");
+}
+
+// ---- 7. the Request page intro: paragraphs, with a "Note:" one highlighted ----------------------------------------
+{
+  const { renderRequest } = await import(ROOT_URL + "shared/site-render.mjs");
+  const html = renderRequest(normalizeContent({ request: { intro: "First paragraph.\n\nNote: I do not work on cassette decks." } }));
+  const d = new JSDOM(html).window.document;
+  const ps = Array.from(d.querySelectorAll(".request-wrap .intro p"));
+  assert.deepEqual(ps.map((p) => p.className), ["", "intro-note"]);
+  assert.equal(ps[1].textContent, "Note: I do not work on cassette decks.");
+  console.log("ok 7: request intro note highlighted");
+}

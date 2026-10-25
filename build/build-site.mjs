@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { CONTENT_PATH, normalizeContent } from "../shared/site-content.mjs";
 import { renderAbout, renderHome, renderRequest, applyGlobals } from "../shared/site-render.mjs";
 import { isShopPage, renderShop, validateShop } from "../shared/shop-render.mjs";
-import { addPostHero, applyPostChrome, extractPostImages, lazyImages, listingsOf, normalizeCards, postBodyHtml, excerptOf } from "../shared/site-posts.mjs";
+import { addPostHero, applyPostChrome, extractPostImages, lazyImages, listingsOf, normalizeCards, postBodyHtml, excerptOf, trimTrailingBlank } from "../shared/site-posts.mjs";
 import { BLOG_HUB, SECTIONS } from "../shared/sections.mjs";
 import { applyBlogHero, applyPostBar, renderBlogHub } from "../shared/site-blog.mjs";
 
@@ -110,7 +110,7 @@ for (const section of SECTIONS) {
         const bytes = Buffer.from(file.data, "base64");
         if (!fs.existsSync(target) || !fs.readFileSync(target).equals(bytes)) fs.writeFileSync(target, bytes);
       }
-      const lighter = lazyImages(images.html);
+      const lighter = lazyImages(trimTrailingBlank(images.html));
       if (lighter !== body) postAfter = postAfter.replace(body, () => lighter);
     }
     postAfter = addPostHero(postAfter, folder, m[1], (p) => fs.existsSync(path.join(SITE, p)));

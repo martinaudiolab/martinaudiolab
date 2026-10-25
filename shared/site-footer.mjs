@@ -27,6 +27,17 @@ export function footerHtml(content) {
 }
 
 /**
+ * The "next step" block at the end of a post, the About page and a shop listing: points the reader to the request
+ * form. Wrapped in markers so a build can replace it. `heading` varies by page.
+ */
+export function requestCtaHtml(heading) {
+  return '<!--cta--><aside class="next-step" aria-label="Request a restoration"><p class="next-kicker">Restorations</p>' +
+    "<h2>" + esc(heading || "Have something that needs restoring?") + "</h2>" +
+    "<p>Send the details of your unit and I will get back to you about what it needs.</p>" +
+    '<a class="next-btn" href="' + pageUrl("request.html") + '">Request a Restoration</a></aside><!--/cta-->';
+}
+
+/**
  * Puts the current footer on an existing page: replaces the one already there, or adds it after the page's
  * content (after </main>, or before the scripts at the end of the body).
  */

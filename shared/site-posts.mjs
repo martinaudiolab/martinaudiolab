@@ -2,6 +2,7 @@
 // older/newer links. Pure string code shared by the publisher Worker and build/build-site.mjs.
 
 import { BLOG_HUB, sectionByFolder } from "./sections.mjs";
+import { requestCtaHtml } from "./site-footer.mjs";
 import { pageUrl } from "./site-urls.mjs";
 
 /** Where a post's own thumbnail is stored, relative to site/. */
@@ -32,6 +33,11 @@ export function extractPostImages(html, folder, slug) {
     return before + "/" + path + '"';
   });
   return { html: out, files };
+}
+
+/** Drops the blank lines the editor leaves at the end of a post (empty paragraphs, stray line breaks), which showed as a gap before the older/newer links. */
+export function trimTrailingBlank(bodyHtml) {
+  return String(bodyHtml).replace(/(?:\s|<br\s*\/?>|<p>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>)+$/i, "");
 }
 
 /** Photos in a post's text load as they come into view (the picture under the title is outside the text and loads at once). */
@@ -201,6 +207,7 @@ export function addPostHero(postHtml, folder, slug, exists) {
 
 const CRUMBS_RE = /<!--crumbs-->[\s\S]*?<!--\/crumbs-->/;
 const PAGER_RE = /<!--pager-->[\s\S]*?<!--\/pager-->/;
+const CTA_RE = /<!--cta-->[\s\S]*?<!--\/cta-->/;
 
 /** Home > Restoration Blog > Section > Post title (a post page lives one folder down, so links go up first). */
 export function crumbsHtml(sectionName, titleHtml, folder) {
@@ -241,5 +248,10 @@ export function applyPostChrome(postHtml, folder, slug, listings) {
   const pager = at < 0 ? "<!--pager--><!--/pager-->" : pagerHtml(listings[at - 1] || null, listings[at + 1] || null, folder);
   if (PAGER_RE.test(out)) out = out.replace(PAGER_RE, () => pager);
   else out = out.replace("</article>", () => "</article>" + pager);
+
+  // then the next step: the request form
+  const cta = requestCtaHtml("Have something like this that needs restoring?");
+  if (CTA_RE.test(out)) out = out.replace(CTA_RE, () => cta);
+  else out = out.replace(PAGER_RE, (block) => block + cta);
   return out;
 }

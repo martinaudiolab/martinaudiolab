@@ -1,7 +1,7 @@
 // Pure shop rendering shared by build/build-shop.mjs (local CLI) and
 // publisher/worker.js (the shop builder). No file-system or runtime APIs here.
 
-import { footerHtml } from "./site-footer.mjs";
+import { footerHtml, requestCtaHtml } from "./site-footer.mjs";
 import { NAV_SCRIPT, navHtml } from "./site-nav.mjs";
 import { normalizeContent } from "./site-content.mjs";
 import { heroHtml, heroPreloadHtml } from "./site-render.mjs";
@@ -108,7 +108,8 @@ export function renderShop(data, options) {
       (it.category ? '<div class="meta">' + esc(it.category) + (STATUS[st] ? " &nbsp;|&nbsp; " + STATUS[st] : "") + "</div>" : "") +
       '<div class="shop-price big">' + priceHtml(it) + "</div>" +
       (it.sample ? '<p class="shop-note">Sample listing. Replace or remove it before the shop goes live.</p>' : "") +
-      '<div class="body">' + paras(it.description) + "</div>" + specs + action + "</div></article>";
+      '<div class="body">' + paras(it.description) + "</div>" + specs + action + "</div></article>" +
+      requestCtaHtml("Have a unit of your own that needs work?");
   };
 
   const files = {};

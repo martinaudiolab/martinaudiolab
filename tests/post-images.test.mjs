@@ -61,3 +61,17 @@ const { extractPostImages, lazyImages, postImageDir, postBodyHtml } = await impo
   }
   console.log("ok 3: no post page embeds its photos");
 }
+
+// ---- 4. blank lines the editor leaves at the end of a post are dropped ---------------------------------------------
+{
+  const { trimTrailingBlank } = await import(ROOT_URL + "shared/site-posts.mjs");
+  assert.equal(trimTrailingBlank('<p>Text</p><figure>x</figure><p><br></p><br>\n<p>&nbsp;</p>'), "<p>Text</p><figure>x</figure>");
+  assert.equal(trimTrailingBlank("<p>A</p><br><p>B</p>"), "<p>A</p><br><p>B</p>", "blank lines between paragraphs stay");
+  for (const folder of ["stereo", "radio", "test-equipment"]) {
+    for (const name of fs.readdirSync(path.join(ROOT, "site", folder)).filter((n) => n.endsWith(".html") && n !== "index.html")) {
+      const body = postBodyHtml(fs.readFileSync(path.join(ROOT, "site", folder, name), "utf8"));
+      assert.equal(body, trimTrailingBlank(body), folder + "/" + name + " ends without blank lines");
+    }
+  }
+  console.log("ok 4: posts end without trailing blank lines");
+}

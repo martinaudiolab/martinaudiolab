@@ -43,7 +43,15 @@ const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
   const banner = once.slice(once.indexOf("<!--hero-->"), once.indexOf("<!--/hero-->"));
   assert.ok(banner.includes('<div class="hero-text"><h1>Radio Repair</h1></div>'), "the title is on the banner");
   assert.equal((once.match(/<h1/g) || []).length, 1, "one heading on the page");
-  assert.ok(once.includes("<main></main>") && !once.includes('class="intro"'), "the heading and intro paragraph below the banner are removed");
+  assert.ok(/<main><!--chips-->[\s\S]*?<!--\/chips--><\/main>/.test(once) && !once.includes('class="intro"'), "the heading and intro paragraph below the banner are removed; the blog page buttons start the page");
+  // the blog page buttons: All plus each section, this section highlighted, kept first and never duplicated
+  const chips = once.match(/<div class="blog-sections"[\s\S]*?<\/div>/)[0];
+  assert.deepEqual(Array.from(chips.matchAll(/<a href="([^"]+)"/g)).map((m) => m[1]), ["/blog/", "/stereo/", "/radio/", "/test-equipment/"]);
+  assert.ok(chips.includes('<a href="/radio/" class="on" aria-current="page">Radio Repair</a>') && (chips.match(/class="on"/g) || []).length === 1, "this section is highlighted");
+  const listingFirst = once.replace("<main>", '<main><article class="post post-card"><h2><a href="new.html">New</a></h2></article>');
+  const rebuilt = applyBlogHero(listingFirst, content, "radio", "Radio Repair");
+  assert.equal((rebuilt.match(/<!--chips-->/g) || []).length, 1, "never duplicated");
+  assert.ok(rebuilt.indexOf("<!--chips-->") < rebuilt.indexOf("new.html"), "moved back above a listing the publisher added first");
   assert.ok(once.indexOf("assets/js/hero.js") > -1 && once.indexOf("assets/js/hero.js") < once.indexOf("nav.js"), "slideshow script added before nav.js");
   assert.equal(applyBlogHero(once, content, "radio", "Radio Repair"), once, "idempotent");
   // changing the banner replaces it rather than adding another
